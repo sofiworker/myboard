@@ -1,0 +1,47 @@
+{
+  "toolbar": [
+    { "type": "ACTION", "label": "Settings", "action": { "type": "ShowSettings" } }
+  ],
+  "rows": [
+    [
+      { "type": "CHARACTER", "label": "1", "action": { "type": "InsertText", "text": "1" } },
+      { "type": "CHARACTER", "label": "2", "action": { "type": "InsertText", "text": "2" } },
+      { "type": "CHARACTER", "label": "3", "action": { "type": "InsertText", "text": "3" } },
+      { "type": "CHARACTER", "label": "4", "action": { "type": "InsertText", "text": "4" } },
+      { "type": "CHARACTER", "label": "5", "action": { "type": "InsertText", "text": "5" } },
+      { "type": "CHARACTER", "label": "6", "action": { "type": "InsertText", "text": "6" } },
+      { "type": "CHARACTER", "label": "7", "action": { "type": "InsertText", "text": "7" } },
+      { "type": "CHARACTER", "label": "8", "action": { "type": "InsertText", "text": "8" } },
+      { "type": "CHARACTER", "label": "9", "action": { "type": "InsertText", "text": "9" } },
+      { "type": "CHARACTER", "label": "0", "action": { "type": "InsertText", "text": "0" } }
+    ],
+    [
+      { "type": "CHARACTER", "label": "@", "action": { "type": "InsertText", "text": "@" } },
+      { "type": "CHARACTER", "label": "#", "action": { "type": "InsertText", "text": "#" } },
+      { "type": "CHARACTER", "label": "$", "action": { "type": "InsertText", "text": "$" } },
+      { "type": "CHARACTER", "label": "%", "action": { "type": "InsertText", "text": "%" } },
+      { "type": "CHARACTER", "label": "&", "action": { "type": "InsertText", "text": "&" } },
+      { "type": "CHARACTER", "label": "*", "action": { "type": "InsertText", "text": "*" } },
+      { "type": "CHARACTER", "label": "-", "action": { "type": "InsertText", "text": "-" } },
+      { "type": "CHARACTER", "label": "+", "action": { "type": "InsertText", "text": "+" } },
+      { "type": "CHARACTER", "label": "(", "action": { "type": "InsertText", "text": "(" } },
+      { "type": "CHARACTER", "label": ")", "action": { "type": "InsertText", "text": ")" } }
+    ],
+    [
+      { "type": "ACTION", "label": "ABC", "action": { "type": "SwitchToLayout", "layout": "qwerty" }, "weight": 1.5 },
+      { "type": "CHARACTER", "label": "!", "action": { "type": "InsertText", "text": "!" } },
+      { "type": "CHARACTER", "label": "\"", "action": { "type": "InsertText", "text": "\"" } },
+      { "type": "CHARACTER", "label": "'", "action": { "type": "InsertText", "text": "'" } },
+      { "type": "CHARACTER", "label": ":", "action": { "type": "InsertText", "text": ":" } },
+      { "type": "CHARACTER", "label": ";", "action": { "type": "InsertText", "text": ";" } },
+      { "type": "CHARACTER", "label": "/", "action": { "type": "InsertText", "text": "/" } },
+      { "type": "CHARACTER", "label": "?", "action": { "type": "InsertText", "text": "?" } },
+      { "type": "ACTION", "label": "Del", "action": { "type": "Delete" }, "weight": 1.5 }
+    ],
+    [
+      { "type": "CHARACTER", "label": ",", "action": { "type": "InsertText", "text": "," }, "weight": 2 },
+      { "type": "ACTION", "label": "Space", "action": { "type": "Space" }, "weight": 6 },
+      { "type": "ACTION", "label": ".", "action": { "type": "InsertText", "text": "." }, "weight": 2 }
+    ]
+  ]
+}
