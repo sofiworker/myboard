@@ -15,7 +15,7 @@ class SuggestionEngine(
      * @param term 要为其获取建议的词条。
      * @return 返回一个经过处理和排序的候选词列表。
      */
-    fun getSuggestions(term: String): List<Candidate> {
+    suspend fun getSuggestions(term: String): List<Candidate> {
         // 1. 从词库管理器获取原始候选词
         var candidates = dictionaryManager.search(term)
 

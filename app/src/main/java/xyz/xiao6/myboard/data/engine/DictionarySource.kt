@@ -11,5 +11,5 @@ interface DictionarySource {
      * @param term 要搜索的词条 (例如, 用户的输入 "nihao")。
      * @return 返回一个匹配的候选词列表。
      */
-    fun search(term: String): List<Candidate>
+    suspend fun search(term: String): List<Candidate>
 }

@@ -33,7 +33,7 @@ fun CandidateView(
         modifier = Modifier
             .fillMaxWidth()
             .height(48.dp)
-            .background(theme.suggestionsBackground.toColor())
+            .background(theme.suggestionsBackground.color)
             .padding(horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -44,7 +44,7 @@ fun CandidateView(
             items(suggestions) {
                 Text(
                     text = it,
-                    color = theme.suggestionsForeground.toColor(),
+                    color = theme.suggestionsForeground.color,
                     modifier = Modifier.clickable { onCandidateClick(it) }
                 )
             }

@@ -3,12 +3,16 @@ package xyz.xiao6.myboard
 import android.annotation.SuppressLint
 import android.content.Intent
 import android.inputmethodservice.InputMethodService
+import android.view.inputmethod.EditorInfo
 import android.view.KeyEvent
 import android.view.View
 import androidx.activity.OnBackPressedDispatcher
 import androidx.activity.OnBackPressedDispatcherOwner
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
+import androidx.core.view.doOnAttach
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
@@ -16,14 +20,18 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.ViewModelStoreOwner
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.setViewTreeLifecycleOwner
+import androidx.lifecycle.setViewTreeViewModelStoreOwner
 import androidx.savedstate.SavedStateRegistry
 import androidx.savedstate.SavedStateRegistryController
 import androidx.savedstate.SavedStateRegistryOwner
+import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import kotlinx.coroutines.launch
 import xyz.xiao6.myboard.data.model.KeyAction
 import xyz.xiao6.myboard.data.voice.VoiceInputManager
 import xyz.xiao6.myboard.ui.keyboard.KeyboardScreen
 import xyz.xiao6.myboard.ui.keyboard.KeyboardViewModel
+import xyz.xiao6.myboard.ui.theme.MyboardTheme
 
 @SuppressLint("RestrictedApi")
 class MyboardImeService : InputMethodService(), ViewModelStoreOwner, LifecycleOwner,
@@ -39,7 +47,14 @@ class MyboardImeService : InputMethodService(), ViewModelStoreOwner, LifecycleOw
     override fun onCreate() {
         super.onCreate()
         savedStateRegistryController = SavedStateRegistryController.create(this)
+        savedStateRegistryController.performAttach()
         savedStateRegistryController.performRestore(null)
+        // Install lifecycle/saved-state owners on the IME window root so Compose can find them.
+        window?.window?.decorView?.let { decorView ->
+            decorView.setViewTreeLifecycleOwner(this)
+            decorView.setViewTreeViewModelStoreOwner(this)
+            decorView.setViewTreeSavedStateRegistryOwner(this)
+        }
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_CREATE)
         viewModel = ViewModelProvider.AndroidViewModelFactory.getInstance(application)
             .create(KeyboardViewModel::class.java)
@@ -54,10 +69,36 @@ class MyboardImeService : InputMethodService(), ViewModelStoreOwner, LifecycleOw
     override fun onCreateInputView(): View {
         val view = ComposeView(this)
         view.setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
+        view.setViewTreeLifecycleOwner(this)
+        view.setViewTreeViewModelStoreOwner(this)
+        view.setViewTreeSavedStateRegistryOwner(this)
+        // The IME window can be recreated; make sure the root keeps the owners Compose expects.
+        view.doOnAttach {
+            it.rootView?.let { root ->
+                root.setViewTreeLifecycleOwner(this)
+                root.setViewTreeViewModelStoreOwner(this)
+                root.setViewTreeSavedStateRegistryOwner(this)
+            }
+        }
         view.setContent {
-            KeyboardScreen(viewModel)
+            val themeData by viewModel.themeData.collectAsState()
+            MyboardTheme(themeData = themeData) {
+                KeyboardScreen(viewModel)
+            }
         }
         return view
+    }
+
+    override fun onStartInputView(info: EditorInfo?, restarting: Boolean) {
+        super.onStartInputView(info, restarting)
+        lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_START)
+        lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_RESUME)
+    }
+
+    override fun onFinishInputView(finishingInput: Boolean) {
+        super.onFinishInputView(finishingInput)
+        lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_PAUSE)
+        lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_STOP)
     }
 
     private fun handleKeyAction(action: KeyAction) {

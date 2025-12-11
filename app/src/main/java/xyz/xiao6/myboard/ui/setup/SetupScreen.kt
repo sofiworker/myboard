@@ -1,7 +1,11 @@
 package xyz.xiao6.myboard.ui.setup
 
+import android.app.Activity
 import android.content.Context
 import android.content.Intent
+import android.database.ContentObserver
+import android.os.Handler
+import android.os.Looper
 import android.provider.Settings
 import android.view.inputmethod.InputMethodManager
 import androidx.compose.foundation.layout.Column
@@ -21,24 +25,71 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import xyz.xiao6.myboard.R
 import xyz.xiao6.myboard.SettingsActivity
+import xyz.xiao6.myboard.util.isImeEnabled
+import xyz.xiao6.myboard.util.isImeSelected
 
+@Preview
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SetupScreen() {
     val context = LocalContext.current
-    var isImeEnabled by remember { mutableStateOf(isImeEnabled(context)) }
-    var isImeSelected by remember { mutableStateOf(isImeSelected(context)) }
+    var imeEnabled by remember { mutableStateOf(isImeEnabled(context)) }
+    var imeSelected by remember { mutableStateOf(isImeSelected(context)) }
+    var hasNavigated by remember { mutableStateOf(false) }
+
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                imeEnabled = isImeEnabled(context)
+                imeSelected = isImeSelected(context)
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
+    DisposableEffect(context) {
+        val resolver = context.contentResolver
+        val observer = object : ContentObserver(Handler(Looper.getMainLooper())) {
+            override fun onChange(selfChange: Boolean) {
+                imeEnabled = isImeEnabled(context)
+                imeSelected = isImeSelected(context)
+            }
+        }
+        resolver.registerContentObserver(Settings.Secure.getUriFor(Settings.Secure.DEFAULT_INPUT_METHOD), false, observer)
+        resolver.registerContentObserver(Settings.Secure.getUriFor(Settings.Secure.ENABLED_INPUT_METHODS), false, observer)
+        onDispose {
+            resolver.unregisterContentObserver(observer)
+        }
+    }
+
+    LaunchedEffect(imeEnabled, imeSelected, hasNavigated) {
+        if (imeEnabled && imeSelected && !hasNavigated) {
+            hasNavigated = true
+            context.startActivity(Intent(context, SettingsActivity::class.java))
+            (context as? Activity)?.finish()
+        }
+    }
 
     Scaffold(
         topBar = { TopAppBar(title = { Text(stringResource(R.string.setup_wizard)) }) }
@@ -46,7 +97,7 @@ fun SetupScreen() {
         Column(modifier = Modifier.padding(it).padding(16.dp)) {
             SetupStep(
                 title = stringResource(R.string.step_1_enable_ime),
-                isCompleted = isImeEnabled
+                isCompleted = imeEnabled
             ) {
                 Button(onClick = { context.startActivity(Intent(Settings.ACTION_INPUT_METHOD_SETTINGS)) }) {
                     Text(stringResource(R.string.go_to_settings))
@@ -57,8 +108,8 @@ fun SetupScreen() {
 
             SetupStep(
                 title = stringResource(R.string.step_2_select_ime),
-                isCompleted = isImeSelected,
-                isEnabled = isImeEnabled
+                isCompleted = imeSelected,
+                isEnabled = imeEnabled
             ) {
                 Button(onClick = { (context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager).showInputMethodPicker() }) {
                     Text(stringResource(R.string.select_input_method))
@@ -67,9 +118,13 @@ fun SetupScreen() {
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            if (isImeEnabled && isImeSelected) {
+            if (imeEnabled && imeSelected && !hasNavigated) {
                 Button(
-                    onClick = { context.startActivity(Intent(context, SettingsActivity::class.java)) },
+                    onClick = {
+                        hasNavigated = true
+                        context.startActivity(Intent(context, SettingsActivity::class.java))
+                        (context as? Activity)?.finish()
+                    },
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(stringResource(R.string.finish_setup))
@@ -96,14 +151,4 @@ private fun SetupStep(title: String, isCompleted: Boolean, isEnabled: Boolean = 
             }
         }
     }
-}
-
-private fun isImeEnabled(context: Context): Boolean {
-    val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
-    return imm.enabledInputMethodList.any { it.packageName == context.packageName }
-}
-
-private fun isImeSelected(context: Context): Boolean {
-    val currentIme = Settings.Secure.getString(context.contentResolver, Settings.Secure.DEFAULT_INPUT_METHOD)
-    return currentIme.startsWith(context.packageName)
 }

@@ -5,7 +5,7 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 
-@Database(entities = [ClipboardItem::class, UserWord::class], version = 2) // Bump version to 2
+@Database(entities = [ClipboardItem::class, UserWord::class], version = 2, exportSchema = false) // Bump version to 2
 abstract class AppDatabase : RoomDatabase() {
 
     abstract fun clipboardDao(): ClipboardDao

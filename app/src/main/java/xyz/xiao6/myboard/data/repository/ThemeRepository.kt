@@ -17,6 +17,7 @@ class ThemeRepository(private val context: Context) {
         val baseTheme = json.decodeFromString(ThemeData.serializer(), jsonString)
 
         return baseTheme.copy(
+            name = baseTheme.name ?: themeName,
             backgroundImageUri = prefs.getString("background_image_uri", null),
             backgroundAlpha = prefs.getFloat("background_alpha", 1.0f)
         )

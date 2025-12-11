@@ -1,9 +1,10 @@
 package xyz.xiao6.myboard.ui.keyboard
 
 import android.app.Application
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.google.mlkit.vision.digitalink.Ink
+import com.google.mlkit.vision.digitalink.recognition.Ink
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -32,6 +33,7 @@ import xyz.xiao6.myboard.data.repository.KeyboardRepository
 import xyz.xiao6.myboard.data.repository.SettingsRepository
 import xyz.xiao6.myboard.data.repository.ThemeRepository
 import xyz.xiao6.myboard.data.voice.VoiceInputManager
+import java.util.Locale
 
 class KeyboardViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -107,11 +109,17 @@ class KeyboardViewModel(application: Application) : AndroidViewModel(application
                 if (text.isBlank()) {
                     _suggestions.value = emptyList()
                 } else {
-                    _suggestions.value = suggestionEngine.getSuggestions(text).map { it.text }
+                    viewModelScope.launch {
+                        _suggestions.value = suggestionEngine.getSuggestions(text).map { it.text }
+                    }
                 }
             }
         }
-        handwritingRecognizer.downloadModel("en") { }
+        handwritingRecognizer.downloadModel(Locale.getDefault().toLanguageTag()) { success ->
+            if (!success) {
+                Log.w("KeyboardViewModel", "Failed to prepare handwriting model; handwriting suggestions disabled.")
+            }
+        }
     }
 
     fun commitSuggestion(text: String) {

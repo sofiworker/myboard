@@ -1,6 +1,8 @@
 package xyz.xiao6.myboard.data.engine
 
 import android.content.Context
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.io.IOException
 
 /**
@@ -9,22 +11,24 @@ import java.io.IOException
 class AssetDictionarySource(private val context: Context, private val assetPath: String) : DictionarySource {
 
     private val words = mutableListOf<String>()
+    private var isLoaded = false
 
-    init {
-        loadWords()
-    }
-
-    private fun loadWords() {
-        try {
-            context.assets.open(assetPath).bufferedReader().useLines { lines ->
-                lines.forEach { words.add(it) }
+    private suspend fun loadWords() {
+        if (isLoaded) return
+        withContext(Dispatchers.IO) {
+            try {
+                context.assets.open(assetPath).bufferedReader().useLines { lines ->
+                    lines.forEach { words.add(it) }
+                }
+                isLoaded = true
+            } catch (e: IOException) {
+                e.printStackTrace()
             }
-        } catch (e: IOException) {
-            e.printStackTrace()
         }
     }
 
-    override fun search(term: String): List<Candidate> {
+    override suspend fun search(term: String): List<Candidate> {
+        loadWords()
         if (term.isBlank()) return emptyList()
 
         return words

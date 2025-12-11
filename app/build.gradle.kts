@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.kotlin.compose)
     id("com.google.devtools.ksp")
 }
 
@@ -38,9 +39,6 @@ android {
     kotlinOptions {
         jvmTarget = "11"
     }
-    buildFeatures {
-        compose = true
-    }
     composeOptions {
         kotlinCompilerExtensionVersion = libs.versions.composeCompiler.get()
     }
@@ -65,8 +63,7 @@ dependencies {
     implementation(libs.androidx.material3)
     implementation(libs.kotlinx.serialization.json)
     
-    // 修正版本以匹配项目的 Kotlin 版本
-    implementation("com.google.mlkit:digital-ink-recognition:18.1.0")
+    implementation(libs.digital.ink.recognition)
 
     // Room - 修正版本
     implementation("androidx.room:room-runtime:2.6.1")

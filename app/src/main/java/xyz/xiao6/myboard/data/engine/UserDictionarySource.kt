@@ -1,7 +1,6 @@
 package xyz.xiao6.myboard.data.engine
 
 import android.content.Context
-import kotlinx.coroutines.runBlocking
 import xyz.xiao6.myboard.data.db.AppDatabase
 
 /**
@@ -11,14 +10,11 @@ class UserDictionarySource(context: Context) : DictionarySource {
 
     private val userWordDao = AppDatabase.getDatabase(context).userWordDao()
 
-    override fun search(term: String): List<Candidate> {
+    override suspend fun search(term: String): List<Candidate> {
         if (term.isBlank()) return emptyList()
 
-        // Note: This is a blocking call, consider making the DictionarySource interface suspendable
-        return runBlocking {
-            userWordDao.search(term).map { 
-                Candidate(text = it.text, source = "User Dictionary", frequency = it.frequency.toDouble())
-            }
+        return userWordDao.search(term).map { 
+            Candidate(text = it.text, source = "User Dictionary", frequency = it.frequency.toDouble())
         }
     }
     

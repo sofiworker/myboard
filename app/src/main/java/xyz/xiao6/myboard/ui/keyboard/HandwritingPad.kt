@@ -15,7 +15,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
-import com.google.mlkit.vision.digitalink.Ink
+import com.google.mlkit.vision.digitalink.recognition.Ink
 
 @Composable
 fun HandwritingPad(
