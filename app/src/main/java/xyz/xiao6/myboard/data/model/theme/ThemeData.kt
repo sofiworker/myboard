@@ -5,14 +5,17 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class ThemeData(
-    @Serializable(with = ColorSerializer::class)
-    val keyboardBackground: Color,
-    @Serializable(with = ColorSerializer::class)
-    val keyBackground: Color,
-    @Serializable(with = ColorSerializer::class)
-    val keyForeground: Color,
-    @Serializable(with = ColorSerializer::class)
-    val suggestionsBackground: Color,
-    @Serializable(with = ColorSerializer::class)
-    val suggestionsForeground: Color,
+    val name: String,
+    val keyboardBackground: SerializableColor,
+    val keyBackground: SerializableColor,
+    val keyForeground: SerializableColor,
+    val suggestionsBackground: SerializableColor,
+    val suggestionsForeground: SerializableColor,
+    val backgroundImageUri: String? = null,
+    val backgroundAlpha: Float = 1.0f
 )
+
+@Serializable
+data class SerializableColor(val red: Int, val green: Int, val blue: Int, val alpha: Int) {
+    fun toColor(): Color = Color(red, green, blue, alpha)
+}

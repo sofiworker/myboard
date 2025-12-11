@@ -300,13 +300,27 @@
 - **任务 1.3:** 实现基础 MVI/MVVM 架构用于状态管理
 - **任务 1.4:** 使用 Jetpack Compose 创建一个写死的键盘布局
 
-### 第二阶段：输入引擎与词库功能 (已完成)
-- **任务 2.1:** 设计并实现输入处理逻辑 (字符映射, 按键事件)
-- **任务 2.2:** 开发词库管理系统 (加载, 查询)
-- **任务 2.3:** 实现基础的建议算法 (例如, 基于频率)
-- **任务 2.4:** 实现模糊拼音/拼写逻辑
-- **任务 2.5:** 将输入引擎与UI集成以显示建议
-- **任务 2.6:** 实现基本的词语组合和候选词选择
+### 第二阶段：输入与建议引擎 (重构与实现)
+- **任务 2.1: 架构重构 - 定义核心接口**
+  - 定义 `DictionarySource` 接口，包含 `search(term: String): List<Candidate>` 等方法。
+  - 定义 `SuggestionStrategy` 接口，包含 `process(candidates: List<Candidate>): List<Candidate>` 方法。
+
+- **任务 2.2: 词库管理系统**
+  - 实现 `AssetDictionarySource`，用于加载应用内置词库 (例如 `en_words.txt`)。
+  - 实现 `UserDictionarySource`，用于管理用户自定义词汇 (使用 `Room` 或 `SharedPreferences`)。
+  - 创建 `DictionaryManager`，用于统一管理和查询所有 `DictionarySource`。
+
+- **任务 2.3: 建议与排序算法**
+  - 实现 `FrequencySuggestionStrategy`，作为默认的、按词频排序的建议策略。
+  - 创建 `SuggestionEngine`，它将 `DictionaryManager` 和一个或多个 `SuggestionStrategy` 组合起来，生成最终的候选词列表。
+
+- **任务 2.4: 引擎集成**
+  - 重构 `KeyboardViewModel`，使其不再直接与 `DictionaryRepository` 交互，而是通过 `SuggestionEngine` 获取候选词。
+  - 实现基本的输入处理逻辑，将用户的按键序列转换为用于词库查询的字符串。
+
+- **任务 2.5: 词库更新机制 (基础)**
+  - 在“设置”中添加一个界面，用于显示当前词库版本。
+  - 实现一个基础的在线更新功能：点击按钮后，从指定的 URL 下载新的词库文件，并替换 `AssetDictionarySource` 或添加到 `RemoteDictionarySource` 中。
 
 ### 第三阶段：UI定制与高级功能 (已完成)
 - **任务 3.1:** 开发主题和皮肤系统 (颜色, 背景)

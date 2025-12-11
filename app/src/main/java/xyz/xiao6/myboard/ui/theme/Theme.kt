@@ -13,5 +13,7 @@ fun MyboardTheme(
         CompositionLocalProvider(LocalTheme provides themeData) {
             content()
         }
+    } else {
+        content()
     }
 }

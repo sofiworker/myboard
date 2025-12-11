@@ -1,0 +1,11 @@
+{
+  "type": "handwriting",
+  "name": "Handwriting (Full)",
+  "label": "HW Full",
+  "direction": "ltr",
+  "authors": [
+    "Gemini"
+  ],
+  "arrangement": [],
+  "mode": "full"
+}

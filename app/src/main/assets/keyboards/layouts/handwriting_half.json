@@ -1,0 +1,11 @@
+{
+  "type": "handwriting",
+  "name": "Handwriting (Half)",
+  "label": "HW Half",
+  "direction": "ltr",
+  "authors": [
+    "Gemini"
+  ],
+  "arrangement": [],
+  "mode": "half"
+}

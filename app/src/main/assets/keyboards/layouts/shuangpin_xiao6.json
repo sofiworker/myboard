@@ -1,0 +1,185 @@
+{
+  "type": "text/qwerty",
+  "name": "小6双拼",
+  "label": "小6",
+  "direction": "ltr",
+  "authors": [
+    "xiao6"
+  ],
+  "arrangement": [
+    {
+      "row": [
+        {
+          "width": 1,
+          "keys": [
+            {
+              "type": "char",
+              "value": "q"
+            },
+            {
+              "type": "char",
+              "value": "w"
+            },
+            {
+              "type": "char",
+              "value": "e"
+            },
+            {
+              "type": "char",
+              "value": "r"
+            },
+            {
+              "type": "char",
+              "value": "t"
+            },
+            {
+              "type": "char",
+              "value": "y"
+            },
+            {
+              "type": "char",
+              "value": "u"
+            },
+            {
+              "type": "char",
+              "value": "i"
+            },
+            {
+              "type": "char",
+              "value": "o"
+            },
+            {
+              "type": "char",
+              "value": "p"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "row": [
+        {
+          "width": 1,
+          "keys": [
+            {
+              "type": "char",
+              "value": "a"
+            },
+            {
+              "type": "char",
+              "value": "s"
+            },
+            {
+              "type": "char",
+              "value": "d"
+            },
+            {
+              "type": "char",
+              "value": "f"
+            },
+            {
+              "type": "char",
+              "value": "g"
+            },
+            {
+              "type": "char",
+              "value": "h"
+            },
+            {
+              "type": "char",
+              "value": "j"
+            },
+            {
+              "type": "char",
+              "value": "k"
+            },
+            {
+              "type": "char",
+              "value": "l"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "row": [
+        {
+          "width": 1.5,
+          "keys": [
+            {
+              "type": "shift",
+              "value": "shift"
+            }
+          ]
+        },
+        {
+          "width": 1,
+          "keys": [
+            {
+              "type": "char",
+              "value": "z"
+            },
+            {
+              "type": "char",
+              "value": "x"
+            },
+            {
+              "type": "char",
+              "value": "c"
+            },
+            {
+              "type": "char",
+              "value": "v"
+            },
+            {
+              "type": "char",
+              "value": "b"
+            },
+            {
+              "type": "char",
+              "value": "n"
+            },
+            {
+              "type": "char",
+              "value": "m"
+            }
+          ]
+        },
+        {
+          "width": 1.5,
+          "keys": [
+            {
+              "type": "delete",
+              "value": "delete"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "row": [
+        {
+          "width": 1,
+          "keys": [
+            {
+              "type": "symbol",
+              "value": "?123"
+            },
+            {
+              "type": "space",
+              "value": "space"
+            },
+            {
+              "type": "char",
+              "value": "."
+            },
+            {
+              "type": "enter",
+              "value": "enter"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

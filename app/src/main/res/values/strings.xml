@@ -1,3 +1,50 @@
 <resources>
     <string name="app_name">myboard</string>
+
+    <string name="settings">Settings</string>
+    <string name="theme">Theme</string>
+    <string name="select_theme">Select Theme</string>
+    <string name="keyboard">Keyboard</string>
+    <string name="layout">Layout</string>
+    <string name="select_keyboard_layout">Select keyboard layout</string>
+    <string name="height">Height</string>
+    <string name="adjust_keyboard_height">Adjust keyboard height</string>
+    <string name="behavior">Behavior</string>
+    <string name="long_press_for_symbols">Long press for symbols</string>
+    <string name="show_symbols_on_long_press">Show symbols on long press</string>
+    <string name="show_toolbar">Show toolbar</string>
+    <string name="display_a_toolbar_above_the_keyboard">Display a toolbar above the keyboard</string>
+    <string name="select_layout">Select Layout</string>
+    <string name="cancel">Cancel</string>
+
+    <string name="dictionary">Dictionary</string>
+    <string name="manage_dictionaries">Manage dictionaries</string>
+    <string name="voice">Voice</string>
+    <string name="voice_input">Voice input</string>
+    <string name="enable_voice_input">Enable voice input</string>
+
+    <string name="layout_manager">Layout Manager</string>
+    <string name="edit">Edit</string>
+    <string name="manage_layouts">Manage layouts</string>
+
+    <string name="setup_wizard">Setup Wizard</string>
+    <string name="step_1_enable_ime">Step 1: Enable Keyboard</string>
+    <string name="go_to_settings">Go to Settings</string>
+    <string name="step_2_select_ime">Step 2: Select Keyboard</string>
+    <string name="select_input_method">Select Input Method</string>
+    <string name="finish_setup">Finish &amp; Go to Settings</string>
+
+    <string name="dictionary_manager">Dictionary Manager</string>
+    <string name="update_dictionaries">Update Dictionaries</string>
+    <string name="installed_dictionaries">Installed Dictionaries</string>
+
+    <string name="one_handed_mode">One-handed mode</string>
+    <string name="one_handed_mode_off">Off</string>
+    <string name="one_handed_mode_left">Left</string>
+    <string name="one_handed_mode_right">Right</string>
+
+    <string name="floating_mode">Floating mode</string>
+    <string name="enable_floating_mode">Allow the keyboard to be moved freely</string>
+
+    <string name="fuzzy_pinyin_settings">Fuzzy Pinyin Settings</string>
 </resources>

@@ -1,0 +1,208 @@
+{
+  "type": "text/qwerty",
+  "name": "QWERTY",
+  "label": "EN",
+  "direction": "ltr",
+  "authors": [
+    "Gemini"
+  ],
+  "toolbar": [
+    { "type": "show_settings", "value": "⚙️" },
+    { "type": "system_clipboard", "value": "📋" }
+  ],
+  "arrangement": [
+    {
+      "row": [
+        {
+          "width": 1,
+          "keys": [
+            {
+              "type": "char",
+              "value": "q"
+            },
+            {
+              "type": "char",
+              "value": "w"
+            },
+            {
+              "type": "char",
+              "value": "e",
+              "popup": [
+                { "type": "char", "value": "é" },
+                { "type": "char", "value": "è" },
+                { "type": "char", "value": "ê" },
+                { "type": "char", "value": "ë" }
+              ]
+            },
+            {
+              "type": "char",
+              "value": "r"
+            },
+            {
+              "type": "char",
+              "value": "t"
+            },
+            {
+              "type": "char",
+              "value": "y"
+            },
+            {
+              "type": "char",
+              "value": "u"
+            },
+            {
+              "type": "char",
+              "value": "i"
+            },
+            {
+              "type": "char",
+              "value": "o"
+            },
+            {
+              "type": "char",
+              "value": "p"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "row": [
+        {
+          "width": 1,
+          "keys": [
+            {
+              "type": "char",
+              "value": "a"
+            },
+            {
+              "type": "char",
+              "value": "s"
+            },
+            {
+              "type": "char",
+              "value": "d"
+            },
+            {
+              "type": "char",
+              "value": "f"
+            },
+            {
+              "type": "char",
+              "value": "g"
+            },
+            {
+              "type": "char",
+              "value": "h"
+            },
+            {
+              "type": "char",
+              "value": "j"
+            },
+            {
+              "type": "char",
+              "value": "k"
+            },
+            {
+              "type": "char",
+              "value": "l"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "row": [
+        {
+          "width": 1.5,
+          "keys": [
+            {
+              "type": "shift",
+              "value": "shift"
+            }
+          ]
+        },
+        {
+          "width": 1,
+          "keys": [
+            {
+              "type": "char",
+              "value": "z"
+            },
+            {
+              "type": "char",
+              "value": "x"
+            },
+            {
+              "type": "char",
+              "value": "c"
+            },
+            {
+              "type": "char",
+              "value": "v"
+            },
+            {
+              "type": "char",
+              "value": "b"
+            },
+            {
+              "type": "char",
+              "value": "n"
+            },
+            {
+              "type": "char",
+              "value": "m"
+            }
+          ]
+        },
+        {
+          "width": 1.5,
+          "keys": [
+            {
+              "type": "delete",
+              "value": "delete"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "row": [
+        {
+          "width": 1,
+          "keys": [
+            {
+              "type": "switch_to_layout",
+              "value": "symbols",
+              "label": "?123"
+            },
+            {
+              "type": "system_voice",
+              "value": "🎤"
+            },
+            {
+              "type": "system_emoji",
+              "value": "😀"
+            },
+            {
+              "type": "system_clipboard",
+              "value": "📋"
+            },
+            {
+              "type": "space",
+              "value": "space"
+            },
+            {
+              "type": "char",
+              "value": "."
+            },
+            {
+              "type": "enter",
+              "value": "enter"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

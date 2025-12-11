@@ -4,6 +4,11 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class KeyboardData(
-    val rows: List<List<KeyData>>,
-    val toolbar: List<KeyData> = emptyList()
+    val arrangement: List<KeyDataRow>,
+    val toolbar: List<KeyData>? = null
+)
+
+@Serializable
+data class KeyDataRow(
+    val keys: List<KeyData>
 )

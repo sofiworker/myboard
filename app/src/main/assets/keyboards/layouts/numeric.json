@@ -1,0 +1,26 @@
+{
+  "type": "text/numeric",
+  "name": "Numeric",
+  "arrangement": [
+    {
+      "row": [
+        { "width": 1, "keys": [ { "type": "char", "value": "1" }, { "type": "char", "value": "2" }, { "type": "char", "value": "3" } ] }
+      ]
+    },
+    {
+      "row": [
+        { "width": 1, "keys": [ { "type": "char", "value": "4" }, { "type": "char", "value": "5" }, { "type": "char", "value": "6" } ] }
+      ]
+    },
+    {
+      "row": [
+        { "width": 1, "keys": [ { "type": "char", "value": "7" }, { "type": "char", "value": "8" }, { "type": "char", "value": "9" } ] }
+      ]
+    },
+    {
+      "row": [
+        { "width": 1, "keys": [ { "type": "switch_to_layout", "value": "_main_", "label": "ABC" }, { "type": "char", "value": "0" }, { "type": "delete", "value": "del" } ] }
+      ]
+    }
+  ]
+}

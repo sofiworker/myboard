@@ -1,7 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="xyz.xiao6.myboard"
     xmlns:tools="http://schemas.android.com/tools">
+
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
 
     <application
         android:allowBackup="true"
@@ -14,10 +17,9 @@
         android:theme="@style/Theme.Myboard">
 
         <activity
-            android:name=".MainActivity"
+            android:name=".ui.setup.SetupActivity"
             android:exported="true"
-            android:label="@string/app_name"
-            android:theme="@style/Theme.Myboard">
+            android:label="@string/setup_wizard">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -27,8 +29,29 @@
 
         <activity
             android:name=".SettingsActivity"
-            android:exported="true"
-            android:label="Settings" />
+            android:exported="false"
+            android:label="@string/settings" />
+
+        <activity
+            android:name=".LayoutManagerActivity"
+            android:exported="false"
+            android:label="@string/layout_manager" />
+
+        <activity
+            android:name=".LayoutEditorActivity"
+            android:exported="false" />
+        
+        <activity 
+            android:name=".DictionaryManagerActivity"
+            android:exported="false" />
+            
+        <activity 
+            android:name=".UserDictionaryActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".FuzzyPinyinSettingsActivity"
+            android:exported="false" />
 
         <service
             android:name=".MyboardImeService"
