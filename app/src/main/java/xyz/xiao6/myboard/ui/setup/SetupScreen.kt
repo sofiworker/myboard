@@ -52,7 +52,6 @@ fun SetupScreen() {
     val context = LocalContext.current
     var imeEnabled by remember { mutableStateOf(isImeEnabled(context)) }
     var imeSelected by remember { mutableStateOf(isImeSelected(context)) }
-    var hasNavigated by remember { mutableStateOf(false) }
 
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
@@ -83,14 +82,6 @@ fun SetupScreen() {
         }
     }
 
-    LaunchedEffect(imeEnabled, imeSelected, hasNavigated) {
-        if (imeEnabled && imeSelected && !hasNavigated) {
-            hasNavigated = true
-            context.startActivity(Intent(context, SettingsActivity::class.java))
-            (context as? Activity)?.finish()
-        }
-    }
-
     Scaffold(
         topBar = { TopAppBar(title = { Text(stringResource(R.string.setup_wizard)) }) }
     ) {
@@ -118,10 +109,9 @@ fun SetupScreen() {
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            if (imeEnabled && imeSelected && !hasNavigated) {
+            if (imeEnabled && imeSelected) {
                 Button(
                     onClick = {
-                        hasNavigated = true
                         context.startActivity(Intent(context, SettingsActivity::class.java))
                         (context as? Activity)?.finish()
                     },

@@ -18,23 +18,39 @@ class KeyboardRepository(private val context: Context) {
     }
 
     fun getKeyboardLayout(path: String): KeyboardData? {
-        val customFile = File(customLayoutsDir, "$path.json")
-        val jsonString = if (customFile.exists()) {
-            try {
-                customFile.readText()
-            } catch (e: IOException) {
-                e.printStackTrace()
-                return null
+        val candidates = listOf(path, alias(path))
+            .filterNotNull()
+            .distinct()
+
+        var lastError: IOException? = null
+        candidates.forEach { candidate ->
+            val customFile = File(customLayoutsDir, "$candidate.json")
+            val jsonString = if (customFile.exists()) {
+                try {
+                    customFile.readText()
+                } catch (e: IOException) {
+                    lastError = e
+                    return@forEach
+                }
+            } else {
+                try {
+                    context.assets.open("keyboards/layouts/$candidate.json").bufferedReader().use { it.readText() }
+                } catch (ioException: IOException) {
+                    lastError = ioException
+                    return@forEach
+                }
             }
-        } else {
-            try {
-                context.assets.open("keyboards/layouts/$path.json").bufferedReader().use { it.readText() }
-            } catch (ioException: IOException) {
-                ioException.printStackTrace()
-                return null
-            }
+            return json.decodeFromString<KeyboardData>(jsonString)
         }
-        return json.decodeFromString<KeyboardData>(jsonString)
+
+        lastError?.printStackTrace()
+        return null
+    }
+
+    private fun alias(path: String): String? = when (path) {
+        "qwerty" -> "en_qwerty"
+        "t9" -> "en_t9"
+        else -> null
     }
 
     fun getAvailableLayouts(): List<String> {

@@ -60,6 +60,21 @@ class MyboardImeService : InputMethodService(), ViewModelStoreOwner, LifecycleOw
             .create(KeyboardViewModel::class.java)
         voiceInputManager = VoiceInputManager(this)
         lifecycleScope.launch {
+            viewModel.keyAction.collect { handleKeyAction(it) }
+        }
+        lifecycleScope.launch {
+            viewModel.composingText.collect { text ->
+                val ic = currentInputConnection
+                if (ic != null) {
+                    if (text.isEmpty()) {
+                        ic.finishComposingText()
+                    } else {
+                        ic.setComposingText(text, 1)
+                    }
+                }
+            }
+        }
+        lifecycleScope.launch {
             voiceInputManager.state.collect {
                 viewModel.setVoiceState(it)
             }
@@ -91,6 +106,13 @@ class MyboardImeService : InputMethodService(), ViewModelStoreOwner, LifecycleOw
 
     override fun onStartInputView(info: EditorInfo?, restarting: Boolean) {
         super.onStartInputView(info, restarting)
+        // Avoid resetting state on input view restarts, which can happen frequently in some apps
+        // and would clear composing text/modes causing flicker and "auto-delete" feel.
+        if (!restarting) {
+            viewModel.resetToMainLayout()
+        } else {
+            viewModel.resetSession()
+        }
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_START)
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_RESUME)
     }
@@ -109,10 +131,23 @@ class MyboardImeService : InputMethodService(), ViewModelStoreOwner, LifecycleOw
                     ic.commitText(text, 1)
                 }
             }
-            is KeyAction.CommitSuggestion -> ic.commitText(action.suggestion, 1)
+            is KeyAction.CommitSuggestion -> {
+                ic.finishComposingText()
+                ic.commitText(action.suggestion, 1)
+            }
             KeyAction.Delete -> ic.deleteSurroundingText(1, 0)
-            is KeyAction.InsertText -> ic.commitText(action.text, 1)
-            is KeyAction.MoveCursor -> ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DPAD_LEFT))
+            is KeyAction.InsertText -> {
+                ic.finishComposingText()
+                ic.commitText(action.text, 1)
+            }
+            is KeyAction.MoveCursor -> {
+                val offset = action.offset
+                val keyCode = if (offset < 0) KeyEvent.KEYCODE_DPAD_LEFT else KeyEvent.KEYCODE_DPAD_RIGHT
+                repeat(kotlin.math.abs(offset)) {
+                    ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, keyCode))
+                    ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP, keyCode))
+                }
+            }
             is KeyAction.MoveFloatingWindow -> { /* Handled by UI */
             }
             is KeyAction.Shift -> { /* Handled by ViewModel */
@@ -124,8 +159,7 @@ class MyboardImeService : InputMethodService(), ViewModelStoreOwner, LifecycleOw
                 ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             )
             KeyAction.Space -> ic.commitText(" ", 1)
-            is KeyAction.SwitchToLayout -> { /* Handled by ViewModel */
-            }
+            is KeyAction.SwitchToLayout -> { ic.finishComposingText() /* Handled by ViewModel state */ }
             KeyAction.SystemClipboard -> { /* TODO */
             }
             KeyAction.SystemEmoji -> { /* TODO */

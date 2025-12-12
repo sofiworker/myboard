@@ -25,6 +25,11 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Icon
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -54,7 +59,38 @@ fun SettingsScreen(viewModel: SettingsViewModel = viewModel()) {
         topBar = { TopAppBar(title = { Text(stringResource(id = R.string.settings)) }) }
     ) { paddingValues ->
         LazyColumn(modifier = Modifier.padding(paddingValues)) {
-            // ... (Theme, Keyboard settings groups)
+            item {
+                SettingsGroup(title = "Toolbar") {
+                    val toolbarOrder by viewModel.toolbarOrder.collectAsState()
+                    toolbarOrder.forEachIndexed { index, id ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = when (id) {
+                                    "emoji" -> "Emoji"
+                                    "clipboard" -> "Clipboard"
+                                    "voice" -> "Voice"
+                                    "settings" -> "Settings"
+                                    else -> id
+                                },
+                                modifier = Modifier.weight(1f)
+                            )
+                            IconButton(
+                                onClick = { viewModel.moveToolbarItem(index, index - 1) },
+                                enabled = index > 0
+                            ) { Icon(Icons.Default.KeyboardArrowUp, contentDescription = "Move up") }
+                            IconButton(
+                                onClick = { viewModel.moveToolbarItem(index, index + 1) },
+                                enabled = index < toolbarOrder.lastIndex
+                            ) { Icon(Icons.Default.KeyboardArrowDown, contentDescription = "Move down") }
+                        }
+                    }
+                }
+            }
             item {
                 SettingsGroup(title = stringResource(id = R.string.behavior)) {
                     SettingsItem(

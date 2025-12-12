@@ -11,7 +11,7 @@ class EmojiRepository(private val context: Context) {
 
     fun getEmojiData(): EmojiData? {
         return try {
-            val jsonString = context.assets.open("ime/emojis.json").bufferedReader().use { it.readText() }
+            val jsonString = context.assets.open("layouts/emojis.json").bufferedReader().use { it.readText() }
             json.decodeFromString<EmojiData>(jsonString)
         } catch (e: IOException) {
             e.printStackTrace()

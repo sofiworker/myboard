@@ -1,39 +1,57 @@
-# Agent Playbook
+## 参考 FlorisBoard 的核心布局/切换设计
+- FlorisBoard 将“布局切换”拆为两个正交维度：
+  - `KeyboardMode`（字符/符号/数字/电话等）决定当前键盘的“模式布局”，模式切换只改 mode，不改用户主布局。
+  - `Subtype/CharactersLayout` 决定字符模式下使用的具体布局（如 qwerty、t9、用户自定义），只在 `CHARACTERS` mode 生效。
+- `KeyboardState` 作为单一真源：包含 `keyboardMode`、`inputShiftState`、UI 面板开关等；任何模式/面板变化都先更新 state，再统一重算可见键盘。
+- `LayoutManager` 按 `keyboardMode + subtype + prefs` 计算键盘；缓存按 mode/subtype 维度，不同 mode 间状态互不污染。
+- Smartbar/候选条在键盘盒子外一行显示，展开候选（下拉）在盒子内面板呈现；emoji/剪贴板等作为盒子内“sheet/panel”，不会改变 mode。
+这里我们可以简化为 keyboard mode 和 keyboard layout两种维度，其中用户通过toolbar或者设置调整的为layout，layout有常见的handwriting、t9、全键盘、笔画、双拼等；
+mode 则为处于 layout 下切换键盘类型，比如用户设置了 t9,那么永远保证我们的键盘布局为t9,通过t9的部分按键切换 mode，渲染公共的布局，如：数字、符号等
 
-## 概要
-- 项目：Compose 自定义输入法（IME）。核心目标是让自定义键盘 UI 按照布局数据渲染，并能作为输入法窗口正常弹出并输入文字。
-- 当前状态：IME Service + ViewModel 已搭好，主题与数据仓库已存在，但键盘 UI 仍是占位，`onKeyAction` 与 `currentInputConnection` 未贯通，软键盘弹出/渲染需优先解决。
+### Myboard 的适配落地
+- 新增 `KeyboardMode`（`CHARACTERS/NUMERIC/SYMBOLS`），作为布局切换的核心真源；`SwitchToLayout("numeric"/"symbols"/"_main_")` 仅改变 mode，避免误切到 t9 或其它字符布局。
+- 仅在 `CHARACTERS` mode 使用 `_characterLayoutName`（来自设置的主布局或用户指定），数字/符号布局固定为 `numeric.json`/`symbols.json`。
+- `SwitchToLayout` 处理顺序与 FlorisBoard 一致：先提交 composingText、清空 suggestions/shift/候选展开，再切 mode；Service 侧同步 `finishComposingText()`。
+- emoji/剪贴板/语音等归入“盒子内面板”(panel)，由 toolbar 控制显示，不影响 `keyboardMode`。
 
-## P0（紧急）自定义键盘 UI 合成并确保软键盘弹出
-- 目标：在任何文本框中选择本输入法时，键盘界面可见、按键布局来自 assets/用户布局，点击按键能输入文字。
-- 关键检查/行动
-  - IME 视图创建：`MyboardImeService.onCreateInputView` 已包裹 `MyboardTheme`，确认 `view.setViewTreeLifecycleOwner` 等已设置；若仍不显示，检查 manifest `<service>`、`method.xml`、以及应用是否设为默认输入法。
-  - 数据→UI：实现 `KeyboardScreen` 内的 `Toolbar`、`DockedKeyboard`（或 `FloatingKeyboard`）真实渲染。读取 `KeyboardViewModel.keyboardLayout`（由 `KeyboardRepository` 拉取 JSON）生成行/键。
-  - 按键事件：在 UI 层调用 `viewModel.onKeyPress(action)`。在 Service 里监听 `viewModel.keyAction`（SharedFlow）并调用 `handleKeyAction`，将文本/删除/移动光标真正写入 `currentInputConnection`。
-  - 候选栏：`CandidateView` 需放在键盘上方并使用主题颜色；确保 `suggestions` Flow 触发显示。
-  - 输入连接：`handleKeyAction` 中已用 `currentInputConnection`，确保空引用保护；必要时实现 `onStartInput/onStartInputView` 初始化状态。
-  - 验证：真实设备/模拟器上选中输入框，确认键盘窗口出现、按键能输出/删除/空格，候选栏显示。
+## 执行计划（两段键盘结构 + 通用特殊键）
 
-## P1（高）键盘交互与布局细节
-- 布局解析：完善 `KeyboardRepository` 对自定义布局的读取/保存；定义键位数据到 `KeyAction` 的映射（Shift、符号面板切换、数字键等）。
-- 状态管理：实现 Shift 状态切换与 Caps Lock 行为；处理 `SwitchToLayout`、`SystemEmoji`、`SystemClipboard`、`SystemVoice` 状态切换。
-- 光标/删除：补全 `KeyAction.MoveCursor` 方向和长按删除/重复输入的策略。
-- 漂浮模式：`isFloatingMode` 流、`MoveFloatingWindow` 拖动逻辑与 UI 实现。
+### 目标约定
+- 键盘 UI 固定两段：第一段为动态调整段（空闲=toolbar，输入=候选条/拼音+候选）；第二段为布局段（按用户布局加载 t9/双拼/26键等）。
+- 第一段行为：
+  - 空闲状态：显示 toolbar（全局按键，不依赖布局文件）。
+  - toolbar 最左侧固定为设置按钮用于跳转到设置页面，其余为用户通过键盘功能选项自定义个数和顺序，但是默认我们添加键盘布局切换，注意是layout切换不是mode切换，然后是剪切板，剪切板高度包含第一段和第二段，其中第一段为功能用于返回和删除，一左一右，然后为 emoji，其中emoji与剪切板一样，第一段功能区，第二段用于展示表情，第二段底部还有滚动条用于不同emoji类型的切换
+  - 有 composingText 时：显示候选条；右侧固定下拉箭头进入滚动候选页面；候选条上方显示当前拼音串；英文状态则不显示拼音行，仅候选列表。
+  - 其中如果是中文拼音输入，拼音+候选，拼音是在第一段和第二段高度之上的，并不和整个键盘统一，或者拼音可以落入输入框中，这个功能由用户设置
+- 第二段行为：
+  - 仅渲染当前 characters 布局（t9/双拼/26键）或 mode 布局（numeric/symbols）。
+  - 布局内的特殊键（如 26 键 `123`、t9 的 `符` 等）采用**通用映射**，对所有布局一致生效。
+  - 特殊键切换 mode 后，页面高度不变，字符页面占用两段高度、数字键页面只占用第二段高度，第一段由toolbar填充
+  - 字符页面实际会在整个box的下面新增滚动条用于筛选，数学、网络等字符类型
+- 键盘toolbar直接通过编码实现，布局json中不再存储toolbar信息
+- 调整 assets 文件夹中的文件定义和位置，让其见名知其意，目前命名十分混乱
+- 调整 kotlin 代码路径和定义，拆分组件，尽量提高组件的复用性
+- 将大部分能设置的地方统一到设置页面中进行设置并持久化管理
+- layout 的 json 需要引入每行的高度和每个key的间隔
 
-## P2（中）功能完善与可用性
-- Emoji/剪贴板面板：实现 `EmojiScreen` 与 `ClipboardScreen`，与主键盘切换逻辑连通。
-- 手写/语音：保证 `HandwritingPad`、`VoiceInputManager` UI/权限提示正常，对识别结果写入 `composingText`/建议列表。
-- 主题与背景：`ThemeRepository` 支持切换主题、背景图透明度；UI 侧根据 `ThemeData` 应用背景颜色/图片。
-- 设置页：完善设置项（键盘高度、主题选择、布局管理、模糊拼音、字典管理），并确保读写 `SettingsRepository`。
-
-## P3（低）体验与质量
-- 视觉设计：按键尺寸/间距、圆角、按压反馈、暗/亮主题适配。
-- 动画与过渡：键盘弹出、布局切换、候选栏更新的过渡动画。
-- 可访问性：TalkBack 标签、按键描述，音效/震动反馈开关。
-- 性能/稳定性：异步加载资源、冷启动耗时监控，异常日志收集。
-
-## 提示与注意事项
-- Compose 与 IME：必须在 IME 根视图设置 `Lifecycle/SavedState/ViewModelStore` owners，否则 Compose 将无法获取环境并导致空白。
-- 输入法权限：测试前确保在系统设置中启用并切换为本输入法；如需语音/录音，确认权限授予。
-- 测试建议：在模拟器/真机的短信、记事本中逐步验证输入、删除、切换布局、候选词、语音/手写（若实现）。
-- 数据文件：布局位于 `assets/keyboards/layouts/*.json`，主题位于 `assets/themes/*.json`；避免破坏现有 JSON 结构。
+### 步骤
+1. 定义顶层 UI 状态机
+   - 在 ViewModel 增加/明确 `topBarState`（Toolbar / CandidatesCollapsed / CandidatesExpanded），由 `composingText`、`suggestions`、输入法语言模式（中/英）驱动。
+   - 统一候选展开触发：固定箭头点击 -> `CandidatesExpanded`。
+2. 重构 `KeyboardScreen` 为两段布局
+   - 把现有 CandidateBar/Toolbar/CandidateGrid 组合成**同一段**的互斥渲染，不再占用独立“第三段”高度。
+   - 第一段高度固定（如 toolbarHeight 或 candidateHeight 的较小值），展开候选时同段内部滚动/分页。
+3. 统一候选展示规则
+   - 中文模式：候选段顶部显示拼音串（来自 `composingText`），下方一行/多行候选；右侧箭头常驻。
+   - 英文模式：候选段不显示拼音串，仅候选列表；箭头仍用于展开更多候选。
+   - 选择候选/切模式时先提交 composing 并清空 suggestions。
+4. 通用特殊键映射层
+   - 新增 `SpecialKeyResolver`（或等价逻辑）把布局 json 中的通用键类型/label/value 映射到 `KeyAction`：
+     - 例：`switch_to_layout` 的 `numeric/symbols/_main_`；t9/26/双拼均复用。
+   - `toKeyAction()` 优先走 resolver，避免不同布局重复定义行为。
+5. 校验与回归
+   - 逐一在 26/t9/双拼布局中验证：`123`/`符`/`ABC` 等切换键不改字符布局名，只切 mode。
+   - 验证两段高度在竖/横屏及浮动模式下不闪烁、不挤压候选。
+6. 文档与 assets 清理（可选最后做）
+   - 在 README/feature.md 补一段两段结构说明与特殊键约定。
+   - 再次扫描 assets，删除无引用 json（以代码中 `assets.open(...)` 与 layout/theme 列表为准），保留用户可选的 layouts/themes。

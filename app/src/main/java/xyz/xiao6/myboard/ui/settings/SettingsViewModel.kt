@@ -2,8 +2,10 @@ package xyz.xiao6.myboard.ui.settings
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import xyz.xiao6.myboard.data.repository.KeyboardRepository
 import xyz.xiao6.myboard.data.repository.SettingsRepository
 import xyz.xiao6.myboard.data.repository.ThemeRepository
@@ -42,6 +44,9 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
 
     private val _isFloatingMode = MutableStateFlow(settingsRepository.isFloatingMode())
     val isFloatingMode = _isFloatingMode.asStateFlow()
+
+    private val _toolbarOrder = MutableStateFlow(settingsRepository.getToolbarOrder())
+    val toolbarOrder = _toolbarOrder.asStateFlow()
 
     fun setLongPressForSymbolsEnabled(enabled: Boolean) {
         settingsRepository.setLongPressForSymbolsEnabled(enabled)
@@ -90,5 +95,20 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     fun setFloatingMode(enabled: Boolean) {
         settingsRepository.setFloatingMode(enabled)
         _isFloatingMode.value = enabled
+    }
+
+    fun moveToolbarItem(fromIndex: Int, toIndex: Int) {
+        val current = _toolbarOrder.value.toMutableList()
+        if (fromIndex !in current.indices || toIndex !in current.indices) return
+        val item = current.removeAt(fromIndex)
+        current.add(toIndex, item)
+        settingsRepository.setToolbarOrder(current)
+        _toolbarOrder.value = current
+    }
+
+    init {
+        viewModelScope.launch {
+            settingsRepository.toolbarOrderFlow.collect { _toolbarOrder.value = it }
+        }
     }
 }

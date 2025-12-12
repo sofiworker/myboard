@@ -2,8 +2,10 @@ package xyz.xiao6.myboard.ui.keyboard
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -18,18 +20,22 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import xyz.xiao6.myboard.data.db.ClipboardItem
 
 @Composable
 fun ClipboardScreen(
-    viewModel: KeyboardViewModel
+    viewModel: KeyboardViewModel,
+    height: Dp
 ) {
     val history by viewModel.clipboardHistory.collectAsState(initial = emptyList())
 
-    LazyColumn(modifier = Modifier.padding(8.dp)) {
-        items(history) { item ->
-            ClipboardHistoryItem(item = item, onPaste = { viewModel.commitSuggestion(it) }, onDelete = { viewModel.deleteClipboardItem(it) })
+    Box(modifier = Modifier.height(height)) {
+        LazyColumn(modifier = Modifier.padding(8.dp)) {
+            items(history) { item ->
+                ClipboardHistoryItem(item = item, onPaste = { viewModel.commitSuggestion(it) }, onDelete = { viewModel.deleteClipboardItem(it) })
+            }
         }
     }
 }

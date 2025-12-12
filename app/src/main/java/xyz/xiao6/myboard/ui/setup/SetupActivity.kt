@@ -23,4 +23,12 @@ class SetupActivity : ComponentActivity() {
             }
         }
     }
+
+    override fun onResume() {
+        super.onResume()
+        if (isImeEnabled(this) && isImeSelected(this)) {
+            startActivity(Intent(this, SettingsActivity::class.java))
+            finish()
+        }
+    }
 }

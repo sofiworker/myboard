@@ -1,6 +1,10 @@
 {
   "type": "text/numeric",
   "name": "Numeric",
+  "label": "123",
+  "direction": "ltr",
+  "authors": [ "Gemini" ],
+  "toolbar": [],
   "arrangement": [
     {
       "row": [
@@ -19,7 +23,7 @@
     },
     {
       "row": [
-        { "width": 1, "keys": [ { "type": "switch_to_layout", "value": "_main_", "label": "ABC" }, { "type": "char", "value": "0" }, { "type": "delete", "value": "del" } ] }
+        { "width": 1, "keys": [ { "type": "switch_to_layout", "value": "_main_", "label": "ABC" }, { "type": "char", "value": "0" }, { "type": "switch_to_layout", "value": "symbols", "label": "#+=" } ] }
       ]
     }
   ]

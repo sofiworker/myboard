@@ -12,7 +12,8 @@ data class KeyboardData(
     val direction: String,
     val authors: List<String>,
     val arrangement: List<RowData>,
-    val toolbar: List<KeyData>? = null
+    val toolbar: List<KeyData>? = null,
+    val mode: String? = null
 )
 
 @Serializable

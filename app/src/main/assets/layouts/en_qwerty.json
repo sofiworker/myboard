@@ -6,10 +6,7 @@
   "authors": [
     "Gemini"
   ],
-  "toolbar": [
-    { "type": "show_settings", "value": "⚙️" },
-    { "type": "system_clipboard", "value": "📋" }
-  ],
+  "toolbar": [],
   "arrangement": [
     {
       "row": [
@@ -173,20 +170,12 @@
           "keys": [
             {
               "type": "switch_to_layout",
-              "value": "symbols",
+              "value": "numeric",
               "label": "?123"
             },
             {
-              "type": "system_voice",
-              "value": "🎤"
-            },
-            {
-              "type": "system_emoji",
-              "value": "😀"
-            },
-            {
-              "type": "system_clipboard",
-              "value": "📋"
+              "type": "char",
+              "value": ","
             },
             {
               "type": "space",

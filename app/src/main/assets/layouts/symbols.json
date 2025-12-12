@@ -1,6 +1,10 @@
 {
   "type": "text/symbols",
   "name": "Symbols",
+  "label": "#+=",
+  "direction": "ltr",
+  "authors": [ "Gemini" ],
+  "toolbar": [],
   "arrangement": [
     {
       "row": [

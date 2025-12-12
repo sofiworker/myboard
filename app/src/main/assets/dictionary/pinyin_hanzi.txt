@@ -1,0 +1,86 @@
+# Minimal pinyin->hanzi mapping for debugging.
+# Format: pinyin candidate1 candidate2 ...
+ni 你 尼 妮
+hao 好 号 浩 豪
+nihao 你好 你号 妮好
+zhong 中 钟 忠 众
+guo 国 果 过 锅
+zhongguo 中国 中果
+wo 我 窝 握
+shi 是 时 事 市
+de 的 得 德
+ma 吗 马 麻
+woai 我爱 我哎
+ai 爱 矮 挨
+ren 人 仁 忍
+men 们 门 闷
+pengyou 朋友 鹏友
+nimen 你们 尼们
+xiexie 谢谢 些些
+zaijian 再见 在见
+zai 在 再 灾
+jian 见 件 建
+shijie 世界 视界
+shuo 说 硕
+mingtian 明天 名田
+jintian 今天 金田
+shang 上 商 赏
+xia 下 夏 吓
+zhe 这 着 者
+na 那 哪 拿
+he 和 何 喝
+bu 不 布 步
+yao 要 么 药
+le 了 乐 勒
+ta 他 她 它
+women 我们 我门
+tamen 他们 她们 它们
+
+# more common phrases / words for UI testing
+shihao 时候 识好
+shenme 什么 甚么
+meiyou 没有 每有
+keyi 可以 科艺
+zenme 怎么 甚么
+zhege 这个 这歌
+nage 那个 哪个
+yinwei 因为 音位
+suoyi 所以 索艺
+bingqie 并且 冰切
+yu 语 雨 余
+yin 音 银 隐
+hanzi 汉字 旱字
+pinyin 拼音 贫音
+shuru 输入 书入
+fanyi 翻译 反义
+ceshi 测试 侧视
+gongneng 功能 工能
+shijian 时间 事件
+kuaisu 快速 快诉
+shanchu 删除 山出
+chang按 长按 常按
+kongge 空格 空隔
+zhuti 主题 主体
+beijing 背景 北京
+buju 布局 部局
+houxuan 候选 后选
+banmian 版面 半面
+jiesuo 解锁
+xiangji 相机
+shouji 手机
+diannao 电脑
+wangluo 网络
+haoyou 好友
+tongxun 通讯
+xinxi 信息
+weixin 微信
+duanxin 短信
+shijie 世界
+qingchu 清除
+jilu 记录
+lishi 历史
+shuru法 输入法
+zhongwen 中文
+yingwen 英文
+shuzi 数字
+fuhao 符号
