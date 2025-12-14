@@ -1,0 +1,503 @@
+{
+  "layoutId": "qwerty",
+  "name": "QWERTY",
+  "locale": [
+    "en_US",
+    "zh_CN"
+  ],
+  "totalWidthRatio": 1.0,
+  "totalWidthDpOffset": 0,
+  "totalHeightRatio": 0.2,
+  "totalHeightDpOffset": 0,
+  "defaults": {
+    "horizontalGapDp": 4,
+    "verticalGapDp": 5,
+    "padding": {
+      "topDp": 6,
+      "bottomDp": 6,
+      "leftDp": 6,
+      "rightDp": 6
+    }
+  },
+  "rows": [
+    {
+      "rowId": "row_1_alpha",
+      "heightRatio": 0.25,
+      "alignment": "CENTER",
+      "keys": [
+        {
+          "keyId": "key_q",
+          "label": "q",
+          "styleId": "style_alpha_key",
+          "primaryCode": 113,
+          "gridPosition": {
+            "startCol": 0,
+            "startRow": 0,
+            "spanCols": 1
+          },
+          "behaviors": {
+            "LONG_PRESS": {
+              "actionType": "SHOW_POPUP",
+              "values": [
+                "1",
+                "@",
+                "#"
+              ]
+            }
+          }
+        },
+        {
+          "keyId": "key_w",
+          "label": "w",
+          "styleId": "style_alpha_key",
+          "primaryCode": 119,
+          "gridPosition": {
+            "startCol": 1,
+            "startRow": 0,
+            "spanCols": 1
+          }
+        },
+        {
+          "keyId": "key_e",
+          "label": "e",
+          "styleId": "style_alpha_key",
+          "primaryCode": 101,
+          "gridPosition": {
+            "startCol": 2,
+            "startRow": 0,
+            "spanCols": 1
+          }
+        },
+        {
+          "keyId": "key_r",
+          "label": "r",
+          "styleId": "style_alpha_key",
+          "primaryCode": 114,
+          "gridPosition": {
+            "startCol": 3,
+            "startRow": 0,
+            "spanCols": 1
+          }
+        },
+        {
+          "keyId": "key_t",
+          "label": "t",
+          "styleId": "style_alpha_key",
+          "primaryCode": 116,
+          "gridPosition": {
+            "startCol": 4,
+            "startRow": 0,
+            "spanCols": 1
+          }
+        },
+        {
+          "keyId": "key_y",
+          "label": "y",
+          "styleId": "style_alpha_key",
+          "primaryCode": 121,
+          "gridPosition": {
+            "startCol": 5,
+            "startRow": 0,
+            "spanCols": 1
+          }
+        },
+        {
+          "keyId": "key_u",
+          "label": "u",
+          "styleId": "style_alpha_key",
+          "primaryCode": 117,
+          "gridPosition": {
+            "startCol": 6,
+            "startRow": 0,
+            "spanCols": 1
+          }
+        },
+        {
+          "keyId": "key_i",
+          "label": "i",
+          "styleId": "style_alpha_key",
+          "primaryCode": 105,
+          "gridPosition": {
+            "startCol": 7,
+            "startRow": 0,
+            "spanCols": 1
+          }
+        },
+        {
+          "keyId": "key_o",
+          "label": "o",
+          "styleId": "style_alpha_key",
+          "primaryCode": 111,
+          "gridPosition": {
+            "startCol": 8,
+            "startRow": 0,
+            "spanCols": 1
+          }
+        },
+        {
+          "keyId": "key_p",
+          "label": "p",
+          "styleId": "style_alpha_key",
+          "primaryCode": 112,
+          "gridPosition": {
+            "startCol": 9,
+            "startRow": 0,
+            "spanCols": 1
+          }
+        }
+      ]
+    },
+    {
+      "rowId": "row_2_alpha",
+      "heightRatio": 0.25,
+      "alignment": "CENTER",
+      "keys": [
+        {
+          "keyId": "key_a",
+          "label": "a",
+          "styleId": "style_alpha_key",
+          "primaryCode": 97,
+          "gridPosition": {
+            "startCol": 0,
+            "startRow": 1,
+            "spanCols": 1
+          },
+          "behaviors": {
+            "LONG_PRESS": {
+              "actionType": "SHOW_POPUP",
+              "values": [
+                "fffffff",
+                "@33333",
+                "bbfgdf"
+              ]
+            }
+          }
+        },
+        {
+          "keyId": "key_s",
+          "label": "s",
+          "styleId": "style_alpha_key",
+          "primaryCode": 115,
+          "gridPosition": {
+            "startCol": 1,
+            "startRow": 1,
+            "spanCols": 1
+          }
+        },
+        {
+          "keyId": "key_d",
+          "label": "d",
+          "styleId": "style_alpha_key",
+          "primaryCode": 100,
+          "gridPosition": {
+            "startCol": 2,
+            "startRow": 1,
+            "spanCols": 1
+          }
+        },
+        {
+          "keyId": "key_f",
+          "label": "f",
+          "styleId": "style_alpha_key",
+          "primaryCode": 102,
+          "gridPosition": {
+            "startCol": 3,
+            "startRow": 1,
+            "spanCols": 1
+          },
+          "behaviors": {
+            "LONG_PRESS": {
+              "actionType": "SHOW_POPUP",
+              "values": [
+                "FFFFFFF",
+                "!!!!!!!",
+                "???????"
+              ]
+            }
+          }
+        },
+        {
+          "keyId": "key_g",
+          "label": "g",
+          "styleId": "style_alpha_key",
+          "primaryCode": 103,
+          "gridPosition": {
+            "startCol": 4,
+            "startRow": 1,
+            "spanCols": 1
+          }
+        },
+        {
+          "keyId": "key_h",
+          "label": "h",
+          "styleId": "style_alpha_key",
+          "primaryCode": 104,
+          "gridPosition": {
+            "startCol": 5,
+            "startRow": 1,
+            "spanCols": 1
+          }
+        },
+        {
+          "keyId": "key_j",
+          "label": "j",
+          "styleId": "style_alpha_key",
+          "primaryCode": 106,
+          "gridPosition": {
+            "startCol": 6,
+            "startRow": 1,
+            "spanCols": 1
+          }
+        },
+        {
+          "keyId": "key_k",
+          "label": "k",
+          "styleId": "style_alpha_key",
+          "primaryCode": 107,
+          "gridPosition": {
+            "startCol": 7,
+            "startRow": 1,
+            "spanCols": 1
+          }
+        },
+        {
+          "keyId": "key_l",
+          "label": "l",
+          "styleId": "style_alpha_key",
+          "primaryCode": 108,
+          "gridPosition": {
+            "startCol": 8,
+            "startRow": 1,
+            "spanCols": 1
+          }
+        }
+      ]
+    },
+    {
+      "rowId": "row_3_alpha",
+      "heightRatio": 0.25,
+      "alignment": "JUSTIFY",
+      "keys": [
+        {
+          "keyId": "key_shift",
+          "label": "⇧",
+          "styleId": "style_function_key",
+          "primaryCode": -1,
+          "gridPosition": {
+            "startCol": 0,
+            "startRow": 2,
+            "spanCols": 1
+          },
+          "widthWeight": 1.5,
+          "behaviors": {
+            "TAP": {
+              "actionType": "TOGGLE_SHIFT"
+            }
+          }
+        },
+        {
+          "keyId": "key_z",
+          "label": "z",
+          "styleId": "style_alpha_key",
+          "primaryCode": 122,
+          "gridPosition": {
+            "startCol": 1,
+            "startRow": 2,
+            "spanCols": 1
+          }
+        },
+        {
+          "keyId": "key_x",
+          "label": "x",
+          "styleId": "style_alpha_key",
+          "primaryCode": 120,
+          "gridPosition": {
+            "startCol": 2,
+            "startRow": 2,
+            "spanCols": 1
+          }
+        },
+        {
+          "keyId": "key_c",
+          "label": "c",
+          "styleId": "style_alpha_key",
+          "primaryCode": 99,
+          "gridPosition": {
+            "startCol": 3,
+            "startRow": 2,
+            "spanCols": 1
+          }
+        },
+        {
+          "keyId": "key_v",
+          "label": "v",
+          "styleId": "style_alpha_key",
+          "primaryCode": 118,
+          "gridPosition": {
+            "startCol": 4,
+            "startRow": 2,
+            "spanCols": 1
+          }
+        },
+        {
+          "keyId": "key_b",
+          "label": "b",
+          "styleId": "style_alpha_key",
+          "primaryCode": 98,
+          "gridPosition": {
+            "startCol": 5,
+            "startRow": 2,
+            "spanCols": 1
+          }
+        },
+        {
+          "keyId": "key_n",
+          "label": "n",
+          "styleId": "style_alpha_key",
+          "primaryCode": 110,
+          "gridPosition": {
+            "startCol": 6,
+            "startRow": 2,
+            "spanCols": 1
+          }
+        },
+        {
+          "keyId": "key_m",
+          "label": "m",
+          "styleId": "style_alpha_key",
+          "primaryCode": 109,
+          "gridPosition": {
+            "startCol": 7,
+            "startRow": 2,
+            "spanCols": 1
+          },
+          "hints": {
+            "TOP_RIGHT": "."
+          }
+        },
+        {
+          "keyId": "key_backspace",
+          "label": "⌫",
+          "styleId": "style_function_key",
+          "primaryCode": -5,
+          "gridPosition": {
+            "startCol": 8,
+            "startRow": 2,
+            "spanCols": 1
+          },
+          "widthWeight": 1.5,
+          "behaviors": {
+            "TAP": {
+              "actionType": "BACKSPACE"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "rowId": "row_4_function",
+      "heightRatio": 0.25,
+      "alignment": "JUSTIFY",
+      "keys": [
+        {
+          "keyId": "key_符",
+          "label": "符",
+          "styleId": "style_function_key_important",
+          "primaryCode": -100,
+          "gridPosition": {
+            "startCol": 0,
+            "startRow": 3,
+            "spanCols": 1
+          },
+          "widthWeight": 1.5
+        },
+        {
+          "keyId": "key_mode_switch",
+          "label": "123",
+          "styleId": "style_function_key_important",
+          "primaryCode": -2,
+          "gridPosition": {
+            "startCol": 0,
+            "startRow": 3,
+            "spanCols": 1
+          },
+          "widthWeight": 1.5,
+          "behaviors": {
+            "TAP": {
+              "actionType": "SWITCH_LAYOUT",
+              "value": "numeric"
+            }
+          }
+        },
+        {
+          "keyId": "key_comma",
+          "label": ",",
+          "styleId": "style_function_key",
+          "primaryCode": 44,
+          "gridPosition": {
+            "startCol": 1,
+            "startRow": 3,
+            "spanCols": 1
+          }
+        },
+        {
+          "keyId": "key_space",
+          "label": "space",
+          "styleId": "style_function_key_important",
+          "primaryCode": 32,
+          "gridPosition": {
+            "startCol": 2,
+            "startRow": 3,
+            "spanCols": 1
+          },
+          "widthWeight": 5.0,
+          "behaviors": {
+            "TAP": {
+              "actionType": "SPACE"
+            }
+          }
+        },
+        {
+          "keyId": "key_period",
+          "label": ".",
+          "styleId": "style_function_key",
+          "primaryCode": 46,
+          "gridPosition": {
+            "startCol": 3,
+            "startRow": 3,
+            "spanCols": 1
+          }
+        },
+        {
+          "keyId": "key_mode_switch111",
+          "label": "中/英",
+          "styleId": "style_function_key",
+          "primaryCode": -99,
+          "gridPosition": {
+            "startCol": 3,
+            "startRow": 3,
+            "spanCols": 1
+          }
+        },
+        {
+          "keyId": "key_enter",
+          "label": "↵",
+          "styleId": "style_function_key_important",
+          "primaryCode": 10,
+          "gridPosition": {
+            "startCol": 4,
+            "startRow": 3,
+            "spanCols": 1
+          },
+          "widthWeight": 1.5,
+          "behaviors": {
+            "TAP": {
+              "actionType": "COMMIT",
+              "value": "\n"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

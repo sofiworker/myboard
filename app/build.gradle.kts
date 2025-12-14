@@ -47,6 +47,95 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
+
+    sourceSets {
+        getByName("main") {
+            // Be explicit to avoid accidentally dropping the default assets folder when customizing sourceSets.
+            assets.srcDir(project.layout.projectDirectory.dir("src/main/assets"))
+        }
+    }
+}
+
+val generateSubtypes by tasks.registering(Exec::class) {
+    // Write generated subtypes directly into src/main/assets so it is always packaged into the APK.
+    // (Unreleased project workflow; avoid relying on build/generated assets at runtime.)
+    val outFile = project.layout.projectDirectory.file("src/main/assets/subtypes/generated.json")
+
+    inputs.file(project.rootDir.resolve("scripts/generate_subtypes.py"))
+    inputs.dir(project.layout.projectDirectory.dir("src/main/assets/layouts"))
+    inputs.dir(project.layout.projectDirectory.dir("src/main/assets/dictionary"))
+    outputs.file(outFile)
+
+    // convertDictionaries writes `base.mybdict` into assets/dictionary; keep ordering explicit.
+    dependsOn(convertDictionaries)
+    commandLine(
+        "python3",
+        project.rootDir.resolve("scripts/generate_subtypes.py").absolutePath,
+        "--layouts-dir",
+        project.layout.projectDirectory.dir("src/main/assets/layouts").asFile.absolutePath,
+        "--dictionary-dir",
+        project.layout.projectDirectory.dir("src/main/assets/dictionary").asFile.absolutePath,
+        "--output",
+        outFile.asFile.absolutePath,
+        "--fail-on-empty",
+    )
+}
+
+val convertDictionaries by tasks.registering(Exec::class) {
+    // Write generated dictionary directly into src/main/assets so it is always packaged into the APK.
+    // (Unreleased project workflow; avoid relying on build/generated assets at runtime.)
+    val outFile = project.layout.projectDirectory.file("src/main/assets/dictionary/base.mybdict")
+
+    // Keep a draft meta json under build/ for reference (manual spec lives in assets/dictionary/dict_pinyin.json).
+    val outDir = layout.buildDirectory.dir("generated/dictionaryAssets/dictionary")
+    val outMeta = outDir.map { it.file("dict_pinyin.generated.json") }
+
+    inputs.file(project.rootDir.resolve("scripts/dict_tool.py"))
+    inputs.file(project.layout.projectDirectory.file("src/main/assets/dictionary/base.dict.yaml"))
+    outputs.file(outFile)
+    outputs.file(outMeta)
+
+    commandLine(
+        "python3",
+        project.rootDir.resolve("scripts/dict_tool.py").absolutePath,
+        "convert",
+        "--input",
+        project.layout.projectDirectory.file("src/main/assets/dictionary/base.dict.yaml").asFile.absolutePath,
+        "--format",
+        "rime_dict_yaml",
+        "--output",
+        outFile.asFile.absolutePath,
+        "--dictionary-id",
+        "dict_pinyin",
+        "--name",
+        "Pinyin",
+        "--languages",
+        "zh-CN",
+        "--dict-version",
+        "1.0.0",
+        "--meta-output",
+        outMeta.get().asFile.absolutePath,
+        "--asset-path",
+        "dictionary/base.mybdict",
+        "--layout-ids",
+        "qwerty,t9",
+        "--code-scheme",
+        "PINYIN_FULL",
+        "--kind",
+        "PINYIN",
+        "--core",
+        "PINYIN_CORE",
+        "--variant",
+        "quanpin",
+        "--is-default",
+        "--priority",
+        "20",
+    )
+}
+
+tasks.named("preBuild").configure {
+    dependsOn(generateSubtypes)
+    dependsOn(convertDictionaries)
 }
 
 dependencies {

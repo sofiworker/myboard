@@ -1,0 +1,14 @@
+{
+  "dictionaryId": "dict_pinyin",
+  "name": "Pinyin",
+  "localeTags": ["zh_CN"],
+  "layoutIds": ["qwerty", "t9"],
+  "assetPath": "dictionary/base.mybdict",
+  "codeScheme": "PINYIN_FULL",
+  "kind": "PINYIN",
+  "core": "PINYIN_CORE",
+  "variant": "quanpin",
+  "isDefault": true,
+  "enabled": true,
+  "priority": 20
+}

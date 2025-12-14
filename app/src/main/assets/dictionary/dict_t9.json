@@ -1,0 +1,10 @@
+{
+  "dictionaryId": "dict_t9",
+  "name": "T9",
+  "localeTags": ["en_US"],
+  "layoutIds": ["t9"],
+  "assetPath": null,
+  "enabled": true,
+  "priority": 5
+}
+

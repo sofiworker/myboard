@@ -1,0 +1,26 @@
+{
+  "themeId": "default_dark",
+  "name": "Default Dark Theme",
+  "colors": {
+    "background": "#1F1F1F",
+    "key_text": "#FFFFFF",
+    "key_hint": "#888888"
+  },
+  "styles": {
+    "style_alpha_key": {
+      "keyBackground": "drawable/key_bg_alpha.9.png",
+      "textColor": "colors.key_text",
+      "textSizeSp": 16
+    },
+    "style_function_key": {
+      "keyBackground": "drawable/key_bg_function.9.png",
+      "textColor": "#ADD8E6",
+      "textSizeSp": 14
+    },
+    "style_function_key_important": {
+      "keyBackground": "drawable/key_bg_important.9.png",
+      "textColor": "colors.key_text",
+      "textSizeSp": 16
+    }
+  }
+}

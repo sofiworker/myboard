@@ -1,0 +1,10 @@
+{
+  "dictionaryId": "dict_en",
+  "name": "English",
+  "localeTags": ["en_US"],
+  "layoutIds": ["qwerty"],
+  "assetPath": null,
+  "enabled": true,
+  "priority": 10
+}
+

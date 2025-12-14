@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+
+    <!-- Composing popup strip above candidate/toolbar area. -->
+    <FrameLayout
+        android:id="@+id/composingStrip"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingStart="8dp"
+        android:paddingEnd="8dp"
+        android:paddingTop="6dp"
+        android:paddingBottom="6dp"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/composingBadge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="start|center_vertical"
+            android:paddingStart="10dp"
+            android:paddingEnd="10dp"
+            android:paddingTop="6dp"
+            android:paddingBottom="6dp"
+            android:textSize="12sp"
+            android:textColor="#FFFFFF"
+            android:background="@drawable/bg_composing_badge"
+            android:elevation="4dp"
+            android:visibility="visible" />
+
+    </FrameLayout>
+
+    <!-- Candidate bar and toolbar share the same slot (48dp); candidates take over while composing. -->
+    <FrameLayout
+        android:id="@+id/topBarSlot"
+        android:layout_width="match_parent"
+        android:layout_height="48dp">
+
+        <xyz.xiao6.myboard.ui.candidate.CandidateView
+            android:id="@+id/candidateView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="gone" />
+
+        <xyz.xiao6.myboard.ui.toolbar.ToolbarView
+            android:id="@+id/toolbarView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
+    </FrameLayout>
+
+    <xyz.xiao6.myboard.ui.keyboard.KeyboardSurfaceView
+        android:id="@+id/keyboardView"
+        android:layout_width="match_parent"
+        android:layout_height="240dp" />
+
+</LinearLayout>

@@ -1,29 +1,83 @@
 {
-  "type": "text/numeric",
+  "layoutId": "numeric",
   "name": "Numeric",
-  "label": "123",
-  "direction": "ltr",
-  "authors": [ "Gemini" ],
-  "toolbar": [],
-  "arrangement": [
+  "locale": [],
+  "totalWidthRatio": 1.0,
+  "totalWidthDpOffset": 0,
+  "totalHeightRatio": 0.2,
+  "totalHeightDpOffset": 0,
+  "defaults": {
+    "horizontalGapDp": 6,
+    "verticalGapDp": 6,
+    "padding": {
+      "topDp": 8,
+      "bottomDp": 8,
+      "leftDp": 8,
+      "rightDp": 8
+    }
+  },
+  "rows": [
     {
-      "row": [
-        { "width": 1, "keys": [ { "type": "char", "value": "1" }, { "type": "char", "value": "2" }, { "type": "char", "value": "3" } ] }
+      "rowId": "row_1",
+      "heightRatio": 0.25,
+      "alignment": "JUSTIFY",
+      "keys": [
+        { "keyId": "key_1", "label": "1", "styleId": "style_function_key_important", "primaryCode": 49, "gridPosition": { "startCol": 0, "startRow": 0, "spanCols": 1 } },
+        { "keyId": "key_2", "label": "2", "styleId": "style_function_key_important", "primaryCode": 50, "gridPosition": { "startCol": 1, "startRow": 0, "spanCols": 1 } },
+        { "keyId": "key_3", "label": "3", "styleId": "style_function_key_important", "primaryCode": 51, "gridPosition": { "startCol": 2, "startRow": 0, "spanCols": 1 } }
       ]
     },
     {
-      "row": [
-        { "width": 1, "keys": [ { "type": "char", "value": "4" }, { "type": "char", "value": "5" }, { "type": "char", "value": "6" } ] }
+      "rowId": "row_2",
+      "heightRatio": 0.25,
+      "alignment": "JUSTIFY",
+      "keys": [
+        { "keyId": "key_4", "label": "4", "styleId": "style_function_key_important", "primaryCode": 52, "gridPosition": { "startCol": 0, "startRow": 1, "spanCols": 1 } },
+        { "keyId": "key_5", "label": "5", "styleId": "style_function_key_important", "primaryCode": 53, "gridPosition": { "startCol": 1, "startRow": 1, "spanCols": 1 } },
+        { "keyId": "key_6", "label": "6", "styleId": "style_function_key_important", "primaryCode": 54, "gridPosition": { "startCol": 2, "startRow": 1, "spanCols": 1 } }
       ]
     },
     {
-      "row": [
-        { "width": 1, "keys": [ { "type": "char", "value": "7" }, { "type": "char", "value": "8" }, { "type": "char", "value": "9" } ] }
+      "rowId": "row_3",
+      "heightRatio": 0.25,
+      "alignment": "JUSTIFY",
+      "keys": [
+        { "keyId": "key_7", "label": "7", "styleId": "style_function_key_important", "primaryCode": 55, "gridPosition": { "startCol": 0, "startRow": 2, "spanCols": 1 } },
+        { "keyId": "key_8", "label": "8", "styleId": "style_function_key_important", "primaryCode": 56, "gridPosition": { "startCol": 1, "startRow": 2, "spanCols": 1 } },
+        { "keyId": "key_9", "label": "9", "styleId": "style_function_key_important", "primaryCode": 57, "gridPosition": { "startCol": 2, "startRow": 2, "spanCols": 1 } }
       ]
     },
     {
-      "row": [
-        { "width": 1, "keys": [ { "type": "switch_to_layout", "value": "_main_", "label": "ABC" }, { "type": "char", "value": "0" }, { "type": "switch_to_layout", "value": "symbols", "label": "#+=" } ] }
+      "rowId": "row_4",
+      "heightRatio": 0.25,
+      "alignment": "JUSTIFY",
+      "keys": [
+        {
+          "keyId": "key_back_layout",
+          "label": "ABC",
+          "styleId": "style_function_key",
+          "primaryCode": -101,
+          "gridPosition": { "startCol": 0, "startRow": 3, "spanCols": 1 },
+          "widthWeight": 1.5,
+          "behaviors": { "TAP": { "actionType": "BACK_LAYOUT" } }
+        },
+        {
+          "keyId": "key_0",
+          "label": "0",
+          "styleId": "style_function_key_important",
+          "primaryCode": 48,
+          "gridPosition": { "startCol": 1, "startRow": 3, "spanCols": 1 },
+          "widthWeight": 2.0
+        },
+        {
+          "keyId": "key_backspace",
+          "label": "⌫",
+          "styleId": "style_function_key",
+          "primaryCode": -5,
+          "gridPosition": { "startCol": 2, "startRow": 3, "spanCols": 1 },
+          "widthWeight": 1.5,
+          "behaviors": { "TAP": { "actionType": "BACKSPACE" } }
+        }
       ]
     }
   ]
