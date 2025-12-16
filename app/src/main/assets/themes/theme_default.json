@@ -1,26 +1,81 @@
 {
-  "themeId": "default_dark",
-  "name": "Default Dark Theme",
+  "version": 1,
+  "themeId": "default_light",
+  "name": "Default Light (QWERTY)",
   "colors": {
-    "background": "#1F1F1F",
-    "key_text": "#FFFFFF",
-    "key_hint": "#888888"
+    "background": "#F2F2F7",
+    "key_text": "#000000",
+    "key_hint": "#8E8E93",
+    "key_bg": "#FFFFFF",
+    "key_bg_pressed": "#E5E5EA",
+    "key_bg_function": "#E5E5EA",
+    "key_bg_function_pressed": "#D1D1D6",
+    "stroke": "#14000000",
+    "accent": "#007AFF"
+  },
+  "global": {
+    "paint": {
+      "cornerRadiusDp": 10
+    }
+  },
+  "layout": {
+    "background": {
+      "color": "colors.background"
+    }
+  },
+  "toolbar": {
+    "surface": {
+      "background": { "color": "colors.background" },
+      "stroke": { "color": "colors.stroke", "widthDp": 1 },
+      "cornerRadiusDp": 10
+    },
+    "itemText": { "color": "#3C3C43" },
+    "itemIcon": { "tint": "#3C3C43" }
+  },
+  "candidates": {
+    "surface": {
+      "background": { "color": "colors.background" },
+      "stroke": { "color": "colors.stroke", "widthDp": 1 }
+    },
+    "candidateText": { "color": "colors.key_text", "sizeSp": 18 },
+    "candidateTextSelected": { "color": "colors.accent", "bold": true }
+  },
+  "keyPopup": {
+    "surface": {
+      "background": { "color": "colors.key_bg" },
+      "stroke": { "color": "colors.stroke", "widthDp": 1 },
+      "cornerRadiusDp": 12
+    },
+    "text": { "color": "colors.key_text" },
+    "textSelected": { "color": "#FFFFFF" }
   },
   "styles": {
     "style_alpha_key": {
-      "keyBackground": "drawable/key_bg_alpha.9.png",
-      "textColor": "colors.key_text",
-      "textSizeSp": 16
+      "background": { "color": "colors.key_bg" },
+      "backgroundPressed": { "color": "colors.key_bg_pressed" },
+      "stroke": { "color": "colors.stroke", "widthDp": 1 },
+      "shadow": { "color": "#22000000", "radiusDp": 2, "dxDp": 0, "dyDp": 1 },
+      "cornerRadiusDp": 10,
+      "label": { "color": "colors.key_text", "sizeSp": 22 },
+      "hint": { "color": "colors.key_hint", "sizeSp": 11 }
     },
     "style_function_key": {
-      "keyBackground": "drawable/key_bg_function.9.png",
-      "textColor": "#ADD8E6",
-      "textSizeSp": 14
+      "background": { "color": "colors.key_bg_function" },
+      "backgroundPressed": { "color": "colors.key_bg_function_pressed" },
+      "stroke": { "color": "colors.stroke", "widthDp": 1 },
+      "shadow": { "color": "#20000000", "radiusDp": 2, "dxDp": 0, "dyDp": 1 },
+      "cornerRadiusDp": 10,
+      "label": { "color": "#3C3C43", "sizeSp": 18 },
+      "hint": { "color": "colors.key_hint", "sizeSp": 10 }
     },
     "style_function_key_important": {
-      "keyBackground": "drawable/key_bg_important.9.png",
-      "textColor": "colors.key_text",
-      "textSizeSp": 16
+      "background": { "color": "colors.key_bg_function" },
+      "backgroundPressed": { "color": "colors.key_bg_function_pressed" },
+      "stroke": { "color": "colors.stroke", "widthDp": 1 },
+      "shadow": { "color": "#20000000", "radiusDp": 2, "dxDp": 0, "dyDp": 1 },
+      "cornerRadiusDp": 10,
+      "label": { "color": "colors.key_text", "sizeSp": 18 },
+      "hint": { "color": "colors.key_hint", "sizeSp": 10 }
     }
   }
 }

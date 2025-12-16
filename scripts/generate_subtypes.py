@@ -122,11 +122,15 @@ def generate(layouts: list[LayoutDef], dictionaries: list[DictionaryDef]) -> dic
     locales: list[dict[str, Any]] = []
     for tag in sorted(locale_to_layouts.keys()):
         ids = sorted(dict.fromkeys(locale_to_layouts[tag]).keys())
+        default_layout_id = None
+        if ids:
+            # Prefer T9 as the default layout when available.
+            default_layout_id = "qwerty" if "qwerty" in ids else ids[0]
         locales.append(
             {
                 "localeTag": tag,
                 "layoutIds": ids,
-                "defaultLayoutId": ids[0] if ids else None,
+                "defaultLayoutId": default_layout_id,
                 "enabled": True,
                 "priority": 0,
             }

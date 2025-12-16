@@ -28,6 +28,20 @@ object KeyIds {
 
 @Serializable
 /**
+ * 布局内“特殊功能键”枚举：用于把某些 key 做统一的特殊处理（不依赖 label / behaviors）。
+ * Special function keys (layout-level): handled specially regardless of label/behaviors.
+ */
+enum class SpecialKey {
+    /** 回车/换行；Enter. */
+    ENTER,
+    /** 中英文（locale）切换；Toggle locale. */
+    TOGGLE_LOCALE,
+    /** 分词/断开当前 composing（提交当前拼音字母串为原文）；Commit composing as raw text. */
+    SEGMENT,
+}
+
+@Serializable
+/**
  * 按键模型：逻辑输出 + 行为映射 + 主题引用 + 网格几何。
  * Key model: logical output + behavior mapping + theme reference + grid geometry.
  */
@@ -37,6 +51,11 @@ data class Key(
      * Unique key id (e.g. "key_q", "key_shift").
      */
     val keyId: String,
+    /**
+     * 可选：特殊功能键类型（用于统一的特殊处理）。
+     * Optional special function key type.
+     */
+    val specialKey: SpecialKey? = null,
     /**
      * 默认显示的标签文本（例如 "q"）。
      * Default label shown on the key (e.g. "q").
@@ -190,6 +209,12 @@ enum class ActionType {
     BACKSPACE,
     /** 空格；Space. */
     SPACE,
+    /** 回车/换行；Enter/newline. */
+    ENTER,
+    /** 切换语言环境（在可用 locales 中循环或中英互切）；Toggle locale. */
+    TOGGLE_LOCALE,
+    /** 提交当前 composing 为原文并清空 composing；Commit composing as raw text. */
+    COMMIT_COMPOSING,
     /** 热词高亮切换；Toggle hotword highlight. */
     TOGGLE_HOTWORD_HIGHLIGHT,
     /** 显示弹窗/候选；Show popup/candidates. */

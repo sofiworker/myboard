@@ -62,10 +62,9 @@ class RimeDictYamlParser:
                 code = parts[1].strip()
                 if not word or not code:
                     continue
-                # Normalize rime pinyin codes:
-                # - lowercased
-                # - remove spaces (syllable separators) and apostrophes
-                code = code.lower().replace(" ", "").replace("'", "")
+                # Keep raw code as-is (incl. spaces/apostrophes) so higher-level converters can
+                # canonicalize deterministically and optionally derive single-character entries.
+                code = code.lower()
 
                 weight = 0
                 if len(parts) >= 3:
@@ -450,6 +449,16 @@ def _cmd_convert(argv: list[str]) -> int:
     p.add_argument("--asset-path", default=None, help='Optional assetPath in DictionarySpec (e.g. "dictionary/base.mybdict").')
     p.add_argument("--layout-ids", default="", help="Comma-separated allowed layout ids (DictionarySpec.layoutIds).")
     p.add_argument("--code-scheme", default=CodeScheme.PINYIN_FULL, help="Canonical code scheme for payload (e.g. PINYIN_FULL).")
+    p.add_argument(
+        "--derive-single-chars",
+        action="store_true",
+        help="Derive single-character entries from multi-character words (pinyin only).",
+    )
+    p.add_argument(
+        "--single-chars-per-code",
+        default="64",
+        help="Max derived single characters per syllable code (default: 64).",
+    )
     p.add_argument("--kind", default=None, help="Optional DictionarySpec.kind (e.g. PINYIN).")
     p.add_argument("--core", default=None, help="Optional DictionarySpec.core (e.g. PINYIN_CORE).")
     p.add_argument("--variant", default=None, help="Optional DictionarySpec.variant (e.g. quanpin).")
@@ -486,13 +495,45 @@ def _cmd_convert(argv: list[str]) -> int:
     }
 
     scheme = str(args.code_scheme)
+    derive_single_chars = bool(args.derive_single_chars) or scheme == CodeScheme.PINYIN_FULL
+    single_chars_per_code = max(0, int(args.single_chars_per_code))
 
     def _iter_canonical() -> Iterable[DictionaryEntry]:
+        # For each single-syllable code, keep best-weight single characters.
+        # Keeps the output size bounded (unlike emitting per-character entries for every word).
+        char_best: dict[str, dict[str, int]] = defaultdict(dict)
+
         for e in parser.parse(args.input):
-            code = _canonicalize_code(e.code, scheme=scheme)
-            if not code:
+            raw_code = (e.code or "").strip()
+            word = (e.word or "").strip()
+            code = _canonicalize_code(raw_code, scheme=scheme)
+            if not code or not word:
                 continue
-            yield DictionaryEntry(word=e.word, code=code, weight=e.weight)
+
+            if derive_single_chars and single_chars_per_code > 0 and scheme == CodeScheme.PINYIN_FULL:
+                syllables = [s for s in raw_code.split() if s]
+                if syllables and len(syllables) == len(word):
+                    for ch, syl in zip(word, syllables, strict=True):
+                        ch = ch.strip()
+                        if not ch or len(ch) != 1:
+                            continue
+                        syl_code = _canonicalize_code(syl, scheme=scheme)
+                        if not syl_code:
+                            continue
+                        # Normalize derived weight: use scaled weight so long phrases don't dominate.
+                        derived_weight = int(e.weight / max(1, len(word)))
+                        prev = char_best[syl_code].get(ch)
+                        if prev is None or derived_weight > prev:
+                            char_best[syl_code][ch] = derived_weight
+
+            yield DictionaryEntry(word=word, code=code, weight=e.weight)
+
+        if derive_single_chars and single_chars_per_code > 0 and scheme == CodeScheme.PINYIN_FULL:
+            for syl_code, m in char_best.items():
+                # Sort by weight desc then char for stable output.
+                items = sorted(m.items(), key=lambda kv: (-kv[1], kv[0]))
+                for ch, w in items[:single_chars_per_code]:
+                    yield DictionaryEntry(word=ch, code=syl_code, weight=w)
 
     payload = MyBoardDictPayloadV1Writer().encode(_iter_canonical())
     MyBoardDictionaryFileV1Writer().write(

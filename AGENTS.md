@@ -149,6 +149,12 @@ Subtype 资源生成的是一个 “locale -> layout 列表” 的映射表，�
        - `layoutIds=["qwerty"]`（拼音/双拼限定）或 `["stroke"]`（笔画限定）等
      - 多字典同 kind：例如 `dict_pinyin_quanpin` 与 `dict_pinyin_shuangpin` 同为 `kind=PINYIN`，用 `variant` 区分，并在设置里提供选择。
 
+9) 键盘存在语言切换的按钮时
+    - 获取当前语言layout，判断该layout是否在目标语言中也有
+    - 如果目标语言存在该layout，禁止重绘键盘，直接进行符号替换
+    - 如果目标语言不存在该layout，判断用户的layout manager中是否有该语言的layout，如果存在直接切换过去
+    - 如果目标语言不存在该layout，则选用语言默认的layout
+
 ### 验证方式（必须可用 `./gradlew` 验证）
 
 1) 生成 subtype 资源并编译 Debug 包：

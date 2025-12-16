@@ -1,7 +1,10 @@
 {
   "layoutId": "t9",
   "name": "T9",
-  "locale": ["en_US", "zh_CN"],
+  "locale": [
+    "en_US",
+    "zh_CN"
+  ],
   "totalWidthRatio": 1.0,
   "totalWidthDpOffset": 0,
   "totalHeightRatio": 0.2,
@@ -22,9 +25,89 @@
       "heightRatio": 0.25,
       "alignment": "JUSTIFY",
       "keys": [
-        { "keyId": "key_1", "label": "1", "styleId": "style_function_key_important", "primaryCode": 49, "gridPosition": { "startCol": 0, "startRow": 0, "spanCols": 1 } },
-        { "keyId": "key_2", "label": "2", "styleId": "style_function_key_important", "primaryCode": 50, "gridPosition": { "startCol": 1, "startRow": 0, "spanCols": 1 }, "hints": { "BOTTOM_CENTER": "ABC" } },
-        { "keyId": "key_3", "label": "3", "styleId": "style_function_key_important", "primaryCode": 51, "gridPosition": { "startCol": 2, "startRow": 0, "spanCols": 1 }, "hints": { "BOTTOM_CENTER": "DEF" } }
+        {
+          "keyId": "key_comma",
+          "label": ",",
+          "styleId": "style_function_key",
+          "primaryCode": 44,
+          "gridPosition": {
+            "startCol": 0,
+            "startRow": 0,
+            "spanCols": 1
+          }
+        },
+        {
+          "keyId": "key_1",
+          "specialKey": "SEGMENT",
+          "label": "分词",
+          "styleId": "style_function_key_important",
+          "primaryCode": 49,
+          "gridPosition": {
+            "startCol": 1,
+            "startRow": 0,
+            "spanCols": 1
+          },
+          "hints": {
+            "BOTTOM_CENTER": "1"
+          }
+        },
+        {
+          "keyId": "key_2",
+          "label": "ABC",
+          "styleId": "style_function_key_important",
+          "primaryCode": 50,
+          "gridPosition": {
+            "startCol": 2,
+            "startRow": 0,
+            "spanCols": 1
+          },
+          "hints": {
+            "BOTTOM_CENTER": "2"
+          },
+          "behaviors": {
+            "TAP": {
+              "actionType": "COMMIT",
+              "value": "2"
+            }
+          }
+        },
+        {
+          "keyId": "key_3",
+          "label": "DEF",
+          "styleId": "style_function_key_important",
+          "primaryCode": 51,
+          "gridPosition": {
+            "startCol": 3,
+            "startRow": 0,
+            "spanCols": 1
+          },
+          "hints": {
+            "BOTTOM_CENTER": "3"
+          },
+          "behaviors": {
+            "TAP": {
+              "actionType": "COMMIT",
+              "value": "3"
+            }
+          }
+        },
+        {
+          "keyId": "key_backspace",
+          "label": "⌫",
+          "styleId": "style_function_key",
+          "primaryCode": -5,
+          "gridPosition": {
+            "startCol": 4,
+            "startRow": 0,
+            "spanCols": 1
+          },
+          "widthWeight": 1.2,
+          "behaviors": {
+            "TAP": {
+              "actionType": "BACKSPACE"
+            }
+          }
+        }
       ]
     },
     {
@@ -32,9 +115,95 @@
       "heightRatio": 0.25,
       "alignment": "JUSTIFY",
       "keys": [
-        { "keyId": "key_4", "label": "4", "styleId": "style_function_key_important", "primaryCode": 52, "gridPosition": { "startCol": 0, "startRow": 1, "spanCols": 1 }, "hints": { "BOTTOM_CENTER": "GHI" } },
-        { "keyId": "key_5", "label": "5", "styleId": "style_function_key_important", "primaryCode": 53, "gridPosition": { "startCol": 1, "startRow": 1, "spanCols": 1 }, "hints": { "BOTTOM_CENTER": "JKL" } },
-        { "keyId": "key_6", "label": "6", "styleId": "style_function_key_important", "primaryCode": 54, "gridPosition": { "startCol": 2, "startRow": 1, "spanCols": 1 }, "hints": { "BOTTOM_CENTER": "MNO" } }
+        {
+          "keyId": "key_period",
+          "label": "。",
+          "styleId": "style_function_key",
+          "primaryCode": 12290,
+          "gridPosition": {
+            "startCol": 0,
+            "startRow": 1,
+            "spanCols": 1
+          }
+        },
+        {
+          "keyId": "key_4",
+          "label": "GHI",
+          "styleId": "style_function_key_important",
+          "primaryCode": 52,
+          "gridPosition": {
+            "startCol": 1,
+            "startRow": 1,
+            "spanCols": 1
+          },
+          "hints": {
+            "BOTTOM_CENTER": "4"
+          },
+          "behaviors": {
+            "TAP": {
+              "actionType": "COMMIT",
+              "value": "4"
+            }
+          }
+        },
+        {
+          "keyId": "key_5",
+          "label": "JKL",
+          "styleId": "style_function_key_important",
+          "primaryCode": 53,
+          "gridPosition": {
+            "startCol": 2,
+            "startRow": 1,
+            "spanCols": 1
+          },
+          "hints": {
+            "BOTTOM_CENTER": "5"
+          },
+          "behaviors": {
+            "TAP": {
+              "actionType": "COMMIT",
+              "value": "5"
+            }
+          }
+        },
+        {
+          "keyId": "key_6",
+          "label": "MNO",
+          "styleId": "style_function_key_important",
+          "primaryCode": 54,
+          "gridPosition": {
+            "startCol": 3,
+            "startRow": 1,
+            "spanCols": 1
+          },
+          "hints": {
+            "BOTTOM_CENTER": "6"
+          },
+          "behaviors": {
+            "TAP": {
+              "actionType": "COMMIT",
+              "value": "6"
+            }
+          }
+        },
+        {
+          "keyId": "key_reinput",
+          "label": "重输",
+          "styleId": "style_function_key",
+          "primaryCode": -200,
+          "gridPosition": {
+            "startCol": 4,
+            "startRow": 1,
+            "spanCols": 1
+          },
+          "widthWeight": 1.2,
+          "behaviors": {
+            "TAP": {
+              "actionType": "COMMIT",
+              "value": ""
+            }
+          }
+        }
       ]
     },
     {
@@ -42,9 +211,97 @@
       "heightRatio": 0.25,
       "alignment": "JUSTIFY",
       "keys": [
-        { "keyId": "key_7", "label": "7", "styleId": "style_function_key_important", "primaryCode": 55, "gridPosition": { "startCol": 0, "startRow": 2, "spanCols": 1 }, "hints": { "BOTTOM_CENTER": "PQRS" } },
-        { "keyId": "key_8", "label": "8", "styleId": "style_function_key_important", "primaryCode": 56, "gridPosition": { "startCol": 1, "startRow": 2, "spanCols": 1 }, "hints": { "BOTTOM_CENTER": "TUV" } },
-        { "keyId": "key_9", "label": "9", "styleId": "style_function_key_important", "primaryCode": 57, "gridPosition": { "startCol": 2, "startRow": 2, "spanCols": 1 }, "hints": { "BOTTOM_CENTER": "WXYZ" } }
+        {
+          "keyId": "key_question",
+          "label": "?",
+          "styleId": "style_function_key",
+          "primaryCode": 63,
+          "gridPosition": {
+            "startCol": 0,
+            "startRow": 2,
+            "spanCols": 1
+          },
+          "behaviors": {
+            "LONG_PRESS": {
+              "actionType": "SHOW_POPUP",
+              "values": [
+                "!"
+              ]
+            }
+          }
+        },
+        {
+          "keyId": "key_7",
+          "label": "PQRS",
+          "styleId": "style_function_key_important",
+          "primaryCode": 55,
+          "gridPosition": {
+            "startCol": 1,
+            "startRow": 2,
+            "spanCols": 1
+          },
+          "hints": {
+            "BOTTOM_CENTER": "7"
+          },
+          "behaviors": {
+            "TAP": {
+              "actionType": "COMMIT",
+              "value": "7"
+            }
+          }
+        },
+        {
+          "keyId": "key_8",
+          "label": "TUV",
+          "styleId": "style_function_key_important",
+          "primaryCode": 56,
+          "gridPosition": {
+            "startCol": 2,
+            "startRow": 2,
+            "spanCols": 1
+          },
+          "hints": {
+            "BOTTOM_CENTER": "8"
+          },
+          "behaviors": {
+            "TAP": {
+              "actionType": "COMMIT",
+              "value": "8"
+            }
+          }
+        },
+        {
+          "keyId": "key_9",
+          "label": "WXYZ",
+          "styleId": "style_function_key_important",
+          "primaryCode": 57,
+          "gridPosition": {
+            "startCol": 3,
+            "startRow": 2,
+            "spanCols": 1
+          },
+          "hints": {
+            "BOTTOM_CENTER": "9"
+          },
+          "behaviors": {
+            "TAP": {
+              "actionType": "COMMIT",
+              "value": "9"
+            }
+          }
+        },
+        {
+          "keyId": "key_0",
+          "label": "0",
+          "styleId": "style_function_key",
+          "primaryCode": 48,
+          "gridPosition": {
+            "startCol": 4,
+            "startRow": 2,
+            "spanCols": 1
+          },
+          "widthWeight": 1.2
+        }
       ]
     },
     {
@@ -52,11 +309,101 @@
       "heightRatio": 0.25,
       "alignment": "JUSTIFY",
       "keys": [
-        { "keyId": "key_star", "label": "*", "styleId": "style_function_key", "primaryCode": 42, "gridPosition": { "startCol": 0, "startRow": 3, "spanCols": 1 } },
-        { "keyId": "key_0", "label": "0", "styleId": "style_function_key_important", "primaryCode": 48, "gridPosition": { "startCol": 1, "startRow": 3, "spanCols": 1 }, "hints": { "BOTTOM_CENTER": "+" } },
-        { "keyId": "key_hash", "label": "#", "styleId": "style_function_key", "primaryCode": 35, "gridPosition": { "startCol": 2, "startRow": 3, "spanCols": 1 } }
+        {
+          "keyId": "key_symbols",
+          "label": "符",
+          "styleId": "style_function_key_important",
+          "primaryCode": -100,
+          "gridPosition": {
+            "startCol": 0,
+            "startRow": 3,
+            "spanCols": 1
+          },
+          "widthWeight": 1.5,
+          "behaviors": {
+            "TAP": {
+              "actionType": "SET_LAYER",
+              "value": "SYMBOLS_1"
+            }
+          }
+        },
+        {
+          "keyId": "key_mode_switch",
+          "label": "123",
+          "styleId": "style_function_key_important",
+          "primaryCode": -2,
+          "gridPosition": {
+            "startCol": 1,
+            "startRow": 3,
+            "spanCols": 1
+          },
+          "widthWeight": 1.5,
+          "behaviors": {
+            "TAP": {
+              "actionType": "SWITCH_LAYOUT",
+              "value": "numeric"
+            }
+          }
+        },
+        {
+          "keyId": "key_space",
+          "label": "space",
+          "styleId": "style_function_key_important",
+          "primaryCode": 32,
+          "gridPosition": {
+            "startCol": 2,
+            "startRow": 3,
+            "spanCols": 1
+          },
+          "widthWeight": 5.0,
+          "behaviors": {
+            "TAP": {
+              "actionType": "SPACE"
+            }
+          }
+        },
+        {
+          "keyId": "key_lang_toggle",
+          "specialKey": "TOGGLE_LOCALE",
+          "label": "中",
+          "styleId": "style_function_key",
+          "primaryCode": -99,
+          "gridPosition": {
+            "startCol": 3,
+            "startRow": 3,
+            "spanCols": 1
+          },
+          "widthWeight": 1.5,
+          "hints": {
+            "BOTTOM_RIGHT": "/英"
+          },
+          "behaviors": {
+            "TAP": {
+              "actionType": "COMMIT",
+              "value": ""
+            }
+          }
+        },
+        {
+          "keyId": "key_search",
+          "specialKey": "ENTER",
+          "label": "搜索",
+          "styleId": "style_function_key_important",
+          "primaryCode": 10,
+          "gridPosition": {
+            "startCol": 4,
+            "startRow": 3,
+            "spanCols": 1
+          },
+          "widthWeight": 2.0,
+          "behaviors": {
+            "TAP": {
+              "actionType": "COMMIT",
+              "value": "\n"
+            }
+          }
+        }
       ]
     }
   ]
 }
-

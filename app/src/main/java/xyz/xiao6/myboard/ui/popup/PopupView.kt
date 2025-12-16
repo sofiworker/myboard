@@ -2,7 +2,6 @@ package xyz.xiao6.myboard.ui.popup
 
 import android.content.Context
 import android.graphics.Color
-import android.graphics.Rect
 import android.graphics.RectF
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
@@ -11,52 +10,52 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.View.MeasureSpec
 import android.view.ViewGroup
-import android.view.WindowManager
+import android.widget.FrameLayout
 import android.widget.LinearLayout
-import android.widget.PopupWindow
 import android.widget.TextView
-import xyz.xiao6.myboard.util.MLog
+import xyz.xiao6.myboard.model.ThemeSpec
+import xyz.xiao6.myboard.ui.theme.ThemeRuntime
 import kotlin.math.max
 
 /**
- * 辅助气泡/浮动层（PopupWindow）：按键预览 + 长按候选。
- * Popup overlay (PopupWindow): key preview + long-press candidates.
+ * 辅助气泡/浮动层（View overlay）：按键预览 + 长按候选。
+ * Popup overlay (View overlay): key preview + long-press candidates.
  *
  * 约束 / Constraints:
  * - 预览气泡：ACTION_DOWN 后 100ms 内显示，ACTION_UP 或移出按键区域立刻消失
  * - 长按候选：可接收触摸，MOVE 高亮，UP 提交选中项
  */
 class PopupView(
-    private val context: Context,
+    private val host: FrameLayout,
 ) {
-    private val logTag = "PopupView"
+    private val context = host.context
+    private var themeSpec: ThemeSpec? = null
+    private var theme: ThemeRuntime? = null
+
     private val previewTextView = buildPreviewTextView()
-    private val previewWindow = PopupWindow(
-        previewTextView,
-        ViewGroup.LayoutParams.WRAP_CONTENT,
-        ViewGroup.LayoutParams.WRAP_CONTENT,
-        false,
-    ).apply {
-        isClippingEnabled = false
-        // Ensure it can be shown from IME window.
-        windowLayoutType = WindowManager.LayoutParams.TYPE_APPLICATION_PANEL
-    }
-
     private val candidatesContainer = CandidateStripView(context)
-    private val candidatesWindow = PopupWindow(
-        candidatesContainer,
-        ViewGroup.LayoutParams.WRAP_CONTENT,
-        ViewGroup.LayoutParams.WRAP_CONTENT,
-        true,
-    ).apply {
-        isClippingEnabled = false
-        // Ensure it can be shown from IME window.
-        windowLayoutType = WindowManager.LayoutParams.TYPE_APPLICATION_PANEL
-        inputMethodMode = PopupWindow.INPUT_METHOD_NOT_NEEDED
-    }
 
-    private var candidatesWindowX: Int = 0
-    private var candidatesWindowY: Int = 0
+    private var isPreviewShowing: Boolean = false
+    private var isCandidatesShowing: Boolean = false
+
+    fun applyTheme(theme: ThemeSpec?) {
+        themeSpec = theme
+        this.theme = theme?.let { ThemeRuntime(it) }
+
+        val runtime = this.theme
+        val surfaceBg = runtime?.resolveColor(theme?.keyPopup?.surface?.background?.color, Color.parseColor("#CC000000"))
+            ?: Color.parseColor("#CC000000")
+        val strokeColor = runtime?.resolveColor(theme?.keyPopup?.surface?.stroke?.color, Color.parseColor("#55FFFFFF"))
+            ?: Color.parseColor("#55FFFFFF")
+        val textColor = runtime?.resolveColor(theme?.keyPopup?.text?.color, Color.WHITE) ?: Color.WHITE
+        previewTextView.setTextColor(textColor)
+        (previewTextView.background as? GradientDrawable)?.apply {
+            setColor(surfaceBg)
+            setStroke(dpInt(theme?.keyPopup?.surface?.stroke?.widthDp ?: 1f), strokeColor)
+        }
+
+        candidatesContainer.applyTheme(theme, runtime)
+    }
 
     fun dismissAll() {
         dismissPreview()
@@ -64,43 +63,47 @@ class PopupView(
     }
 
     fun dismissPreview() {
-        if (previewWindow.isShowing) previewWindow.dismiss()
+        if (!isPreviewShowing) return
+        isPreviewShowing = false
+        previewTextView.visibility = View.GONE
     }
 
     fun dismissCandidates() {
-        if (candidatesWindow.isShowing) candidatesWindow.dismiss()
+        if (!isCandidatesShowing) return
+        isCandidatesShowing = false
+        candidatesContainer.visibility = View.GONE
         candidatesContainer.reset()
     }
 
     fun showKeyPreview(anchor: View, keyRectInAnchor: RectF, text: String) {
+        if (host.width == 0 || host.height == 0) {
+            host.post { showKeyPreview(anchor, keyRectInAnchor, text) }
+            return
+        }
+
+        ensureAttached(previewTextView)
         previewTextView.text = text
         previewTextView.measure(MeasureSpec.UNSPECIFIED, MeasureSpec.UNSPECIFIED)
         val w = previewTextView.measuredWidth
         val h = previewTextView.measuredHeight
 
-        val location = IntArray(2)
-        // IMPORTANT: in IME (InputMethodService) the PopupWindow is positioned in window coordinates,
-        // not global screen coordinates, so use location-in-window.
-        anchor.getLocationInWindow(location)
+        val pos = computePopupPosition(
+            anchor = anchor,
+            keyRectInAnchor = keyRectInAnchor,
+            popupWidth = w,
+            popupHeight = h,
+            preferAbovePadding = dpInt(6f),
+        )
 
-        val keyCenterX = location[0] + keyRectInAnchor.centerX()
-        val desiredX = (keyCenterX - w / 2f).toInt()
-        val aboveY = (location[1] + keyRectInAnchor.top - h - dp(6f)).toInt()
-        val belowY = (location[1] + keyRectInAnchor.bottom + dp(6f)).toInt()
-
-        val frame = visibleFrameInWindow(anchor)
-        val x = clampX(desiredX, w, frame)
-        val y = clampYPreferAbove(aboveY, belowY, h, frame)
-
-        if (previewWindow.isShowing) {
-            previewWindow.update(x, y, -1, -1)
-        } else {
-            runCatching {
-                previewWindow.showAtLocation(anchor, Gravity.NO_GRAVITY, x, y)
-            }.onFailure { t ->
-                MLog.w(logTag, "showKeyPreview failed", t)
-            }
+        (previewTextView.layoutParams as? FrameLayout.LayoutParams)?.let { lp ->
+            lp.leftMargin = pos.x
+            lp.topMargin = pos.y
+            previewTextView.layoutParams = lp
         }
+
+        previewTextView.visibility = View.VISIBLE
+        previewTextView.bringToFront()
+        isPreviewShowing = true
     }
 
     /**
@@ -114,37 +117,36 @@ class PopupView(
         candidates: List<String>,
         onCommit: (String) -> Unit,
     ) {
+        if (host.width == 0 || host.height == 0) {
+            host.post { showLongPressCandidates(anchor, keyRectInAnchor, candidates, onCommit) }
+            return
+        }
+
+        ensureAttached(candidatesContainer)
         candidatesContainer.setCandidates(candidates)
         candidatesContainer.measure(MeasureSpec.UNSPECIFIED, MeasureSpec.UNSPECIFIED)
 
         val w = candidatesContainer.measuredWidth
         val h = candidatesContainer.measuredHeight
 
-        val location = IntArray(2)
-        anchor.getLocationInWindow(location)
-
-        val keyCenterX = location[0] + keyRectInAnchor.centerX()
-        val desiredX = (keyCenterX - w / 2f).toInt()
-        val aboveY = (location[1] + keyRectInAnchor.top - h - dp(10f)).toInt()
-        val belowY = (location[1] + keyRectInAnchor.bottom + dp(10f)).toInt()
-
-        val frame = visibleFrameInWindow(anchor)
-        val x = clampX(desiredX, w, frame)
-        val y = clampYPreferAbove(aboveY, belowY, h, frame)
-
         candidatesContainer.onCommit = onCommit
-        candidatesWindowX = x
-        candidatesWindowY = y
+        val pos = computePopupPosition(
+            anchor = anchor,
+            keyRectInAnchor = keyRectInAnchor,
+            popupWidth = w,
+            popupHeight = h,
+            preferAbovePadding = dpInt(10f),
+        )
 
-        if (candidatesWindow.isShowing) {
-            candidatesWindow.update(x, y, -1, -1)
-        } else {
-            runCatching {
-                candidatesWindow.showAtLocation(anchor, Gravity.NO_GRAVITY, x, y)
-            }.onFailure { t ->
-                MLog.w(logTag, "showLongPressCandidates failed", t)
-            }
+        (candidatesContainer.layoutParams as? FrameLayout.LayoutParams)?.let { lp ->
+            lp.leftMargin = pos.x
+            lp.topMargin = pos.y
+            candidatesContainer.layoutParams = lp
         }
+
+        candidatesContainer.visibility = View.VISIBLE
+        candidatesContainer.bringToFront()
+        isCandidatesShowing = true
     }
 
     /**
@@ -152,29 +154,39 @@ class PopupView(
      * Returns true if the candidates popup is consuming the gesture.
      */
     fun dispatchCandidatesTouch(anchor: View, event: MotionEvent): Boolean {
-        if (!candidatesWindow.isShowing) return false
+        if (!isCandidatesShowing) return false
+        if (candidatesContainer.visibility != View.VISIBLE) return false
+
         val anchorLoc = IntArray(2)
         anchor.getLocationInWindow(anchorLoc)
         val windowX = anchorLoc[0] + event.x
         val windowY = anchorLoc[1] + event.y
-        val localX = windowX - candidatesWindowX
-        val localY = windowY - candidatesWindowY
 
-        val adjusted = MotionEvent.obtain(
-            event.downTime,
-            event.eventTime,
-            event.actionMasked,
-            localX,
-            localY,
-            event.metaState,
-        )
+        val candidatesLoc = IntArray(2)
+        candidatesContainer.getLocationInWindow(candidatesLoc)
+        val localX = windowX - candidatesLoc[0]
+        val localY = windowY - candidatesLoc[1]
+
+        if (localX < 0f || localY < 0f || localX > candidatesContainer.width.toFloat() || localY > candidatesContainer.height.toFloat()) {
+            return false
+        }
+
+        val adjusted =
+            MotionEvent.obtain(
+                event.downTime,
+                event.eventTime,
+                event.actionMasked,
+                localX,
+                localY,
+                event.metaState,
+            )
         adjusted.source = event.source
         val handled = candidatesContainer.dispatchTouch(adjusted)
         adjusted.recycle()
         return handled
     }
 
-    fun isCandidatesShowing(): Boolean = candidatesWindow.isShowing
+    fun isCandidatesShowing(): Boolean = isCandidatesShowing
 
     private fun buildPreviewTextView(): TextView {
         return TextView(context).apply {
@@ -195,30 +207,60 @@ class PopupView(
     private fun dp(value: Float): Float = value * context.resources.displayMetrics.density
     private fun dpInt(value: Float): Int = dp(value).toInt()
 
-    private fun visibleFrameInWindow(anchor: View): Rect {
-        // Constrain popups inside the IME window. Using screen-visible frame can push the popup
-        // outside the IME window top boundary and make it invisible.
-        val root = anchor.rootView ?: anchor
-        val w = root.width.takeIf { it > 0 } ?: context.resources.displayMetrics.widthPixels
-        val h = root.height.takeIf { it > 0 } ?: context.resources.displayMetrics.heightPixels
-        return Rect(0, 0, w, h)
+    private data class PopupPosition(val x: Int, val y: Int)
+
+    private fun ensureAttached(view: View) {
+        if (view.parent === host) return
+        if (view.parent is ViewGroup) (view.parent as ViewGroup).removeView(view)
+        host.addView(
+            view,
+            FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+            ),
+        )
+        view.visibility = View.GONE
     }
 
-    private fun clampX(desiredX: Int, popupWidth: Int, frame: Rect): Int {
-        val minX = frame.left + dpInt(4f)
-        val maxX = frame.right - popupWidth - dpInt(4f)
+    private fun computePopupPosition(
+        anchor: View,
+        keyRectInAnchor: RectF,
+        popupWidth: Int,
+        popupHeight: Int,
+        preferAbovePadding: Int,
+    ): PopupPosition {
+        val anchorLoc = IntArray(2)
+        anchor.getLocationInWindow(anchorLoc)
+
+        val hostLoc = IntArray(2)
+        host.getLocationInWindow(hostLoc)
+
+        val anchorXInHost = anchorLoc[0] - hostLoc[0]
+        val anchorYInHost = anchorLoc[1] - hostLoc[1]
+
+        val keyCenterX = anchorXInHost + keyRectInAnchor.centerX()
+        val desiredX = (keyCenterX - popupWidth / 2f).toInt()
+
+        val aboveY = (anchorYInHost + keyRectInAnchor.top - popupHeight - preferAbovePadding).toInt()
+        val belowY = (anchorYInHost + keyRectInAnchor.bottom + preferAbovePadding).toInt()
+
+        val x = clampX(desiredX, popupWidth)
+        val y = clampYPreferAbove(aboveY, belowY, popupHeight)
+        return PopupPosition(x = x, y = y)
+    }
+
+    private fun clampX(desiredX: Int, popupWidth: Int): Int {
+        val minX = dpInt(4f)
+        val maxX = host.width - popupWidth - dpInt(4f)
         return desiredX.coerceIn(minX, max(minX, maxX))
     }
 
-    private fun clampYPreferAbove(aboveY: Int, belowY: Int, popupHeight: Int, frame: Rect): Int {
-        val minY = frame.top + dpInt(4f)
-        val maxY = frame.bottom - popupHeight - dpInt(4f)
+    private fun clampYPreferAbove(aboveY: Int, belowY: Int, popupHeight: Int): Int {
+        val minY = dpInt(4f)
+        val maxY = host.height - popupHeight - dpInt(4f)
         val clampedAbove = aboveY.coerceIn(minY, max(minY, maxY))
         if (aboveY >= minY) return clampedAbove
         return belowY.coerceIn(minY, max(minY, maxY))
-        // IME UX: prefer showing popups above the key. If there's no space above, clamp to the top
-        // of the IME window (which overlaps the candidate bar) instead of falling back below.
-        // return aboveY.coerceIn(minY, max(minY, maxY))
     }
 
     private class CandidateStripView(context: Context) : LinearLayout(context) {
@@ -226,6 +268,10 @@ class PopupView(
 
         private var candidates: List<String> = emptyList()
         private var selectedIndex: Int = 0
+        private var hasTouchedSelection: Boolean = false
+        private var itemTextColor: Int = Color.WHITE
+        private var itemSelectedBg: Int = Color.parseColor("#FF3A7AFE")
+        private var itemSelectedText: Int = Color.WHITE
 
         init {
             orientation = HORIZONTAL
@@ -236,11 +282,33 @@ class PopupView(
                 setColor(Color.parseColor("#EE1F1F1F"))
                 setStroke(dpInt(1f), Color.parseColor("#55FFFFFF"))
             }
+            isClickable = true
+        }
+
+        fun applyTheme(theme: ThemeSpec?, runtime: ThemeRuntime?) {
+            val surfaceBg = runtime?.resolveColor(theme?.keyPopup?.surface?.background?.color, Color.parseColor("#EE1F1F1F"))
+                ?: Color.parseColor("#EE1F1F1F")
+            val strokeColor = runtime?.resolveColor(theme?.keyPopup?.surface?.stroke?.color, Color.parseColor("#55FFFFFF"))
+                ?: Color.parseColor("#55FFFFFF")
+            val strokeWidth = dpInt(theme?.keyPopup?.surface?.stroke?.widthDp ?: 1f)
+            (background as? GradientDrawable)?.apply {
+                setColor(surfaceBg)
+                setStroke(strokeWidth, strokeColor)
+            }
+            itemTextColor = runtime?.resolveColor(theme?.keyPopup?.text?.color, Color.WHITE) ?: Color.WHITE
+            itemSelectedText = runtime?.resolveColor(theme?.keyPopup?.textSelected?.color, Color.WHITE) ?: Color.WHITE
+            itemSelectedBg = runtime?.resolveColor("colors.accent", Color.parseColor("#FF3A7AFE")) ?: Color.parseColor("#FF3A7AFE")
+            refreshSelection()
+        }
+
+        override fun onTouchEvent(event: MotionEvent): Boolean {
+            return dispatchTouch(event)
         }
 
         fun setCandidates(list: List<String>) {
             candidates = list
             selectedIndex = 0
+            hasTouchedSelection = false
             removeAllViews()
             for ((i, c) in list.withIndex()) {
                 addView(buildItem(i, c))
@@ -252,6 +320,7 @@ class PopupView(
             onCommit = null
             candidates = emptyList()
             selectedIndex = 0
+            hasTouchedSelection = false
             removeAllViews()
         }
 
@@ -262,13 +331,21 @@ class PopupView(
                     val index = hitTestIndex(event.x)
                     if (index != null) {
                         selectedIndex = index
+                        hasTouchedSelection = true
                         refreshSelection()
+                        return true
                     }
-                    return true
+                    // If user didn't actually touch a candidate, don't consume this gesture.
+                    return hasTouchedSelection
                 }
 
                 MotionEvent.ACTION_UP -> {
-                    val index = hitTestIndex(event.x) ?: selectedIndex
+                    val hitIndex = hitTestIndex(event.x)
+                    if (hitIndex == null && !hasTouchedSelection) {
+                        // No intentional selection gesture happened inside the popup, don't consume.
+                        return false
+                    }
+                    val index = hitIndex ?: selectedIndex
                     val text = candidates.getOrNull(index) ?: return true
                     onCommit?.invoke(text)
                     return true
@@ -300,7 +377,7 @@ class PopupView(
                 setPadding(dpInt(12f), dpInt(10f), dpInt(12f), dpInt(10f))
                 gravity = Gravity.CENTER
                 textSize = 18f
-                setTextColor(Color.WHITE)
+                setTextColor(itemTextColor)
                 this.text = text
                 background = GradientDrawable().apply {
                     shape = GradientDrawable.RECTANGLE
@@ -315,7 +392,8 @@ class PopupView(
                 val child = getChildAt(i) as? TextView ?: continue
                 val bg = (child.background as? GradientDrawable) ?: continue
                 val selected = i == selectedIndex
-                bg.setColor(if (selected) Color.parseColor("#FF3A7AFE") else Color.parseColor("#00000000"))
+                bg.setColor(if (selected) itemSelectedBg else Color.parseColor("#00000000"))
+                child.setTextColor(if (selected) itemSelectedText else itemTextColor)
                 child.typeface = if (selected) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
             }
         }

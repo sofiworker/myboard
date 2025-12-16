@@ -23,7 +23,7 @@
     {
       "rowId": "row_1_alpha",
       "heightRatio": 0.25,
-      "alignment": "CENTER",
+      "alignment": "JUSTIFY",
       "keys": [
         {
           "keyId": "key_q",
@@ -35,16 +35,7 @@
             "startRow": 0,
             "spanCols": 1
           },
-          "behaviors": {
-            "LONG_PRESS": {
-              "actionType": "SHOW_POPUP",
-              "values": [
-                "1",
-                "@",
-                "#"
-              ]
-            }
-          }
+          "hints": { "BOTTOM_CENTER": "1" }
         },
         {
           "keyId": "key_w",
@@ -55,7 +46,8 @@
             "startCol": 1,
             "startRow": 0,
             "spanCols": 1
-          }
+          },
+          "hints": { "BOTTOM_CENTER": "2" }
         },
         {
           "keyId": "key_e",
@@ -66,7 +58,8 @@
             "startCol": 2,
             "startRow": 0,
             "spanCols": 1
-          }
+          },
+          "hints": { "BOTTOM_CENTER": "3" }
         },
         {
           "keyId": "key_r",
@@ -77,7 +70,8 @@
             "startCol": 3,
             "startRow": 0,
             "spanCols": 1
-          }
+          },
+          "hints": { "BOTTOM_CENTER": "4" }
         },
         {
           "keyId": "key_t",
@@ -88,7 +82,8 @@
             "startCol": 4,
             "startRow": 0,
             "spanCols": 1
-          }
+          },
+          "hints": { "BOTTOM_CENTER": "5" }
         },
         {
           "keyId": "key_y",
@@ -99,7 +94,8 @@
             "startCol": 5,
             "startRow": 0,
             "spanCols": 1
-          }
+          },
+          "hints": { "BOTTOM_CENTER": "6" }
         },
         {
           "keyId": "key_u",
@@ -110,7 +106,8 @@
             "startCol": 6,
             "startRow": 0,
             "spanCols": 1
-          }
+          },
+          "hints": { "BOTTOM_CENTER": "7" }
         },
         {
           "keyId": "key_i",
@@ -121,7 +118,8 @@
             "startCol": 7,
             "startRow": 0,
             "spanCols": 1
-          }
+          },
+          "hints": { "BOTTOM_CENTER": "8" }
         },
         {
           "keyId": "key_o",
@@ -132,7 +130,8 @@
             "startCol": 8,
             "startRow": 0,
             "spanCols": 1
-          }
+          },
+          "hints": { "BOTTOM_CENTER": "9" }
         },
         {
           "keyId": "key_p",
@@ -143,7 +142,8 @@
             "startCol": 9,
             "startRow": 0,
             "spanCols": 1
-          }
+          },
+          "hints": { "BOTTOM_CENTER": "0" }
         }
       ]
     },
@@ -162,16 +162,7 @@
             "startRow": 1,
             "spanCols": 1
           },
-          "behaviors": {
-            "LONG_PRESS": {
-              "actionType": "SHOW_POPUP",
-              "values": [
-                "fffffff",
-                "@33333",
-                "bbfgdf"
-              ]
-            }
-          }
+          "hints": { "BOTTOM_CENTER": "~" }
         },
         {
           "keyId": "key_s",
@@ -182,7 +173,8 @@
             "startCol": 1,
             "startRow": 1,
             "spanCols": 1
-          }
+          },
+          "hints": { "BOTTOM_CENTER": "!" }
         },
         {
           "keyId": "key_d",
@@ -193,7 +185,8 @@
             "startCol": 2,
             "startRow": 1,
             "spanCols": 1
-          }
+          },
+          "hints": { "BOTTOM_CENTER": "@" }
         },
         {
           "keyId": "key_f",
@@ -205,16 +198,7 @@
             "startRow": 1,
             "spanCols": 1
           },
-          "behaviors": {
-            "LONG_PRESS": {
-              "actionType": "SHOW_POPUP",
-              "values": [
-                "FFFFFFF",
-                "!!!!!!!",
-                "???????"
-              ]
-            }
-          }
+          "hints": { "BOTTOM_CENTER": "#" }
         },
         {
           "keyId": "key_g",
@@ -225,7 +209,8 @@
             "startCol": 4,
             "startRow": 1,
             "spanCols": 1
-          }
+          },
+          "hints": { "BOTTOM_CENTER": "\\" }
         },
         {
           "keyId": "key_h",
@@ -236,7 +221,8 @@
             "startCol": 5,
             "startRow": 1,
             "spanCols": 1
-          }
+          },
+          "hints": { "BOTTOM_CENTER": "“" }
         },
         {
           "keyId": "key_j",
@@ -247,7 +233,8 @@
             "startCol": 6,
             "startRow": 1,
             "spanCols": 1
-          }
+          },
+          "hints": { "BOTTOM_CENTER": "”" }
         },
         {
           "keyId": "key_k",
@@ -258,7 +245,8 @@
             "startCol": 7,
             "startRow": 1,
             "spanCols": 1
-          }
+          },
+          "hints": { "BOTTOM_CENTER": "." }
         },
         {
           "keyId": "key_l",
@@ -269,7 +257,8 @@
             "startCol": 8,
             "startRow": 1,
             "spanCols": 1
-          }
+          },
+          "hints": { "BOTTOM_CENTER": "?" }
         }
       ]
     },
@@ -304,7 +293,8 @@
             "startCol": 1,
             "startRow": 2,
             "spanCols": 1
-          }
+          },
+          "hints": { "BOTTOM_CENTER": "(" }
         },
         {
           "keyId": "key_x",
@@ -315,7 +305,8 @@
             "startCol": 2,
             "startRow": 2,
             "spanCols": 1
-          }
+          },
+          "hints": { "BOTTOM_CENTER": ")" }
         },
         {
           "keyId": "key_c",
@@ -326,7 +317,8 @@
             "startCol": 3,
             "startRow": 2,
             "spanCols": 1
-          }
+          },
+          "hints": { "BOTTOM_CENTER": "-" }
         },
         {
           "keyId": "key_v",
@@ -337,7 +329,8 @@
             "startCol": 4,
             "startRow": 2,
             "spanCols": 1
-          }
+          },
+          "hints": { "BOTTOM_CENTER": "_" }
         },
         {
           "keyId": "key_b",
@@ -348,7 +341,8 @@
             "startCol": 5,
             "startRow": 2,
             "spanCols": 1
-          }
+          },
+          "hints": { "BOTTOM_CENTER": ":" }
         },
         {
           "keyId": "key_n",
@@ -359,7 +353,8 @@
             "startCol": 6,
             "startRow": 2,
             "spanCols": 1
-          }
+          },
+          "hints": { "BOTTOM_CENTER": ";" }
         },
         {
           "keyId": "key_m",
@@ -371,9 +366,7 @@
             "startRow": 2,
             "spanCols": 1
           },
-          "hints": {
-            "TOP_RIGHT": "."
-          }
+          "hints": { "BOTTOM_CENTER": "/" }
         },
         {
           "keyId": "key_backspace",
@@ -400,7 +393,7 @@
       "alignment": "JUSTIFY",
       "keys": [
         {
-          "keyId": "key_符",
+          "keyId": "key_symbols",
           "label": "符",
           "styleId": "style_function_key_important",
           "primaryCode": -100,
@@ -409,25 +402,22 @@
             "startRow": 3,
             "spanCols": 1
           },
-          "widthWeight": 1.5
+          "widthWeight": 1.5,
+          "behaviors": {
+            "TAP": {
+              "actionType": "SET_LAYER",
+              "value": "SYMBOLS_1"
+            }
+          }
         },
         {
           "keyId": "key_mode_switch",
           "label": "123",
           "styleId": "style_function_key_important",
           "primaryCode": -2,
-          "gridPosition": {
-            "startCol": 0,
-            "startRow": 3,
-            "spanCols": 1
-          },
+          "gridPosition": { "startCol": 1, "startRow": 3, "spanCols": 1 },
           "widthWeight": 1.5,
-          "behaviors": {
-            "TAP": {
-              "actionType": "SWITCH_LAYOUT",
-              "value": "numeric"
-            }
-          }
+          "behaviors": { "TAP": { "actionType": "SWITCH_LAYOUT", "value": "numeric" } }
         },
         {
           "keyId": "key_comma",
@@ -435,7 +425,7 @@
           "styleId": "style_function_key",
           "primaryCode": 44,
           "gridPosition": {
-            "startCol": 1,
+            "startCol": 2,
             "startRow": 3,
             "spanCols": 1
           }
@@ -446,7 +436,7 @@
           "styleId": "style_function_key_important",
           "primaryCode": 32,
           "gridPosition": {
-            "startCol": 2,
+            "startCol": 3,
             "startRow": 3,
             "spanCols": 1
           },
@@ -459,33 +449,36 @@
         },
         {
           "keyId": "key_period",
-          "label": ".",
+          "label": "。",
           "styleId": "style_function_key",
-          "primaryCode": 46,
+          "primaryCode": 12290,
           "gridPosition": {
-            "startCol": 3,
+            "startCol": 4,
             "startRow": 3,
             "spanCols": 1
           }
         },
         {
-          "keyId": "key_mode_switch111",
-          "label": "中/英",
+          "keyId": "key_lang_toggle",
+          "specialKey": "TOGGLE_LOCALE",
+          "label": "中",
           "styleId": "style_function_key",
           "primaryCode": -99,
           "gridPosition": {
-            "startCol": 3,
+            "startCol": 5,
             "startRow": 3,
             "spanCols": 1
-          }
+          },
+          "hints": { "BOTTOM_RIGHT": "/英" }
         },
         {
           "keyId": "key_enter",
+          "specialKey": "ENTER",
           "label": "↵",
           "styleId": "style_function_key_important",
           "primaryCode": 10,
           "gridPosition": {
-            "startCol": 4,
+            "startCol": 6,
             "startRow": 3,
             "spanCols": 1
           },

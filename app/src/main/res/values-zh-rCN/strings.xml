@@ -1,0 +1,84 @@
+<resources>
+    <string name="app_name">MyBoard</string>
+
+    <string name="common_yes">是</string>
+    <string name="common_no">否</string>
+
+    <string name="onboarding_step_indicator">步骤 %1$d/%2$d</string>
+    <string name="onboarding_back">上一步</string>
+    <string name="onboarding_next">下一步</string>
+    <string name="onboarding_finish">完成</string>
+
+    <string name="onboarding_enable_title">启用 MyBoard</string>
+    <string name="onboarding_enable_desc">打开系统输入法设置，在列表中启用“MyBoard”。</string>
+    <string name="onboarding_open_ime_settings">打开系统输入法设置</string>
+
+    <string name="onboarding_pick_title">切换到 MyBoard</string>
+    <string name="onboarding_pick_desc">弹出输入法选择器并切换到“MyBoard”。</string>
+    <string name="onboarding_show_ime_picker">弹出输入法选择器</string>
+
+    <string name="onboarding_language_title">选择语言</string>
+    <string name="onboarding_language_locked_hint">请先完成前两步后再选择语言。</string>
+    <string name="onboarding_language_dropdown_label">语言</string>
+    <string name="onboarding_language_dropdown_placeholder">请选择语言</string>
+
+    <string name="onboarding_layout_title">选择布局</string>
+    <string name="onboarding_layout_missing_language">请先选择语言。</string>
+    <string name="onboarding_layout_for_language">语言：%1$s</string>
+    <string name="onboarding_layout_item">%1$s（%2$s）</string>
+    <string name="onboarding_layout_multi_select_hint">支持启用多个布局，之后可通过工具栏进行切换。</string>
+
+    <string name="onboarding_status_enabled">状态：已启用：%1$s</string>
+    <string name="onboarding_status_selected">状态：当前输入法是 MyBoard：%1$s</string>
+    <string name="onboarding_status_ready_for_language">状态：已启用=%1$s，已切换=%2$s</string>
+
+    <string name="onboarding_error_enable_first">请先在系统设置中启用 MyBoard。</string>
+    <string name="onboarding_error_pick_first">请先切换到 MyBoard 作为当前输入法。</string>
+    <string name="onboarding_error_select_language">请选择语言。</string>
+    <string name="onboarding_error_select_layout">请选择布局。</string>
+    <string name="onboarding_error_open_settings_failed">无法打开系统输入法设置。</string>
+    <string name="onboarding_error_imm_unavailable">InputMethodManager 不可用。</string>
+
+    <string name="settings_title">MyBoard 设置</string>
+    <string name="settings_open_ime_settings">打开系统输入法设置</string>
+    <string name="settings_show_ime_picker">弹出输入法选择器</string>
+    <string name="settings_reset">重置引导</string>
+
+    <string name="settings_section_input_method">输入法</string>
+    <string name="settings_section_input">输入</string>
+    <string name="settings_section_advanced">高级</string>
+
+    <string name="settings_status_ime_enabled_selected">已启用：%1$s · 已切换：%2$s</string>
+    <string name="settings_show_ime_picker_desc">将当前输入法切换为 MyBoard</string>
+
+    <string name="settings_language_layout">语言与布局</string>
+    <string name="settings_status_language_layout">语言：%1$s · 布局：%2$s</string>
+    <string name="settings_language_layout_language">语言</string>
+    <string name="settings_language_layout_layouts">已启用的布局</string>
+    <string name="settings_default">默认</string>
+
+    <string name="settings_appearance">外观</string>
+    <string name="settings_appearance_desc">主题与视觉</string>
+    <string name="settings_dictionaries">字典</string>
+    <string name="settings_dictionaries_desc">管理字典与输入特性</string>
+
+    <string name="settings_placeholder_appearance">即将支持：主题选择。</string>
+    <string name="settings_placeholder_dictionaries">即将支持：字典管理。</string>
+
+    <string name="settings_feedback">声音与振动</string>
+    <string name="settings_feedback_summary">点击音：%1$d%% · 振动：%2$s</string>
+    <string name="settings_vibration_follow_system_short">跟随系统</string>
+
+    <string name="settings_section_sound">声音</string>
+    <string name="settings_click_sound_volume">按键点击音量</string>
+    <string name="settings_click_sound_volume_desc">音量：%1$d%%（0=关闭）</string>
+
+    <string name="settings_section_vibration">振动</string>
+    <string name="settings_vibration_follow_system">按键振动跟随系统</string>
+    <string name="settings_vibration_follow_system_desc">按键振动使用系统触感反馈设置</string>
+    <string name="settings_vibration_strength">按键振动强度</string>
+    <string name="settings_vibration_strength_desc">强度：%1$d%%（0=关闭）</string>
+    <string name="settings_vibration_strength_following_system">跟随系统设置</string>
+
+    <string name="settings_reset_desc">清除引导数据并重新运行引导</string>
+</resources>

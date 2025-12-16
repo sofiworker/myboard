@@ -1,4 +1,84 @@
 <resources>
     <string name="app_name">Myboard</string>
-</resources>
 
+    <string name="common_yes">Yes</string>
+    <string name="common_no">No</string>
+
+    <string name="onboarding_step_indicator">Step %1$d/%2$d</string>
+    <string name="onboarding_back">Back</string>
+    <string name="onboarding_next">Next</string>
+    <string name="onboarding_finish">Finish</string>
+
+    <string name="onboarding_enable_title">Enable MyBoard</string>
+    <string name="onboarding_enable_desc">Open system input method settings and enable “MyBoard”.</string>
+    <string name="onboarding_open_ime_settings">Open input method settings</string>
+
+    <string name="onboarding_pick_title">Switch to MyBoard</string>
+    <string name="onboarding_pick_desc">Open the input method picker and switch to “MyBoard”.</string>
+    <string name="onboarding_show_ime_picker">Show input method picker</string>
+
+    <string name="onboarding_language_title">Choose language</string>
+    <string name="onboarding_language_locked_hint">Complete the first two steps before selecting a language.</string>
+    <string name="onboarding_language_dropdown_label">Language</string>
+    <string name="onboarding_language_dropdown_placeholder">Select a language</string>
+
+    <string name="onboarding_layout_title">Choose layout</string>
+    <string name="onboarding_layout_missing_language">Please choose a language first.</string>
+    <string name="onboarding_layout_for_language">Language: %1$s</string>
+    <string name="onboarding_layout_item">%1$s (%2$s)</string>
+    <string name="onboarding_layout_multi_select_hint">You can enable multiple layouts. You’ll be able to switch them from the toolbar.</string>
+
+    <string name="onboarding_status_enabled">Status: Enabled: %1$s</string>
+    <string name="onboarding_status_selected">Status: Current IME is MyBoard: %1$s</string>
+    <string name="onboarding_status_ready_for_language">Status: Enabled=%1$s, Selected=%2$s</string>
+
+    <string name="onboarding_error_enable_first">Please enable MyBoard first.</string>
+    <string name="onboarding_error_pick_first">Please switch to MyBoard first.</string>
+    <string name="onboarding_error_select_language">Please choose a language.</string>
+    <string name="onboarding_error_select_layout">Please choose a layout.</string>
+    <string name="onboarding_error_open_settings_failed">Unable to open system input method settings.</string>
+    <string name="onboarding_error_imm_unavailable">InputMethodManager is unavailable.</string>
+
+    <string name="settings_title">MyBoard Settings</string>
+    <string name="settings_open_ime_settings">Open input method settings</string>
+    <string name="settings_show_ime_picker">Show input method picker</string>
+    <string name="settings_reset">Reset setup</string>
+
+    <string name="settings_section_input_method">Input method</string>
+    <string name="settings_section_input">Input</string>
+    <string name="settings_section_advanced">Advanced</string>
+
+    <string name="settings_status_ime_enabled_selected">Enabled: %1$s · Selected: %2$s</string>
+    <string name="settings_show_ime_picker_desc">Switch current input method to MyBoard</string>
+
+    <string name="settings_language_layout">Language &amp; layout</string>
+    <string name="settings_status_language_layout">Language: %1$s · Layout: %2$s</string>
+    <string name="settings_language_layout_language">Language</string>
+    <string name="settings_language_layout_layouts">Enabled layouts</string>
+    <string name="settings_default">Default</string>
+
+    <string name="settings_appearance">Appearance</string>
+    <string name="settings_appearance_desc">Theme and visuals</string>
+    <string name="settings_dictionaries">Dictionaries</string>
+    <string name="settings_dictionaries_desc">Manage dictionaries and input features</string>
+
+    <string name="settings_placeholder_appearance">Coming soon: theme selection.</string>
+    <string name="settings_placeholder_dictionaries">Coming soon: dictionary management.</string>
+
+    <string name="settings_feedback">Sound &amp; vibration</string>
+    <string name="settings_feedback_summary">Click: %1$d%% · Vibration: %2$s</string>
+    <string name="settings_vibration_follow_system_short">System</string>
+
+    <string name="settings_section_sound">Sound</string>
+    <string name="settings_click_sound_volume">Key click volume</string>
+    <string name="settings_click_sound_volume_desc">Volume: %1$d%% (0 = off)</string>
+
+    <string name="settings_section_vibration">Vibration</string>
+    <string name="settings_vibration_follow_system">Follow system vibration</string>
+    <string name="settings_vibration_follow_system_desc">Use system haptics settings for key press vibration</string>
+    <string name="settings_vibration_strength">Vibration strength</string>
+    <string name="settings_vibration_strength_desc">Strength: %1$d%% (0 = off)</string>
+    <string name="settings_vibration_strength_following_system">Following system settings</string>
+
+    <string name="settings_reset_desc">Clear setup data and re-run the setup wizard</string>
+</resources>

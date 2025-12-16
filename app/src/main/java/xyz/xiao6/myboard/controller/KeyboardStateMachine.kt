@@ -1,9 +1,11 @@
 package xyz.xiao6.myboard.controller
 
 import xyz.xiao6.myboard.model.ActionType
+import xyz.xiao6.myboard.model.HintPosition
 import xyz.xiao6.myboard.model.Key
 import xyz.xiao6.myboard.model.KeyAction
 import xyz.xiao6.myboard.model.KeyTrigger
+import xyz.xiao6.myboard.model.SpecialKey
 
 /**
  * 状态机：把输入事件归约为“布局切换”或“状态切换”或“提交输出”等 effect。
@@ -22,8 +24,10 @@ object KeyboardStateMachine {
 
     sealed interface Effect {
         data class CommitText(val text: String) : Effect
+        data object CommitComposing : Effect
         data class SwitchLayout(val layoutId: String) : Effect
         data class SwitchLocale(val localeTag: String) : Effect
+        data object ToggleLocale : Effect
         data object BackLayout : Effect
         data class UpdateState(val newState: LayoutState, val invalidateKeyIds: Set<String>) : Effect
         data object NoOp : Effect
@@ -37,7 +41,10 @@ object KeyboardStateMachine {
 
     fun reduce(model: Model, event: Event): Pair<Model, List<Effect>> {
         val action = when (event) {
-            is Event.Triggered -> event.key.behaviors[event.trigger] ?: defaultActionFor(event.key, event.trigger)
+            is Event.Triggered ->
+                specialActionFor(event.key, event.trigger)
+                    ?: event.key.behaviors[event.trigger]
+                    ?: defaultActionFor(event.key, event.trigger)
             is Event.Action -> event.action
         } ?: return model to listOf(Effect.NoOp)
         return reduceAction(model, action)
@@ -52,6 +59,9 @@ object KeyboardStateMachine {
 
             ActionType.BACKSPACE -> model to listOf(Effect.CommitText("\b"))
             ActionType.SPACE -> model to listOf(Effect.CommitText(" "))
+            ActionType.ENTER -> model to listOf(Effect.CommitText("\n"))
+            ActionType.TOGGLE_LOCALE -> model to listOf(Effect.ToggleLocale)
+            ActionType.COMMIT_COMPOSING -> model to listOf(Effect.CommitComposing)
 
             ActionType.SWITCH_LAYOUT -> {
                 val targetLayoutId = action.value ?: return model to listOf(Effect.NoOp)
@@ -99,9 +109,66 @@ object KeyboardStateMachine {
         }
     }
 
-    private fun defaultActionFor(key: Key, trigger: KeyTrigger): KeyAction? {
+    private fun specialActionFor(key: Key, trigger: KeyTrigger): KeyAction? {
+        val sk = key.specialKey ?: return null
         if (trigger != KeyTrigger.TAP) return null
-        return KeyAction(actionType = ActionType.COMMIT, value = key.label)
+        return when (sk) {
+            SpecialKey.ENTER -> KeyAction(actionType = ActionType.ENTER)
+            SpecialKey.TOGGLE_LOCALE -> KeyAction(actionType = ActionType.TOGGLE_LOCALE)
+            SpecialKey.SEGMENT -> KeyAction(actionType = ActionType.COMMIT_COMPOSING)
+        }
+    }
+
+    private fun defaultActionFor(key: Key, trigger: KeyTrigger): KeyAction? {
+        return when (trigger) {
+            KeyTrigger.TAP -> KeyAction(actionType = ActionType.COMMIT, value = key.label)
+            KeyTrigger.SWIPE_UP, KeyTrigger.SWIPE_DOWN -> defaultHintActionFor(key, trigger)
+            KeyTrigger.LONG_PRESS -> null
+        }
+    }
+
+    private fun defaultHintActionFor(key: Key, trigger: KeyTrigger): KeyAction? {
+        val hintText = pickHintText(key.hints, trigger) ?: return null
+        return KeyAction(actionType = ActionType.COMMIT, value = hintText)
+    }
+
+    private fun pickHintText(hints: Map<HintPosition, String>, trigger: KeyTrigger): String? {
+        if (hints.isEmpty()) return null
+        val order =
+            when (trigger) {
+                KeyTrigger.SWIPE_UP ->
+                    listOf(
+                        HintPosition.TOP_CENTER,
+                        HintPosition.TOP_RIGHT,
+                        HintPosition.TOP_LEFT,
+                        HintPosition.CENTER_RIGHT,
+                        HintPosition.CENTER_LEFT,
+                        HintPosition.CENTER,
+                        HintPosition.BOTTOM_CENTER,
+                        HintPosition.BOTTOM_RIGHT,
+                        HintPosition.BOTTOM_LEFT,
+                    )
+
+                KeyTrigger.SWIPE_DOWN ->
+                    listOf(
+                        HintPosition.BOTTOM_CENTER,
+                        HintPosition.BOTTOM_RIGHT,
+                        HintPosition.BOTTOM_LEFT,
+                        HintPosition.CENTER_RIGHT,
+                        HintPosition.CENTER_LEFT,
+                        HintPosition.CENTER,
+                        HintPosition.TOP_CENTER,
+                        HintPosition.TOP_RIGHT,
+                        HintPosition.TOP_LEFT,
+                    )
+
+                else -> emptyList()
+            }
+        for (pos in order) {
+            val v = hints[pos]?.trim().orEmpty()
+            if (v.isNotBlank()) return v
+        }
+        return null
     }
 
     private fun alphabeticKeyIds(keys: List<Key>): Set<String> {

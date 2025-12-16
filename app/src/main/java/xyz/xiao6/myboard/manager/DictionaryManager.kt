@@ -14,12 +14,12 @@ import java.util.Locale
  * DictionaryManager: manages dictionary metadata.
  *
  * 设计要点 / Design:
- * - 内置字典：assets/dictionary/ *.json（元数据），数据文件可由 DictionarySpec.assetPath 指向
+ * - 内置字典：assets/dictionary/meta 下的 *.json（元数据），数据文件可由 DictionarySpec.assetPath 指向
  * - 用户自定义：filesDir/dictionary/ *.json（覆盖同 dictionaryId）
  */
 class DictionaryManager(
     private val context: Context,
-    private val builtInAssetsDir: String = "dictionary",
+    private val builtInAssetsDir: String = "dictionary/meta",
     private val userDir: File = File(context.filesDir, "dictionary"),
 ) {
     private val logTag = "DictionaryManager"

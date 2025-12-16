@@ -1,5 +1,10 @@
 package xyz.xiao6.myboard.controller
 
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -20,6 +25,7 @@ import xyz.xiao6.myboard.util.MLog
  */
 class InputMethodController(
     private val layoutManager: LayoutManager,
+    private val scope: CoroutineScope,
     initialDecoder: Decoder = PassthroughDecoder,
 ) {
     private val logTag = "Controller"
@@ -39,7 +45,9 @@ class InputMethodController(
     private val _composingText = MutableStateFlow("")
     val composingText: StateFlow<String> = _composingText.asStateFlow()
 
-    private var decoder: Decoder = initialDecoder
+    private var lastLoggedComposing: String? = null
+    private var lastLoggedCandidatesHash: Int? = null
+    private val decodeRequests = Channel<DecodeRequest>(Channel.UNLIMITED)
 
     private var model = KeyboardStateMachine.Model(
         currentLayoutId = "",
@@ -49,6 +57,35 @@ class InputMethodController(
 
     var onCommitText: ((String) -> Unit)? = null
     var onSwitchLocale: ((String) -> Unit)? = null
+    var onToggleLocale: (() -> Unit)? = null
+
+    private sealed interface DecodeRequest {
+        data class SetDecoder(val decoder: Decoder) : DecodeRequest
+        data object Reset : DecodeRequest
+        data class Text(val text: String) : DecodeRequest
+        data class CandidateSelected(val text: String) : DecodeRequest
+    }
+
+    init {
+        scope.launch(Dispatchers.Default) {
+            var decoder: Decoder = initialDecoder
+            for (req in decodeRequests) {
+                val update =
+                    when (req) {
+                        is DecodeRequest.SetDecoder -> {
+                            decoder = req.decoder
+                            decoder.reset()
+                        }
+                        DecodeRequest.Reset -> decoder.reset()
+                        is DecodeRequest.Text -> decoder.onText(req.text)
+                        is DecodeRequest.CandidateSelected -> decoder.onCandidateSelected(req.text)
+                    }
+                withContext(Dispatchers.Main.immediate) {
+                    applyDecodeUpdate(update)
+                }
+            }
+        }
+    }
 
     fun attach(view: KeyboardSurfaceView) {
         keyboardView = view
@@ -58,8 +95,8 @@ class InputMethodController(
 
     fun setDecoder(newDecoder: Decoder) {
         MLog.d(logTag, "setDecoder=${newDecoder::class.simpleName}")
-        decoder = newDecoder
-        applyDecode(decoder.reset())
+        clearDecodeUiState()
+        decodeRequests.trySend(DecodeRequest.SetDecoder(newDecoder))
     }
 
     /**
@@ -91,6 +128,10 @@ class InputMethodController(
      */
     fun onKeyTriggered(keyId: String, trigger: KeyTrigger) {
         val key = model.keys.firstOrNull { it.keyId == keyId } ?: return
+        MLog.d(
+            logTag,
+            "onKeyTriggered layout=${model.currentLayoutId} keyId=$keyId trigger=$trigger label=${key.label}",
+        )
         dispatch(KeyboardStateMachine.Event.Triggered(key, trigger))
     }
 
@@ -103,7 +144,12 @@ class InputMethodController(
     }
 
     fun onCandidateSelected(text: String) {
-        applyDecode(decoder.onCandidateSelected(text))
+        decodeRequests.trySend(DecodeRequest.CandidateSelected(text))
+    }
+
+    fun resetComposing() {
+        clearDecodeUiState()
+        decodeRequests.trySend(DecodeRequest.Reset)
     }
 
     private fun dispatch(event: KeyboardStateMachine.Event) {
@@ -114,7 +160,19 @@ class InputMethodController(
             when (effect) {
                 is KeyboardStateMachine.Effect.CommitText -> {
                     MLog.d(logTag, "Effect.CommitText text=${effect.text.take(16)}")
-                    applyDecode(decoder.onText(effect.text))
+                    decodeRequests.trySend(DecodeRequest.Text(effect.text))
+                }
+
+                KeyboardStateMachine.Effect.CommitComposing -> {
+                    val composing = _composingText.value
+                    if (composing.isNotEmpty()) {
+                        MLog.d(logTag, "Effect.CommitComposing len=${composing.length}")
+                        onCommitText?.invoke(composing)
+                    } else {
+                        MLog.d(logTag, "Effect.CommitComposing (empty)")
+                    }
+                    clearDecodeUiState()
+                    decodeRequests.trySend(DecodeRequest.Reset)
                 }
 
                 is KeyboardStateMachine.Effect.SwitchLayout -> {
@@ -127,8 +185,16 @@ class InputMethodController(
                 is KeyboardStateMachine.Effect.SwitchLocale -> {
                     MLog.d(logTag, "Effect.SwitchLocale localeTag=${effect.localeTag}")
                     // Locale change usually implies dictionary/mode change; clear current candidates.
-                    applyDecode(decoder.reset())
+                    clearDecodeUiState()
+                    decodeRequests.trySend(DecodeRequest.Reset)
                     onSwitchLocale?.invoke(effect.localeTag)
+                }
+
+                KeyboardStateMachine.Effect.ToggleLocale -> {
+                    MLog.d(logTag, "Effect.ToggleLocale")
+                    clearDecodeUiState()
+                    decodeRequests.trySend(DecodeRequest.Reset)
+                    onToggleLocale?.invoke()
                 }
 
                 KeyboardStateMachine.Effect.BackLayout -> {
@@ -152,11 +218,26 @@ class InputMethodController(
     }
 
     private fun applyDecode(update: DecodeUpdate) {
-        if (update.commitTexts.isNotEmpty() || update.candidates.isNotEmpty()) {
-            MLog.d(
-                logTag,
-                "applyDecode commits=${update.commitTexts.size} candidates=${update.candidates.size}",
-            )
+        applyDecodeUpdate(update)
+    }
+
+    private fun applyDecodeUpdate(update: DecodeUpdate) {
+        val nextComposing = update.composingText
+        if (nextComposing != null && nextComposing != lastLoggedComposing) {
+            lastLoggedComposing = nextComposing
+            MLog.d(logTag, "composing=\"${nextComposing.take(32)}\"")
+        }
+
+        val candidatesHash = update.candidates.hashCode()
+        if (candidatesHash != lastLoggedCandidatesHash) {
+            lastLoggedCandidatesHash = candidatesHash
+            val preview = update.candidates.take(5).joinToString(prefix = "[", postfix = "]")
+            MLog.d(logTag, "candidates size=${update.candidates.size} top5=$preview")
+        }
+
+        if (update.commitTexts.isNotEmpty()) {
+            val preview = update.commitTexts.take(5).joinToString(prefix = "[", postfix = "]") { it.take(8) }
+            MLog.d(logTag, "commitTexts size=${update.commitTexts.size} $preview")
         }
         update.composingText?.let { _composingText.value = it }
         for (t in update.commitTexts) {
@@ -172,7 +253,8 @@ class InputMethodController(
             layoutHistory.addLast(previousId)
         }
 
-        applyDecode(decoder.reset())
+        clearDecodeUiState()
+        decodeRequests.trySend(DecodeRequest.Reset)
         _currentLayout.value = layout
         val keys = layout.rows.flatMap { it.keys }
         model = model.copy(
@@ -182,5 +264,12 @@ class InputMethodController(
 
         keyboardView?.setLayout(layout)
         keyboardView?.setLayoutState(_layoutState.value, invalidateKeyIds = emptySet())
+    }
+
+    private fun clearDecodeUiState() {
+        lastLoggedComposing = null
+        lastLoggedCandidatesHash = null
+        _composingText.value = ""
+        _candidates.value = emptyList()
     }
 }

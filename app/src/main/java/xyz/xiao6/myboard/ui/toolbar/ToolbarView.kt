@@ -13,6 +13,8 @@ import android.widget.ImageView
 import androidx.annotation.DrawableRes
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import xyz.xiao6.myboard.model.ThemeSpec
+import xyz.xiao6.myboard.ui.theme.ThemeRuntime
 
 /**
  * 工具栏/功能栏（固定高度，横向滚动）。
@@ -39,6 +41,8 @@ class ToolbarView @JvmOverloads constructor(
 
     var onItemClick: ((Item) -> Unit)? = null
 
+    private var iconTint: ColorStateList = ColorStateList.valueOf(Color.WHITE)
+
     init {
         background = GradientDrawable().apply {
             shape = GradientDrawable.RECTANGLE
@@ -56,8 +60,29 @@ class ToolbarView @JvmOverloads constructor(
             layoutManager = LinearLayoutManager(context, LinearLayoutManager.HORIZONTAL, false)
         }
         adapter = ToolbarAdapter { item -> onItemClick?.invoke(item) }
+        adapter.setTintProvider { iconTint }
         recyclerView.adapter = adapter
         addView(recyclerView)
+    }
+
+    fun applyTheme(theme: ThemeSpec?) {
+        val runtime = theme?.let { ThemeRuntime(it) }
+        val bg = background as? GradientDrawable
+        val surfaceBg = runtime?.resolveColor(theme?.toolbar?.surface?.background?.color, Color.parseColor("#EE1F1F1F"))
+            ?: Color.parseColor("#EE1F1F1F")
+        val strokeColor = runtime?.resolveColor(theme?.toolbar?.surface?.stroke?.color, Color.parseColor("#55FFFFFF"))
+            ?: Color.parseColor("#55FFFFFF")
+        val strokeWidth = dp(context, theme?.toolbar?.surface?.stroke?.widthDp ?: 1f).toInt()
+        val corner = dp(context, theme?.toolbar?.surface?.cornerRadiusDp ?: 12f)
+        bg?.apply {
+            cornerRadius = corner
+            setColor(surfaceBg)
+            setStroke(strokeWidth, strokeColor)
+        }
+        iconTint = ColorStateList.valueOf(
+            runtime?.resolveColor(theme?.toolbar?.itemIcon?.tint, Color.WHITE) ?: Color.WHITE,
+        )
+        adapter.notifyDataSetChanged()
     }
 
     fun submitItems(items: List<Item>) {
@@ -69,7 +94,11 @@ class ToolbarView @JvmOverloads constructor(
     ) : RecyclerView.Adapter<ToolbarViewHolder>() {
 
         private var items: List<Item> = emptyList()
-        private val whiteTint = ColorStateList.valueOf(Color.WHITE)
+        private var tintProvider: (() -> ColorStateList)? = null
+
+        fun setTintProvider(provider: () -> ColorStateList) {
+            tintProvider = provider
+        }
 
         fun submit(list: List<Item>) {
             items = list
@@ -85,13 +114,13 @@ class ToolbarView @JvmOverloads constructor(
                 setBackgroundResource(android.R.color.transparent)
                 scaleType = ImageView.ScaleType.CENTER
                 adjustViewBounds = true
-                imageTintList = whiteTint
+                imageTintList = tintProvider?.invoke() ?: ColorStateList.valueOf(Color.WHITE)
             }
             return ToolbarViewHolder(button, onClick)
         }
 
         override fun onBindViewHolder(holder: ToolbarViewHolder, position: Int) {
-            holder.bind(items[position])
+            holder.bind(items[position], tintProvider?.invoke() ?: ColorStateList.valueOf(Color.WHITE))
         }
 
         override fun getItemCount(): Int = items.size
@@ -104,8 +133,9 @@ class ToolbarView @JvmOverloads constructor(
         private val onClick: (Item) -> Unit,
     ) : RecyclerView.ViewHolder(button) {
 
-        fun bind(item: Item) {
+        fun bind(item: Item, tint: ColorStateList) {
             button.setImageResource(item.iconResId)
+            button.imageTintList = tint
             button.contentDescription = item.contentDescription
             button.setOnClickListener { onClick(item) }
         }

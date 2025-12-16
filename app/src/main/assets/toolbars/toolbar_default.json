@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "toolbarId": "default",
+  "name": "Default Toolbar",
+  "items": [
+    { "itemId": "layout", "name": "Layout", "icon": "layout", "enabled": true, "priority": 100 },
+    { "itemId": "voice", "name": "Voice", "icon": "voice", "enabled": true, "priority": 80 },
+    { "itemId": "emoji", "name": "Emoji", "icon": "emoji", "enabled": true, "priority": 60 },
+    { "itemId": "settings", "name": "Settings", "icon": "settings", "enabled": true, "priority": 1000 }
+  ]
+}
+

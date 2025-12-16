@@ -1,13 +1,19 @@
 package xyz.xiao6.myboard.ui.candidate
 
 import android.content.Context
+import android.graphics.Color
+import android.graphics.drawable.GradientDrawable
 import android.util.AttributeSet
 import android.view.Gravity
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.TextView
+import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
+import xyz.xiao6.myboard.model.ThemeSpec
+import xyz.xiao6.myboard.ui.theme.ThemeRuntime
 
 /**
  * 候选词/预测栏骨架（RecyclerView 横向滚动）。
@@ -19,12 +25,22 @@ class CandidateView @JvmOverloads constructor(
     defStyleAttr: Int = 0,
 ) : FrameLayout(context, attrs, defStyleAttr) {
 
+    private var textColor: Int = Color.BLACK
+    private var surfaceBackground: Int = Color.parseColor("#F2F2F7")
+    private var surfaceStroke: Int = Color.parseColor("#14000000")
+
     private val recyclerView: RecyclerView
     private val adapter: CandidateAdapter
 
     var onCandidateClick: ((String) -> Unit)? = null
 
     init {
+        background = GradientDrawable().apply {
+            shape = GradientDrawable.RECTANGLE
+            cornerRadius = dp(10f)
+            setColor(surfaceBackground)
+            setStroke(dp(1f).toInt(), surfaceStroke)
+        }
         recyclerView = RecyclerView(context).apply {
             layoutParams = LayoutParams(
                 LayoutParams.MATCH_PARENT,
@@ -32,28 +48,38 @@ class CandidateView @JvmOverloads constructor(
             )
             overScrollMode = OVER_SCROLL_NEVER
             layoutManager = LinearLayoutManager(context, LinearLayoutManager.HORIZONTAL, false)
+            itemAnimator = null
+            setHasFixedSize(true)
         }
-        adapter = CandidateAdapter { text -> onCandidateClick?.invoke(text) }
+        adapter = CandidateAdapter(
+            resolveTextColor = { textColor },
+            onClick = { text -> onCandidateClick?.invoke(text) },
+        )
         recyclerView.adapter = adapter
 
         addView(recyclerView)
     }
 
+    fun applyTheme(theme: ThemeSpec?) {
+        val runtime = theme?.let { ThemeRuntime(it) }
+        surfaceBackground = runtime?.resolveColor(theme?.candidates?.surface?.background?.color, surfaceBackground) ?: surfaceBackground
+        surfaceStroke = runtime?.resolveColor(theme?.candidates?.surface?.stroke?.color, surfaceStroke) ?: surfaceStroke
+        textColor = runtime?.resolveColor(theme?.candidates?.candidateText?.color, textColor) ?: textColor
+        (background as? GradientDrawable)?.apply {
+            setColor(surfaceBackground)
+            setStroke(dp(1f).toInt(), surfaceStroke)
+        }
+        adapter.notifyDataSetChanged()
+    }
+
     fun submitCandidates(candidates: List<String>) {
-        adapter.submit(candidates)
-        visibility = if (candidates.isEmpty()) GONE else VISIBLE
+        adapter.submitList(candidates.toList())
     }
 
     private class CandidateAdapter(
+        private val resolveTextColor: () -> Int,
         private val onClick: (String) -> Unit,
-    ) : RecyclerView.Adapter<CandidateViewHolder>() {
-
-        private var items: List<String> = emptyList()
-
-        fun submit(list: List<String>) {
-            items = list
-            notifyDataSetChanged()
-        }
+    ) : ListAdapter<String, CandidateViewHolder>(DIFF) {
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): CandidateViewHolder {
             val textView = TextView(parent.context).apply {
@@ -74,10 +100,16 @@ class CandidateView @JvmOverloads constructor(
         }
 
         override fun onBindViewHolder(holder: CandidateViewHolder, position: Int) {
-            holder.bind(items[position])
+            holder.bind(getItem(position), resolveTextColor())
         }
 
-        override fun getItemCount(): Int = items.size
+        companion object {
+            private val DIFF =
+                object : DiffUtil.ItemCallback<String>() {
+                    override fun areItemsTheSame(oldItem: String, newItem: String): Boolean = oldItem == newItem
+                    override fun areContentsTheSame(oldItem: String, newItem: String): Boolean = oldItem == newItem
+                }
+        }
     }
 
     private class CandidateViewHolder(
@@ -85,9 +117,12 @@ class CandidateView @JvmOverloads constructor(
         private val onClick: (String) -> Unit,
     ) : RecyclerView.ViewHolder(textView) {
 
-        fun bind(text: String) {
+        fun bind(text: String, textColor: Int) {
             textView.text = text
+            textView.setTextColor(textColor)
             textView.setOnClickListener { onClick(text) }
         }
     }
+
+    private fun dp(value: Float): Float = value * resources.displayMetrics.density
 }

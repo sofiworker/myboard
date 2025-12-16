@@ -63,7 +63,7 @@ val generateSubtypes by tasks.registering(Exec::class) {
 
     inputs.file(project.rootDir.resolve("scripts/generate_subtypes.py"))
     inputs.dir(project.layout.projectDirectory.dir("src/main/assets/layouts"))
-    inputs.dir(project.layout.projectDirectory.dir("src/main/assets/dictionary"))
+    inputs.dir(project.layout.projectDirectory.dir("src/main/assets/dictionary/meta"))
     outputs.file(outFile)
 
     // convertDictionaries writes `base.mybdict` into assets/dictionary; keep ordering explicit.
@@ -74,7 +74,7 @@ val generateSubtypes by tasks.registering(Exec::class) {
         "--layouts-dir",
         project.layout.projectDirectory.dir("src/main/assets/layouts").asFile.absolutePath,
         "--dictionary-dir",
-        project.layout.projectDirectory.dir("src/main/assets/dictionary").asFile.absolutePath,
+        project.layout.projectDirectory.dir("src/main/assets/dictionary/meta").asFile.absolutePath,
         "--output",
         outFile.asFile.absolutePath,
         "--fail-on-empty",
@@ -86,7 +86,7 @@ val convertDictionaries by tasks.registering(Exec::class) {
     // (Unreleased project workflow; avoid relying on build/generated assets at runtime.)
     val outFile = project.layout.projectDirectory.file("src/main/assets/dictionary/base.mybdict")
 
-    // Keep a draft meta json under build/ for reference (manual spec lives in assets/dictionary/dict_pinyin.json).
+    // Keep a draft meta json under build/ for reference (manual spec lives in assets/dictionary/meta/dict_pinyin.json).
     val outDir = layout.buildDirectory.dir("generated/dictionaryAssets/dictionary")
     val outMeta = outDir.map { it.file("dict_pinyin.generated.json") }
 
