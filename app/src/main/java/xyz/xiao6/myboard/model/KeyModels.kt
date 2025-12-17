@@ -219,4 +219,6 @@ enum class ActionType {
     TOGGLE_HOTWORD_HIGHLIGHT,
     /** 显示弹窗/候选；Show popup/candidates. */
     SHOW_POPUP,
+    /** 显示符号面板（整块覆盖 toolbar+keyboard）；Show symbols panel overlay. */
+    SHOW_SYMBOLS,
 }

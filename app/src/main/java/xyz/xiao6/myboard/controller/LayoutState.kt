@@ -9,6 +9,15 @@ data class LayoutState(
     val layer: Layer = Layer.BASE,
     val hiddenKeyIds: Set<String> = emptySet(),
     val highlightedKeyIds: Set<String> = emptySet(),
+    /**
+     * Per-key label override (no geometry change). Used for locale-dependent symbol/label replacement
+     * without reloading layout JSON.
+     */
+    val labelOverrides: Map<String, String> = emptyMap(),
+    /**
+     * Per-key hint override (no geometry change). Merged on top of Key.hints (override wins).
+     */
+    val hintOverrides: Map<String, Map<xyz.xiao6.myboard.model.HintPosition, String>> = emptyMap(),
 )
 
 /**
@@ -30,4 +39,3 @@ enum class Layer {
     SYMBOLS_1,
     SYMBOLS_2,
 }
-

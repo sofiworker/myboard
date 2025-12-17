@@ -17,6 +17,11 @@ data class DecodeUpdate(
      * Empty means "not composing"; null means "decoder does not report composing state".
      */
     val composingText: String? = null,
+    /**
+     * Optional composing alternatives for display (e.g. T9 pinyin combinations).
+     * When empty, UI falls back to segmenting [composingText].
+     */
+    val composingOptions: List<String> = emptyList(),
 )
 
 fun interface DictionaryLookup {

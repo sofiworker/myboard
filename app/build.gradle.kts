@@ -91,18 +91,30 @@ val convertDictionaries by tasks.registering(Exec::class) {
     val outMeta = outDir.map { it.file("dict_pinyin.generated.json") }
 
     inputs.file(project.rootDir.resolve("scripts/dict_tool.py"))
-    inputs.file(project.layout.projectDirectory.file("src/main/assets/dictionary/base.dict.yaml"))
+    inputs.files(
+        project.layout.projectDirectory.file("src/main/assets/dictionary/8105.dict.yaml"),
+        project.layout.projectDirectory.file("src/main/assets/dictionary/base.dict.yaml"),
+        project.layout.projectDirectory.file("src/main/assets/dictionary/ext.dict.yaml"),
+        project.layout.projectDirectory.file("src/main/assets/dictionary/cn_en.txt"),
+        project.layout.projectDirectory.file("src/main/assets/dictionary/41448.dict.yaml"),
+    )
     outputs.file(outFile)
     outputs.file(outMeta)
 
     commandLine(
         "python3",
         project.rootDir.resolve("scripts/dict_tool.py").absolutePath,
-        "convert",
-        "--input",
-        project.layout.projectDirectory.file("src/main/assets/dictionary/base.dict.yaml").asFile.absolutePath,
-        "--format",
-        "rime_dict_yaml",
+        "convert-multi",
+        "--inputs",
+        listOf(
+            project.layout.projectDirectory.file("src/main/assets/dictionary/8105.dict.yaml").asFile.absolutePath,
+            project.layout.projectDirectory.file("src/main/assets/dictionary/base.dict.yaml").asFile.absolutePath,
+            project.layout.projectDirectory.file("src/main/assets/dictionary/ext.dict.yaml").asFile.absolutePath,
+            project.layout.projectDirectory.file("src/main/assets/dictionary/cn_en.txt").asFile.absolutePath,
+            project.layout.projectDirectory.file("src/main/assets/dictionary/41448.dict.yaml").asFile.absolutePath,
+        ).joinToString(","),
+        "--dedupe",
+        "first",
         "--output",
         outFile.asFile.absolutePath,
         "--dictionary-id",
@@ -130,6 +142,7 @@ val convertDictionaries by tasks.registering(Exec::class) {
         "--is-default",
         "--priority",
         "20",
+        "--fail-on-empty",
     )
 }
 

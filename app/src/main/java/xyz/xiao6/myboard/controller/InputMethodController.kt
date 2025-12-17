@@ -1,5 +1,4 @@
 package xyz.xiao6.myboard.controller
-
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
@@ -45,6 +44,9 @@ class InputMethodController(
     private val _composingText = MutableStateFlow("")
     val composingText: StateFlow<String> = _composingText.asStateFlow()
 
+    private val _composingOptions = MutableStateFlow<List<String>>(emptyList())
+    val composingOptions: StateFlow<List<String>> = _composingOptions.asStateFlow()
+
     private var lastLoggedComposing: String? = null
     private var lastLoggedCandidatesHash: Int? = null
     private val decodeRequests = Channel<DecodeRequest>(Channel.UNLIMITED)
@@ -58,6 +60,7 @@ class InputMethodController(
     var onCommitText: ((String) -> Unit)? = null
     var onSwitchLocale: ((String) -> Unit)? = null
     var onToggleLocale: (() -> Unit)? = null
+    var onShowSymbols: (() -> Unit)? = null
 
     private sealed interface DecodeRequest {
         data class SetDecoder(val decoder: Decoder) : DecodeRequest
@@ -159,8 +162,19 @@ class InputMethodController(
         for (effect in effects) {
             when (effect) {
                 is KeyboardStateMachine.Effect.CommitText -> {
-                    MLog.d(logTag, "Effect.CommitText text=${effect.text.take(16)}")
-                    decodeRequests.trySend(DecodeRequest.Text(effect.text))
+                    // Enter during composition: commit composing as raw text, do NOT auto-pick the first candidate.
+                    if (effect.text == "\n" && (_composingText.value.isNotEmpty() || _candidates.value.isNotEmpty())) {
+                        MLog.d(logTag, "Effect.CommitText(ENTER) -> CommitComposing (avoid auto-pick)")
+                        val composing = _composingText.value
+                        if (composing.isNotEmpty()) {
+                            onCommitText?.invoke(composing)
+                        }
+                        clearDecodeUiState()
+                        decodeRequests.trySend(DecodeRequest.Reset)
+                    } else {
+                        MLog.d(logTag, "Effect.CommitText text=${effect.text.take(16)}")
+                        decodeRequests.trySend(DecodeRequest.Text(effect.text))
+                    }
                 }
 
                 KeyboardStateMachine.Effect.CommitComposing -> {
@@ -207,6 +221,11 @@ class InputMethodController(
                     applyNewLayout(layout, pushToHistory = false)
                 }
 
+                KeyboardStateMachine.Effect.ShowSymbols -> {
+                    MLog.d(logTag, "Effect.ShowSymbols")
+                    onShowSymbols?.invoke()
+                }
+
                 is KeyboardStateMachine.Effect.UpdateState -> {
                     _layoutState.value = effect.newState
                     keyboardView?.setLayoutState(effect.newState, effect.invalidateKeyIds)
@@ -240,6 +259,7 @@ class InputMethodController(
             MLog.d(logTag, "commitTexts size=${update.commitTexts.size} $preview")
         }
         update.composingText?.let { _composingText.value = it }
+        _composingOptions.value = update.composingOptions
         for (t in update.commitTexts) {
             if (t.isEmpty()) continue
             onCommitText?.invoke(t)
@@ -270,6 +290,7 @@ class InputMethodController(
         lastLoggedComposing = null
         lastLoggedCandidatesHash = null
         _composingText.value = ""
+        _composingOptions.value = emptyList()
         _candidates.value = emptyList()
     }
 }

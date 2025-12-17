@@ -322,8 +322,7 @@
           "widthWeight": 1.5,
           "behaviors": {
             "TAP": {
-              "actionType": "SET_LAYER",
-              "value": "SYMBOLS_1"
+              "actionType": "SHOW_SYMBOLS"
             }
           }
         },

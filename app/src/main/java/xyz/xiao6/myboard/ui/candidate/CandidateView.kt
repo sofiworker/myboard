@@ -28,6 +28,15 @@ class CandidateView @JvmOverloads constructor(
     private var textColor: Int = Color.BLACK
     private var surfaceBackground: Int = Color.parseColor("#F2F2F7")
     private var surfaceStroke: Int = Color.parseColor("#14000000")
+    private var embeddedInToolbar: Boolean = false
+
+    private val surfaceDrawable =
+        GradientDrawable().apply {
+            shape = GradientDrawable.RECTANGLE
+            cornerRadius = dp(10f)
+            setColor(surfaceBackground)
+            setStroke(dp(1f).toInt(), surfaceStroke)
+        }
 
     private val recyclerView: RecyclerView
     private val adapter: CandidateAdapter
@@ -35,12 +44,7 @@ class CandidateView @JvmOverloads constructor(
     var onCandidateClick: ((String) -> Unit)? = null
 
     init {
-        background = GradientDrawable().apply {
-            shape = GradientDrawable.RECTANGLE
-            cornerRadius = dp(10f)
-            setColor(surfaceBackground)
-            setStroke(dp(1f).toInt(), surfaceStroke)
-        }
+        background = surfaceDrawable
         recyclerView = RecyclerView(context).apply {
             layoutParams = LayoutParams(
                 LayoutParams.MATCH_PARENT,
@@ -60,15 +64,22 @@ class CandidateView @JvmOverloads constructor(
         addView(recyclerView)
     }
 
+    fun setEmbeddedInToolbar(embedded: Boolean) {
+        embeddedInToolbar = embedded
+        background = if (embedded) null else surfaceDrawable
+        invalidate()
+    }
+
     fun applyTheme(theme: ThemeSpec?) {
         val runtime = theme?.let { ThemeRuntime(it) }
         surfaceBackground = runtime?.resolveColor(theme?.candidates?.surface?.background?.color, surfaceBackground) ?: surfaceBackground
         surfaceStroke = runtime?.resolveColor(theme?.candidates?.surface?.stroke?.color, surfaceStroke) ?: surfaceStroke
         textColor = runtime?.resolveColor(theme?.candidates?.candidateText?.color, textColor) ?: textColor
-        (background as? GradientDrawable)?.apply {
+        surfaceDrawable.apply {
             setColor(surfaceBackground)
             setStroke(dp(1f).toInt(), surfaceStroke)
         }
+        background = if (embeddedInToolbar) null else surfaceDrawable
         adapter.notifyDataSetChanged()
     }
 

@@ -1,0 +1,15 @@
+{
+  "dictionaryId": "dict_pinyin_t9",
+  "name": "Pinyin (T9)",
+  "localeTags": ["zh_CN"],
+  "layoutIds": ["t9"],
+  "assetPath": "dictionary/base.mybdict",
+  "codeScheme": "PINYIN_T9",
+  "kind": "PINYIN",
+  "core": "PINYIN_CORE",
+  "variant": "t9",
+  "isDefault": true,
+  "enabled": true,
+  "priority": 30
+}
+

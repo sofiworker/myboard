@@ -5,11 +5,9 @@ import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
-import android.widget.ImageButton
 import android.widget.PopupWindow
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
-import android.widget.ImageView
 import xyz.xiao6.myboard.model.ThemeSpec
 import xyz.xiao6.myboard.ui.candidate.CandidateView
 import kotlin.math.max
@@ -23,28 +21,14 @@ class FloatingCandidatePopup(
 ) {
     private val displayMetrics = context.resources.displayMetrics
     private val fixedHeightPx = dpInt(48f)
-    private val expandButtonWidthPx = dpInt(48f)
 
     private val candidateView = CandidateView(context).apply {
         visibility = View.VISIBLE
     }
 
-    private val expandButton = ImageButton(context).apply {
-        layoutParams = FrameLayout.LayoutParams(expandButtonWidthPx, ViewGroup.LayoutParams.MATCH_PARENT).apply {
-            gravity = Gravity.END
-        }
-        setBackgroundColor(Color.TRANSPARENT)
-        // Use platform drawable to avoid adding resources.
-        setImageResource(android.R.drawable.arrow_down_float)
-        contentDescription = "Expand candidates"
-        scaleType = ImageView.ScaleType.CENTER
-        setOnClickListener { onExpandToggle?.invoke() }
-    }
-
     private val content = FrameLayout(context).apply {
         layoutParams = FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT)
         addView(candidateView)
-        addView(expandButton)
     }
 
     private val popup =
@@ -61,11 +45,6 @@ class FloatingCandidatePopup(
             candidateView.onCandidateClick = value
         }
 
-    var onExpandToggle: (() -> Unit)? = null
-
-    var isExpanded: Boolean = false
-        private set
-
     var lastMeasuredHeightPx: Int = 0
         private set
 
@@ -78,31 +57,22 @@ class FloatingCandidatePopup(
         lastMeasuredHeightPx = 0
     }
 
-    fun setExpanded(expanded: Boolean) {
-        isExpanded = expanded
-        expandButton.setImageResource(
-            if (expanded) android.R.drawable.arrow_up_float else android.R.drawable.arrow_down_float,
-        )
-        expandButton.contentDescription = if (expanded) "Collapse candidates" else "Expand candidates"
-    }
-
     /**
      * Show candidates in-place, aligned to the anchor's top-left (used to "replace toolbar").
      */
-    fun updateInSlot(anchor: View, candidates: List<String>, showExpandButton: Boolean) {
+    fun updateInSlot(anchor: View, candidates: List<String>, reservedEndPx: Int = 0) {
         if (candidates.isEmpty()) {
             dismiss()
             return
         }
 
         if (anchor.width == 0 || anchor.height == 0) {
-            anchor.post { updateInSlot(anchor, candidates, showExpandButton) }
+            anchor.post { updateInSlot(anchor, candidates, reservedEndPx) }
             return
         }
 
-        expandButton.visibility = if (showExpandButton) View.VISIBLE else View.GONE
         candidateView.submitCandidates(candidates)
-        measureContent(widthPx = anchor.width)
+        measureContent(widthPx = (anchor.width - reservedEndPx).coerceAtLeast(dpInt(120f)))
 
         val loc = IntArray(2)
         anchor.getLocationInWindow(loc)
@@ -115,11 +85,8 @@ class FloatingCandidatePopup(
     private fun measureContent(widthPx: Int) {
         val w = max(dpInt(160f), widthPx)
         // PopupWindow wraps content into a FrameLayout; ensure LayoutParams are MarginLayoutParams-compatible.
-        candidateView.layoutParams = FrameLayout.LayoutParams((w - expandButtonWidthPx).coerceAtLeast(dpInt(80f)), fixedHeightPx).apply {
+        candidateView.layoutParams = FrameLayout.LayoutParams(w.coerceAtLeast(dpInt(80f)), fixedHeightPx).apply {
             gravity = Gravity.START
-        }
-        expandButton.layoutParams = FrameLayout.LayoutParams(expandButtonWidthPx, fixedHeightPx).apply {
-            gravity = Gravity.END
         }
         content.layoutParams = FrameLayout.LayoutParams(w, fixedHeightPx)
         content.measure(

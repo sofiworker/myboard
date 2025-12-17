@@ -76,6 +76,46 @@ class RimeDictYamlParser:
                 yield DictionaryEntry(word=word, code=code, weight=weight)
 
 
+class RimeTableTxtParser:
+    """
+    Parses Rime *.txt table dictionaries (e.g. cn_en.txt).
+
+    Expected entry lines:
+      <word>\t<code>\t<weight?>
+    """
+
+    format_id = "rime_table_txt"
+
+    def parse(self, path: Path) -> Iterable[DictionaryEntry]:
+        with path.open("r", encoding="utf-8", errors="replace") as f:
+            for raw in f:
+                line = raw.strip("\n")
+                s = line.strip()
+                if not s or s.startswith("#"):
+                    continue
+
+                parts = s.split("\t")
+                if len(parts) < 2:
+                    parts = s.split()
+                if len(parts) < 2:
+                    continue
+
+                word = parts[0].strip()
+                code = parts[1].strip()
+                if not word or not code:
+                    continue
+                code = code.lower()
+
+                weight = 0
+                if len(parts) >= 3:
+                    try:
+                        weight = int(parts[2].strip())
+                    except ValueError:
+                        weight = 0
+
+                yield DictionaryEntry(word=word, code=code, weight=weight)
+
+
 class MyBoardDictPayloadV1Writer:
     """
     Compact dictionary payload v1 (MYBDICT1).
@@ -429,6 +469,7 @@ def _write_dictionary_spec_json(
 def _parser_registry() -> dict[str, DictionaryFormatParser]:
     parsers: list[DictionaryFormatParser] = [
         RimeDictYamlParser(),
+        RimeTableTxtParser(),
     ]
     return {p.format_id: p for p in parsers}
 
@@ -565,13 +606,208 @@ def _cmd_convert(argv: list[str]) -> int:
     return 0
 
 
+def _guess_format_id(path: Path) -> str:
+    name = path.name.lower()
+    if name.endswith(".dict.yaml") or name.endswith(".yaml"):
+        return RimeDictYamlParser.format_id
+    if name.endswith(".txt"):
+        return RimeTableTxtParser.format_id
+    raise ValueError(f"Cannot guess format for: {path}")
+
+
+def _cmd_convert_multi(argv: list[str]) -> int:
+    p = argparse.ArgumentParser(
+        prog="dict_tool.py convert-multi",
+        description="Convert multiple source dictionary files into a single MyBoard .mybdict (MYBDF v1).",
+    )
+    p.add_argument("--inputs", required=True, help="Comma-separated input dictionary file paths.")
+    p.add_argument("--formats", default="", help="Optional comma-separated format ids per input; empty to auto-guess.")
+    p.add_argument(
+        "--dedupe",
+        choices=["none", "first", "max_weight"],
+        default="first",
+        help="Duplicate handling for (canonicalCode, word) across inputs (default: first).",
+    )
+    p.add_argument("--output", required=True, type=Path, help="Output compact dictionary file.")
+    p.add_argument("--dictionary-id", required=True, help="Dictionary id (matches DictionarySpec.dictionaryId).")
+    p.add_argument("--name", default=None, help="Optional display name.")
+    p.add_argument("--languages", default="", help="Comma-separated BCP-47 tags (e.g. zh-CN,en).")
+    p.add_argument("--dict-version", default="1.0.0", help="Semantic version a.b.c (stored in MYBDF header).")
+    p.add_argument("--meta-output", default=None, type=Path, help="Optional output DictionarySpec JSON path.")
+    p.add_argument("--asset-path", default=None, help='Optional assetPath in DictionarySpec (e.g. "dictionary/base.mybdict").')
+    p.add_argument("--layout-ids", default="", help="Comma-separated allowed layout ids (DictionarySpec.layoutIds).")
+    p.add_argument("--code-scheme", default=CodeScheme.PINYIN_FULL, help="Canonical code scheme for payload (e.g. PINYIN_FULL).")
+    p.add_argument(
+        "--derive-single-chars",
+        action="store_true",
+        help="Derive single-character entries from multi-character words (pinyin only).",
+    )
+    p.add_argument(
+        "--single-chars-per-code",
+        default="64",
+        help="Max derived single characters per syllable code (default: 64).",
+    )
+    p.add_argument("--kind", default=None, help="Optional DictionarySpec.kind (e.g. PINYIN).")
+    p.add_argument("--core", default=None, help="Optional DictionarySpec.core (e.g. PINYIN_CORE).")
+    p.add_argument("--variant", default=None, help="Optional DictionarySpec.variant (e.g. quanpin).")
+    p.add_argument("--is-default", action="store_true", help="DictionarySpec.isDefault (default: false).")
+    p.add_argument("--enabled", default="true", choices=["true", "false"], help="DictionarySpec.enabled (default: true).")
+    p.add_argument("--priority", default="0", help="DictionarySpec.priority (default: 0).")
+    p.add_argument(
+        "--compress",
+        choices=["none", "zlib"],
+        default="zlib",
+        help="Compression for output file (default: zlib).",
+    )
+    p.add_argument("--fail-on-empty", action="store_true", help="Fail if no entries were produced.")
+    args = p.parse_args(argv)
+
+    inputs = [Path(s.strip()) for s in str(args.inputs).split(",") if s.strip()]
+    if not inputs:
+        raise SystemExit("--inputs is empty")
+    for path in inputs:
+        if not path.exists():
+            raise SystemExit(f"Input not found: {path}")
+
+    formats_raw = [s.strip() for s in str(args.formats).split(",") if s.strip()]
+    if formats_raw:
+        if len(formats_raw) != len(inputs):
+            raise SystemExit(f"--formats count mismatch: inputs={len(inputs)} formats={len(formats_raw)}")
+        format_ids = formats_raw
+    else:
+        format_ids = [_guess_format_id(p) for p in inputs]
+
+    reg = _parser_registry()
+    pairs: list[tuple[Path, DictionaryFormatParser]] = []
+    for path, fmt in zip(inputs, format_ids, strict=True):
+        parser = reg.get(fmt)
+        if parser is None:
+            available = ", ".join(sorted(reg.keys()))
+            raise SystemExit(f"Unknown format: {fmt} (available: {available})")
+        pairs.append((path, parser))
+
+    languages = [s.strip() for s in str(args.languages).split(",") if s.strip()]
+    locale_tags = [_to_locale_tag_underscore(s) for s in languages]
+    locale_tags = [t for t in locale_tags if t]
+    layout_ids = [s.strip() for s in str(args.layout_ids).split(",") if s.strip()]
+    enabled = str(args.enabled).lower() == "true"
+    priority = int(args.priority)
+    meta = {
+        "dictionaryId": args.dictionary_id,
+        "name": args.name,
+        "sourceFormat": "multi",
+        "createdBy": "myboard_build",
+        "createdAtEpochMs": int(time.time() * 1000),
+        "codeScheme": str(args.code_scheme),
+        "sources": [{"path": str(p), "format": parser.format_id} for p, parser in pairs],
+    }
+
+    scheme = str(args.code_scheme)
+    derive_single_chars = bool(args.derive_single_chars) or scheme == CodeScheme.PINYIN_FULL
+    single_chars_per_code = max(0, int(args.single_chars_per_code))
+    dedupe_policy = str(args.dedupe)
+
+    def _iter_canonical() -> Iterable[DictionaryEntry]:
+        accepted = 0
+        # For each single-syllable code, keep best-weight single characters.
+        char_best: dict[str, dict[str, int]] = defaultdict(dict)
+        seen: dict[tuple[str, str], int] = {}
+
+        def _accept(code: str, word: str, weight: int) -> bool:
+            if dedupe_policy == "none":
+                return True
+            key = (code, word)
+            prev = seen.get(key)
+            if prev is None:
+                seen[key] = weight
+                return True
+            if dedupe_policy == "first":
+                return False
+            if dedupe_policy == "max_weight":
+                if weight > prev:
+                    seen[key] = weight
+                    return True
+                return False
+            raise RuntimeError(f"Unknown dedupe policy: {dedupe_policy}")
+
+        for path, parser in pairs:
+            for e in parser.parse(path):
+                raw_code = (e.code or "").strip()
+                word = (e.word or "").strip()
+                code = _canonicalize_code(raw_code, scheme=scheme)
+                if not code or not word:
+                    continue
+                if not _accept(code, word, int(e.weight)):
+                    continue
+
+                if derive_single_chars and single_chars_per_code > 0 and scheme == CodeScheme.PINYIN_FULL:
+                    syllables = [s for s in raw_code.split() if s]
+                    if syllables and len(syllables) == len(word):
+                        for ch, syl in zip(word, syllables, strict=True):
+                            ch = ch.strip()
+                            if not ch or len(ch) != 1:
+                                continue
+                            syl_code = _canonicalize_code(syl, scheme=scheme)
+                            if not syl_code:
+                                continue
+                            derived_weight = int(e.weight / max(1, len(word)))
+                            prev = char_best[syl_code].get(ch)
+                            if prev is None or derived_weight > prev:
+                                char_best[syl_code][ch] = derived_weight
+
+                accepted += 1
+                yield DictionaryEntry(word=word, code=code, weight=e.weight)
+
+        if accepted == 0 and bool(args.fail_on_empty):
+            raise SystemExit("No entries produced (check inputs / format / canonicalization).")
+
+        if derive_single_chars and single_chars_per_code > 0 and scheme == CodeScheme.PINYIN_FULL:
+            for syl_code, m in char_best.items():
+                items = sorted(m.items(), key=lambda kv: (-kv[1], kv[0]))
+                for ch, w in items[:single_chars_per_code]:
+                    if not _accept(syl_code, ch, int(w)):
+                        continue
+                    yield DictionaryEntry(word=ch, code=syl_code, weight=w)
+
+    payload = MyBoardDictPayloadV1Writer().encode(_iter_canonical())
+    MyBoardDictionaryFileV1Writer().write(
+        payload_uncompressed=payload,
+        out_path=args.output,
+        dict_version=_parse_semver(args.dict_version),
+        meta=meta,
+        languages=languages,
+        compression=args.compress,
+    )
+
+    if args.meta_output is not None:
+        asset_path = args.asset_path or f"dictionary/{args.output.name}"
+        _write_dictionary_spec_json(
+            out_path=args.meta_output,
+            dictionary_id=args.dictionary_id,
+            name=args.name,
+            locale_tags=locale_tags,
+            layout_ids=layout_ids,
+            asset_path=asset_path,
+            code_scheme=str(args.code_scheme),
+            kind=args.kind,
+            core=args.core,
+            variant=args.variant,
+            is_default=bool(args.is_default),
+            enabled=enabled,
+            priority=priority,
+        )
+    return 0
+
+
 def main(argv: list[str]) -> int:
     if not argv:
-        raise SystemExit("Usage: dict_tool.py <command> [args...]; command=convert")
+        raise SystemExit("Usage: dict_tool.py <command> [args...]; command=convert|convert-multi")
 
     cmd, *rest = argv
     if cmd == "convert":
         return _cmd_convert(rest)
+    if cmd == "convert-multi":
+        return _cmd_convert_multi(rest)
 
     raise SystemExit(f"Unknown command: {cmd}")
 

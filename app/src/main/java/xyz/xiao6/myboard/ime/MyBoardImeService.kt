@@ -30,14 +30,15 @@ import xyz.xiao6.myboard.manager.ThemeManager
 import xyz.xiao6.myboard.manager.ToolbarManager
 import xyz.xiao6.myboard.model.ThemeSpec
 import xyz.xiao6.myboard.model.ToolbarSpec
+import xyz.xiao6.myboard.ui.ime.ImePanelView
 import xyz.xiao6.myboard.ui.keyboard.KeyboardSurfaceView
-import xyz.xiao6.myboard.ui.popup.FloatingCandidatePopup
 import xyz.xiao6.myboard.ui.popup.FloatingComposingPopup
 import xyz.xiao6.myboard.ui.popup.FloatingTextPreviewPopup
 import xyz.xiao6.myboard.ui.popup.PopupView
 import xyz.xiao6.myboard.ui.toolbar.ToolbarView
 import xyz.xiao6.myboard.ui.candidate.CandidatePageView
 import xyz.xiao6.myboard.ui.layout.LayoutPickerView
+import xyz.xiao6.myboard.ui.symbols.SymbolsLayoutView
 import xyz.xiao6.myboard.util.MLog
 import java.util.Locale
 import android.content.Intent
@@ -47,9 +48,12 @@ import android.view.View.GONE
 import android.view.View.VISIBLE
 import android.widget.FrameLayout
 import xyz.xiao6.myboard.store.MyBoardPrefs
+import xyz.xiao6.myboard.model.ActionType
 import xyz.xiao6.myboard.model.DictionarySpec
+import xyz.xiao6.myboard.model.KeyAction
 import kotlin.math.roundToInt
 import java.util.Locale.ROOT
+import xyz.xiao6.myboard.util.PinyinSyllableSegmenter
 
 class MyBoardImeService : InputMethodService() {
     private val logTag = "ImeService"
@@ -57,6 +61,7 @@ class MyBoardImeService : InputMethodService() {
     private var isCandidatePageExpanded: Boolean = false
     private var lastCandidates: List<String> = emptyList()
     private var lastComposing: String = ""
+    private var lastComposingOptions: List<String> = emptyList()
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
@@ -70,9 +75,11 @@ class MyBoardImeService : InputMethodService() {
     private var toolbarSpec: ToolbarSpec? = null
     private var activeLocaleTag: String? = null
     private var decoderBuildJob: Job? = null
-    private var candidatePopup: FloatingCandidatePopup? = null
     private var composingPopup: FloatingComposingPopup? = null
     private var wordPreviewPopup: FloatingTextPreviewPopup? = null
+    private var symbolsView: SymbolsLayoutView? = null
+    private var topBarSlotView: View? = null
+    private var popupMarginPx: Int = 0
 
     override fun onCreate() {
         super.onCreate()
@@ -86,7 +93,6 @@ class MyBoardImeService : InputMethodService() {
 
     override fun onDestroy() {
         super.onDestroy()
-        candidatePopup?.dismiss()
         composingPopup?.dismiss()
         wordPreviewPopup?.dismiss()
         scope.cancel()
@@ -99,11 +105,14 @@ class MyBoardImeService : InputMethodService() {
         rootView = view
 
         val imeRoot = view.findViewById<View>(R.id.imeRoot)
+        val imePanel = view.findViewById<ImePanelView>(R.id.imePanel)
         val topBarSlot = view.findViewById<View>(R.id.topBarSlot)
+        topBarSlotView = topBarSlot
         val toolbarView = view.findViewById<ToolbarView>(R.id.toolbarView)
         val keyboardView = view.findViewById<KeyboardSurfaceView>(R.id.keyboardView)
         val candidatePageView = view.findViewById<CandidatePageView>(R.id.candidatePageView)
         val layoutPickerView = view.findViewById<LayoutPickerView>(R.id.layoutPickerView)
+        val symbolsView = view.findViewById<SymbolsLayoutView>(R.id.symbolsView)
         val popupHost = view.findViewById<FrameLayout>(R.id.popupHost)
         val popupView = PopupView(popupHost).apply { applyTheme(themeSpec) }
         keyboardView.setPopupView(popupView)
@@ -111,17 +120,56 @@ class MyBoardImeService : InputMethodService() {
         toolbarView.applyTheme(themeSpec)
         candidatePageView.applyTheme(themeSpec)
         layoutPickerView.applyTheme(themeSpec)
+        symbolsView.applyTheme(themeSpec)
+        this.symbolsView = symbolsView
 
         val marginPx = (resources.displayMetrics.density * 8f).toInt()
-        val candidatePopup = FloatingCandidatePopup(this).apply { applyTheme(themeSpec) }
+        popupMarginPx = marginPx
         val composingPopup = FloatingComposingPopup(this).apply { applyTheme(themeSpec) }
         val wordPreviewPopup = FloatingTextPreviewPopup(this).apply { applyTheme(themeSpec) }
-        this.candidatePopup = candidatePopup
         this.composingPopup = composingPopup
         this.wordPreviewPopup = wordPreviewPopup
 
         val layoutManager = LayoutManager(this).loadAllFromAssets()
         val dictionaryManager = DictionaryManager(this).loadAll()
+
+        fun hideOverlays() {
+            isCandidatePageExpanded = false
+            candidatePageView.visibility = GONE
+            layoutPickerView.visibility = GONE
+            toolbarView.clearCandidates()
+            wordPreviewPopup.dismiss()
+        }
+
+        fun showSymbols() {
+            hideOverlays()
+            composingPopup.dismiss()
+            toolbarView.visibility = View.INVISIBLE
+            keyboardView.visibility = View.INVISIBLE
+            symbolsView.visibility = VISIBLE
+        }
+
+        fun hideSymbols() {
+            if (symbolsView.visibility != VISIBLE) return
+            symbolsView.visibility = GONE
+            toolbarView.visibility = VISIBLE
+            keyboardView.visibility = VISIBLE
+            renderCandidatesUi(
+                candidates = lastCandidates,
+                composing = lastComposing,
+                composingOptions = lastComposingOptions,
+                toolbarView = toolbarView,
+                keyboardView = keyboardView,
+                candidatePageView = candidatePageView,
+            )
+        }
+
+        symbolsView.onBack = { hideSymbols() }
+        symbolsView.onCommitSymbol = { symbol ->
+            playKeyFeedback(keyboardView)
+            controller?.onAction(KeyAction(actionType = ActionType.COMMIT, value = symbol))
+            if (!symbolsView.isLocked()) hideSymbols()
+        }
 
         // Ensure toolbar is visible and has actions.
         toolbarView.submitItems(buildToolbarItems(toolbarSpec))
@@ -130,6 +178,7 @@ class MyBoardImeService : InputMethodService() {
                 "layout" -> {
                     showLayoutPicker(
                         layoutManager = layoutManager,
+                        toolbarView = toolbarView,
                         keyboardView = keyboardView,
                         candidatePageView = candidatePageView,
                         layoutPickerView = layoutPickerView,
@@ -142,27 +191,37 @@ class MyBoardImeService : InputMethodService() {
                 else -> Toast.makeText(this, "toolbar: ${item.itemId}", Toast.LENGTH_SHORT).show()
             }
         }
+        toolbarView.onOverflowClick = {
+            // Priority:
+            // 1) If symbols panel is open -> close it.
+            // 2) If there are candidates -> toggle expanded candidate page.
+            // 3) Otherwise -> collapse/hide the IME.
+            when {
+                symbolsView.visibility == VISIBLE -> hideSymbols()
+                lastCandidates.isNotEmpty() -> {
+                    isCandidatePageExpanded = !isCandidatePageExpanded
+                    renderCandidatesUi(
+                        candidates = lastCandidates,
+                        composing = lastComposing,
+                        composingOptions = lastComposingOptions,
+                        toolbarView = toolbarView,
+                        keyboardView = keyboardView,
+                        candidatePageView = candidatePageView,
+                    )
+                }
+                else -> requestHideSelf(0)
+            }
+        }
+        toolbarView.onOverflowLongClick = {
+            val intent = Intent(this, SettingsActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            startActivity(intent)
+        }
 
         toolbarView.visibility = VISIBLE
-        candidatePopup.onCandidateClick = { text ->
+        toolbarView.onCandidateClick = { text ->
             playKeyFeedback(keyboardView)
             controller?.onCandidateSelected(text)
             isCandidatePageExpanded = false
-        }
-        candidatePopup.onExpandToggle = {
-            if (lastCandidates.isNotEmpty()) {
-                isCandidatePageExpanded = !isCandidatePageExpanded
-                // Force a re-render even if candidates list didn't change.
-                renderCandidatesUi(
-                    candidates = lastCandidates,
-                    composing = lastComposing,
-                    topBarSlot = topBarSlot,
-                    toolbarView = toolbarView,
-                    keyboardView = keyboardView,
-                    candidatePopup = candidatePopup,
-                    candidatePageView = candidatePageView,
-                )
-            }
         }
         candidatePageView.onCandidateClick = { text ->
             playKeyFeedback(keyboardView)
@@ -186,10 +245,9 @@ class MyBoardImeService : InputMethodService() {
             renderCandidatesUi(
                 candidates = lastCandidates,
                 composing = lastComposing,
-                topBarSlot = topBarSlot,
+                composingOptions = lastComposingOptions,
                 toolbarView = toolbarView,
                 keyboardView = keyboardView,
-                candidatePopup = candidatePopup,
                 candidatePageView = candidatePageView,
             )
         }
@@ -210,6 +268,7 @@ class MyBoardImeService : InputMethodService() {
             onCommitText = { text -> commitTextToEditor(text) }
             onSwitchLocale = { localeTag -> onLocaleSwitched(localeTag) }
             onToggleLocale = { toggleLocale() }
+            onShowSymbols = { showSymbols() }
         }
         controller = c
         c.attach(keyboardView)
@@ -226,19 +285,19 @@ class MyBoardImeService : InputMethodService() {
             .onEach { list ->
                 lastCandidates = list
                 lastComposing = c.composingText.value
+                lastComposingOptions = c.composingOptions.value
                 renderCandidatesUi(
                     candidates = list,
                     composing = lastComposing,
-                    topBarSlot = topBarSlot,
+                    composingOptions = lastComposingOptions,
                     toolbarView = toolbarView,
                     keyboardView = keyboardView,
-                    candidatePopup = candidatePopup,
                     candidatePageView = candidatePageView,
                 )
 
                 composingPopup.updateAbove(
                     anchor = topBarSlot,
-                    composing = c.composingText.value,
+                    composing = PinyinSyllableSegmenter.segmentForDisplay(c.composingText.value),
                     xMarginPx = 0,
                     yMarginPx = 0,
                 )
@@ -256,26 +315,43 @@ class MyBoardImeService : InputMethodService() {
                     renderCandidatesUi(
                         candidates = emptyList(),
                         composing = composing,
-                        topBarSlot = topBarSlot,
+                        composingOptions = lastComposingOptions,
                         toolbarView = toolbarView,
                         keyboardView = keyboardView,
-                        candidatePopup = candidatePopup,
                         candidatePageView = candidatePageView,
                     )
                 }
                 composingPopup.updateAbove(
                     anchor = topBarSlot,
-                    composing = composing,
+                    composing = PinyinSyllableSegmenter.segmentForDisplay(composing),
                     xMarginPx = 0,
                     yMarginPx = 0,
                 )
             }
             .launchIn(scope)
 
+        c.composingOptions
+            .onEach { options ->
+                lastComposingOptions = options
+                if (isCandidatePageExpanded && lastCandidates.isNotEmpty()) {
+                    renderCandidatesUi(
+                        candidates = lastCandidates,
+                        composing = lastComposing,
+                        composingOptions = lastComposingOptions,
+                        toolbarView = toolbarView,
+                        keyboardView = keyboardView,
+                        candidatePageView = candidatePageView,
+                    )
+                }
+            }
+            .launchIn(scope)
+
         // Keep RuntimeDictionaryManager in sync with layout switches.
         c.currentLayout
             .onEach { layout ->
-                val layoutId = layout?.layoutId ?: return@onEach
+                val resolved = layout ?: return@onEach
+                val layoutId = resolved.layoutId
+                imePanel.applyKeyboardLayoutSize(resolved)
                 dicts.setLayoutId(layoutId)
                 activeLocaleTag?.let { tag -> prefs?.setPreferredLayoutId(tag, layoutId) }
             }
@@ -294,6 +370,10 @@ class MyBoardImeService : InputMethodService() {
         val sm = subtypeManager ?: return
         val profiles = enabledLocaleProfiles(sm)
         if (profiles.isEmpty()) return
+        if (profiles.size <= 1) {
+            showImeHint("仅启用了一个语言；请在设置中启用英文等其它语言后再切换")
+            return
+        }
 
         val currentRaw =
             activeLocaleTag
@@ -315,19 +395,37 @@ class MyBoardImeService : InputMethodService() {
                 }
             }
 
-        onLocaleSwitched(next)
+        switchLocaleWithLayoutPolicy(next)
+    }
+
+    private fun showImeHint(text: String) {
+        val popup = wordPreviewPopup ?: return
+        val anchor =
+            topBarSlotView
+                ?: rootView?.findViewById(R.id.topBarSlot)
+                ?: return
+        val margin = popupMarginPx.takeIf { it > 0 } ?: (resources.displayMetrics.density * 8f).toInt()
+        popup.showAbove(anchor, text, marginPx = margin)
+        anchor.removeCallbacks(dismissImeHintRunnable)
+        anchor.postDelayed(dismissImeHintRunnable, 1600L)
+    }
+
+    private val dismissImeHintRunnable = Runnable {
+        wordPreviewPopup?.dismiss()
     }
 
     private fun showLayoutPicker(
         layoutManager: LayoutManager,
+        toolbarView: ToolbarView,
         keyboardView: KeyboardSurfaceView,
         candidatePageView: CandidatePageView,
         layoutPickerView: LayoutPickerView,
     ) {
         // Close any overlays which conflict with the picker.
+        symbolsView?.visibility = GONE
         isCandidatePageExpanded = false
         candidatePageView.visibility = GONE
-        candidatePopup?.dismiss()
+        toolbarView.clearCandidates()
         wordPreviewPopup?.dismiss()
 
         val sections = buildLayoutPickerSections(layoutManager)
@@ -510,6 +608,7 @@ class MyBoardImeService : InputMethodService() {
 
         controller?.loadLayout(layoutId)
         swapDecoderAsync(controller, runtimeDicts?.active?.value)
+        applyLocaleSymbolOverrides(activeLocaleTag ?: locale.toLanguageTag())
     }
 
     private fun swapDecoderAsync(controller: InputMethodController?, spec: DictionarySpec?) {
@@ -576,31 +675,133 @@ class MyBoardImeService : InputMethodService() {
     }
 
     private fun onLocaleSwitched(localeTag: String) {
+        switchLocaleWithLayoutPolicy(localeTag)
+    }
+
+    private fun switchLocaleWithLayoutPolicy(localeTag: String) {
         val normalized = localeTag.trim().replace('_', '-')
-        val next = Locale.forLanguageTag(normalized)
-        MLog.d(logTag, "SwitchLocale -> $normalized")
+        val nextLocale = Locale.forLanguageTag(normalized)
+        MLog.d(logTag, "SwitchLocale(policy) -> $normalized")
+
+        val sm = subtypeManager ?: return
+        val profile = sm.resolve(nextLocale) ?: return
+        val currentLayoutId = controller?.currentLayout?.value?.layoutId.orEmpty().trim()
+
+        // (AGENTS.md #9) If target language has the current layout: do not redraw the keyboard; only replace symbols.
+        if (currentLayoutId.isNotBlank() && profile.layoutIds.contains(currentLayoutId)) {
+            prefs?.userLocaleTag = normalized
+            activeLocaleTag = normalized
+            runtimeDicts?.setLocale(nextLocale)
+            runtimeDicts?.setLayoutId(currentLayoutId)
+            prefs?.setPreferredLayoutId(profile.localeTag, currentLayoutId)
+            applyLocaleSymbolOverrides(normalized)
+            return
+        }
+
+        // Otherwise: choose a layout for the target language (user-enabled first, then language default).
+        val preferredLayoutId = prefs?.getPreferredLayoutId(profile.localeTag)
+        val enabledLayouts = enabledLayoutsFor(profile)
+        val targetLayoutId =
+            when {
+                !preferredLayoutId.isNullOrBlank() && preferredLayoutId in enabledLayouts -> preferredLayoutId
+                enabledLayouts.isNotEmpty() -> enabledLayouts.firstOrNull()
+                !profile.defaultLayoutId.isNullOrBlank() -> profile.defaultLayoutId
+                else -> profile.layoutIds.firstOrNull()
+            } ?: return
 
         prefs?.userLocaleTag = normalized
         activeLocaleTag = normalized
-        runtimeDicts?.setLocale(next)
+        runtimeDicts?.setLocale(nextLocale)
+        runtimeDicts?.setLayoutId(targetLayoutId)
+        prefs?.setPreferredLayoutId(profile.localeTag, targetLayoutId)
 
-        val profile = subtypeManager?.resolve(next) ?: return
-        val preferredLayoutId = prefs?.getPreferredLayoutId(profile.localeTag)
-        val enabledLayouts = enabledLayoutsFor(profile)
-        val targetLayoutId = when {
-            !preferredLayoutId.isNullOrBlank() && preferredLayoutId in enabledLayouts -> preferredLayoutId
-            enabledLayouts.isNotEmpty() -> enabledLayouts.firstOrNull()
-            !profile.defaultLayoutId.isNullOrBlank() -> profile.defaultLayoutId
-            else -> profile.layoutIds.firstOrNull()
-        } ?: return
         if (controller?.currentLayout?.value?.layoutId != targetLayoutId) {
             controller?.loadLayout(targetLayoutId)
+        }
+        applyLocaleSymbolOverrides(normalized)
+    }
+
+    private fun applyLocaleSymbolOverrides(localeTag: String) {
+        val c = controller ?: return
+        val layout = c.currentLayout.value
+        val keys = layout?.rows?.flatMap { it.keys }.orEmpty()
+
+        val currentNormalized = normalizeLocaleTag(localeTag)
+        val nextToggle = computeNextLocaleTagForToggle(currentNormalized)
+        val currentLabel = shortLocaleKeyLabel(currentNormalized)
+        val nextLabel = nextToggle?.let { shortLocaleKeyLabel(it) }
+
+        val labelOverrides = LinkedHashMap<String, String>()
+        val hintOverrides = LinkedHashMap<String, Map<xyz.xiao6.myboard.model.HintPosition, String>>()
+
+        // Locale toggle key(s): drive by SpecialKey so custom layouts work.
+        for (key in keys) {
+            if (key.specialKey != xyz.xiao6.myboard.model.SpecialKey.TOGGLE_LOCALE) continue
+            labelOverrides[key.keyId] = currentLabel
+            if (!nextLabel.isNullOrBlank()) {
+                hintOverrides[key.keyId] =
+                    mapOf(xyz.xiao6.myboard.model.HintPosition.BOTTOM_RIGHT to "/$nextLabel")
+            }
+        }
+
+        // Basic punctuation replacement when keeping the same layout across locales:
+        // - Try to find common punctuation keys by keyId or by their current label.
+        // - If layout is fully custom, this is best-effort and won't override unrelated keys.
+        val wantsChinesePunct = currentNormalized.startsWith("zh", ignoreCase = true)
+        val commaOut = if (wantsChinesePunct) "，" else ","
+        val periodOut = if (wantsChinesePunct) "。" else "."
+
+        for (key in keys) {
+            if (key.specialKey != null) continue
+            val label = key.label.trim()
+            when {
+                key.keyId == "key_comma" || label == "," || label == "，" || key.primaryCode == 44 -> {
+                    labelOverrides[key.keyId] = commaOut
+                }
+                key.keyId == "key_period" || label == "." || label == "。" || key.primaryCode == 46 || key.primaryCode == 12290 -> {
+                    labelOverrides[key.keyId] = periodOut
+                }
+            }
+        }
+
+        val invalidateIds = (labelOverrides.keys + hintOverrides.keys).toSet()
+        c.updateState(
+            reducer = { s -> s.copy(labelOverrides = labelOverrides, hintOverrides = hintOverrides) },
+            invalidateKeyIds = invalidateIds,
+        )
+    }
+
+    private fun computeNextLocaleTagForToggle(currentNormalized: String): String? {
+        val sm = subtypeManager ?: return null
+        val profiles = enabledLocaleProfiles(sm)
+        if (profiles.size <= 1) return null
+
+        val tags = profiles.map { normalizeLocaleTag(it.localeTag) }.distinct()
+        val zh = tags.firstOrNull { it.startsWith("zh", ignoreCase = true) }
+        val en = tags.firstOrNull { it.startsWith("en", ignoreCase = true) }
+
+        return when {
+            currentNormalized.startsWith("zh", ignoreCase = true) && !en.isNullOrBlank() -> en
+            currentNormalized.startsWith("en", ignoreCase = true) && !zh.isNullOrBlank() -> zh
+            else -> {
+                val idx = tags.indexOfFirst { it == currentNormalized }
+                if (idx >= 0) tags[(idx + 1) % tags.size] else tags.firstOrNull()
+            }
+        }
+    }
+
+    private fun shortLocaleKeyLabel(normalizedLocaleTag: String): String {
+        val parts = normalizedLocaleTag.split('-')
+        val language = parts.firstOrNull().orEmpty().lowercase(ROOT)
+        return when (language) {
+            "zh" -> "中"
+            "en" -> "EN"
+            else -> language.take(2).uppercase(ROOT).ifBlank { "?" }
         }
     }
 
     override fun onFinishInputView(finishingInput: Boolean) {
         super.onFinishInputView(finishingInput)
-        candidatePopup?.dismiss()
         composingPopup?.dismiss()
         wordPreviewPopup?.dismiss()
     }
@@ -608,45 +809,56 @@ class MyBoardImeService : InputMethodService() {
     private fun renderCandidatesUi(
         candidates: List<String>,
         composing: String,
-        topBarSlot: View,
+        composingOptions: List<String>,
         toolbarView: ToolbarView,
         keyboardView: KeyboardSurfaceView,
-        candidatePopup: FloatingCandidatePopup,
         candidatePageView: CandidatePageView,
     ) {
-        val showCandidates = candidates.isNotEmpty()
-        val shouldShowExpandButton = showCandidates && candidates.size >= 6
+        if (symbolsView?.visibility == VISIBLE) {
+            toolbarView.clearCandidates()
+            candidatePageView.visibility = GONE
+            toolbarView.visibility = View.INVISIBLE
+            keyboardView.visibility = View.INVISIBLE
+            return
+        }
 
-        // Manual-only: only expand when user taps the arrow.
+        val showCandidates = candidates.isNotEmpty()
+        // Manual-only: only expand when user taps the toolbar overflow arrow.
         val expandPage = showCandidates && isCandidatePageExpanded
 
-        candidatePopup.setExpanded(expandPage)
-
-        toolbarView.visibility = if (showCandidates) GONE else VISIBLE
+        // Keep toolbar visible so the overflow arrow is always available.
+        toolbarView.visibility = VISIBLE
+        toolbarView.setItemsVisible(!showCandidates)
+        toolbarView.setOverflowContentDescription(
+            when {
+                symbolsView?.visibility == VISIBLE -> "Close"
+                showCandidates -> if (expandPage) "Collapse candidates" else "Expand candidates"
+                else -> "Hide keyboard"
+            },
+        )
+        toolbarView.setOverflowRotation(if (expandPage) 180f else 0f)
 
         if (expandPage) {
             // Expanded page overlays keyboard region; keep keyboard height by making it INVISIBLE instead of GONE.
             keyboardView.visibility = View.INVISIBLE
             candidatePageView.visibility = VISIBLE
-            candidatePopup.dismiss()
+            toolbarView.clearCandidates()
             candidatePageView.submitCandidates(candidates)
-            candidatePageView.submitPinyinSegments(splitPinyinSegments(composing))
+            val left = composingOptions.takeIf { it.isNotEmpty() } ?: splitPinyinSegments(composing)
+            candidatePageView.submitPinyinSegments(left)
         } else {
             candidatePageView.visibility = GONE
             keyboardView.visibility = VISIBLE
             wordPreviewPopup?.dismiss()
             if (showCandidates) {
-                candidatePopup.updateInSlot(anchor = topBarSlot, candidates = candidates, showExpandButton = shouldShowExpandButton)
+                toolbarView.submitCandidates(candidates)
             } else {
-                candidatePopup.dismiss()
+                toolbarView.clearCandidates()
             }
         }
     }
 
     private fun splitPinyinSegments(composing: String): List<String> {
-        val t = composing.trim()
-        if (t.isBlank()) return emptyList()
-        val parts = t.split('\'', ' ').map { it.trim() }.filter { it.isNotBlank() }
-        return if (parts.isNotEmpty()) parts else listOf(t)
+        return PinyinSyllableSegmenter.segmentToList(composing)
     }
 }

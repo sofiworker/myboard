@@ -6,6 +6,8 @@ import android.graphics.Typeface
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.drawable.GradientDrawable
+import android.text.TextUtils
+import android.util.TypedValue
 import android.util.AttributeSet
 import android.view.Gravity
 import android.view.MotionEvent
@@ -21,6 +23,8 @@ import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import xyz.xiao6.myboard.model.ThemeSpec
 import xyz.xiao6.myboard.ui.theme.ThemeRuntime
+import kotlin.math.ceil
+import kotlin.math.max
 
 /**
  * Expanded candidate page overlay (does not change IME window height):
@@ -51,6 +55,9 @@ class CandidatePageView @JvmOverloads constructor(
 
     private var selectedPinyinIndex: Int = 0
 
+    private val gridSpanCount = 12
+    private val candidateTextPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { textSize = sp(26f) }
+
     init {
         background = GradientDrawable().apply {
             shape = GradientDrawable.RECTANGLE
@@ -74,13 +81,25 @@ class CandidatePageView @JvmOverloads constructor(
         centerGrid = RecyclerView(context).apply {
             layoutParams = LinearLayout.LayoutParams(0, LayoutParams.MATCH_PARENT, 1f)
             overScrollMode = OVER_SCROLL_NEVER
-            layoutManager = GridLayoutManager(context, 4)
-            adapter = candidateAdapter.apply {
-                onLongPress = { anchor, text -> onCandidateLongPress?.invoke(anchor, text) }
-                onPreviewDismiss = { onCandidatePreviewDismiss?.invoke() }
-            }
+            val lm =
+                GridLayoutManager(context, gridSpanCount).apply {
+                    spanSizeLookup =
+                        object : GridLayoutManager.SpanSizeLookup() {
+                            override fun getSpanSize(position: Int): Int {
+                                return candidateAdapter.currentList.getOrNull(position)?.spanSize?.coerceIn(1, gridSpanCount)
+                                    ?: 1
+                            }
+                        }
+                }
+            layoutManager = lm
+            adapter =
+                candidateAdapter.apply {
+                    onLongPress = { anchor, text -> onCandidateLongPress?.invoke(anchor, text) }
+                    onPreviewDismiss = { onCandidatePreviewDismiss?.invoke() }
+                }
             setBackgroundColor(Color.WHITE)
-            addItemDecoration(GridDividerDecoration(Color.parseColor("#14000000"), dp(1f)))
+            itemAnimator = null
+            addItemDecoration(ExcelGridDecoration(Color.parseColor("#22000000"), dp(1f)))
         }
 
         rightActions = LinearLayout(context).apply {
@@ -112,7 +131,12 @@ class CandidatePageView @JvmOverloads constructor(
     }
 
     fun submitCandidates(candidates: List<String>) {
-        candidateAdapter.submitList(candidates)
+        // If called before layout, fallback to a reasonable width guess; GridLayout will relayout later anyway.
+        val contentWidthPx = (centerGrid.width - centerGrid.paddingLeft - centerGrid.paddingRight).takeIf { it > 0 }
+            ?: (resources.displayMetrics.widthPixels * 0.65f).toInt()
+        val packed = packCandidates(candidates, availableWidthPx = contentWidthPx)
+        candidateAdapter.submitList(packed)
+        centerGrid.scrollToPosition(0)
     }
 
     fun applyTheme(theme: ThemeSpec?) {
@@ -141,6 +165,12 @@ class CandidatePageView @JvmOverloads constructor(
         layoutParams = LinearLayout.LayoutParams(dp(1f).toInt(), LayoutParams.MATCH_PARENT)
         setBackgroundColor(Color.parseColor("#14000000"))
     }
+
+    data class CandidateCell(
+        val text: String,
+        val spanSize: Int,
+        val ellipsize: Boolean,
+    )
 
     private class PinyinAdapter(
         private val onClick: (Int) -> Unit,
@@ -191,20 +221,25 @@ class CandidatePageView @JvmOverloads constructor(
 
     private class CandidateGridAdapter(
         private val onClick: (String) -> Unit,
-    ) : ListAdapter<String, CandidateVH>(DIFF) {
+    ) : ListAdapter<CandidateCell, CandidateVH>(DIFF) {
         var onLongPress: ((anchor: View, text: String) -> Unit)? = null
         var onPreviewDismiss: (() -> Unit)? = null
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): CandidateVH {
             val tv = TextView(parent.context).apply {
-                layoutParams = RecyclerView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(parent.context, 64f).toInt())
+                layoutParams = RecyclerView.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    dp(parent.context, 64f).toInt(),
+                )
                 gravity = Gravity.CENTER
                 textSize = 26f
                 setTextColor(Color.BLACK)
                 setBackgroundColor(Color.WHITE)
                 maxLines = 1
-                ellipsize = android.text.TextUtils.TruncateAt.END
-                setPadding(0, 0, 0, 0)
+                isSingleLine = true
+                ellipsize = null
+                val hp = dp(parent.context, 10f).toInt()
+                setPadding(hp, 0, hp, 0)
             }
             return CandidateVH(tv, onClick)
         }
@@ -215,22 +250,23 @@ class CandidatePageView @JvmOverloads constructor(
 
         companion object {
             private val DIFF =
-                object : DiffUtil.ItemCallback<String>() {
-                    override fun areItemsTheSame(oldItem: String, newItem: String): Boolean = oldItem == newItem
-                    override fun areContentsTheSame(oldItem: String, newItem: String): Boolean = oldItem == newItem
+                object : DiffUtil.ItemCallback<CandidateCell>() {
+                    override fun areItemsTheSame(oldItem: CandidateCell, newItem: CandidateCell): Boolean = oldItem.text == newItem.text
+                    override fun areContentsTheSame(oldItem: CandidateCell, newItem: CandidateCell): Boolean = oldItem == newItem
                 }
-        }
 
-        private fun dp(context: Context, value: Float): Float = value * context.resources.displayMetrics.density
+            private fun dp(context: Context, value: Float): Float = value * context.resources.displayMetrics.density
+        }
     }
 
     private class CandidateVH(
         private val tv: TextView,
         private val onClick: (String) -> Unit,
     ) : RecyclerView.ViewHolder(tv) {
-        fun bind(text: String, onLongPress: ((View, String) -> Unit)?, onPreviewDismiss: (() -> Unit)?) {
-            tv.text = text
-            tv.setOnClickListener { onClick(text) }
+        fun bind(cell: CandidateCell, onLongPress: ((View, String) -> Unit)?, onPreviewDismiss: (() -> Unit)?) {
+            tv.text = cell.text
+            tv.ellipsize = if (cell.ellipsize) TextUtils.TruncateAt.END else null
+            tv.setOnClickListener { onClick(cell.text) }
 
             var previewShown = false
             tv.setOnTouchListener { _, ev ->
@@ -242,7 +278,7 @@ class CandidatePageView @JvmOverloads constructor(
                     -> {
                         previewShown = false
                         onPreviewDismiss?.invoke()
-                        true // consume so long-press doesn't also trigger click on release
+                        true
                     }
 
                     else -> false
@@ -250,9 +286,9 @@ class CandidatePageView @JvmOverloads constructor(
             }
             tv.setOnLongClickListener {
                 val available = (tv.width - tv.paddingLeft - tv.paddingRight).toFloat().coerceAtLeast(0f)
-                val needed = tv.paint.measureText(text)
+                val needed = tv.paint.measureText(cell.text)
                 if (needed > available + 1f) {
-                    onLongPress?.invoke(tv, text)
+                    onLongPress?.invoke(tv, cell.text)
                     previewShown = true
                     true
                 } else {
@@ -263,6 +299,98 @@ class CandidatePageView @JvmOverloads constructor(
     }
 
     private fun dp(value: Float): Float = value * resources.displayMetrics.density
+
+    private fun sp(value: Float): Float =
+        TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, value, resources.displayMetrics)
+
+    private fun packCandidates(candidates: List<String>, availableWidthPx: Int): List<CandidateCell> {
+        val rowWidthPx = max(1, availableWidthPx)
+        val colWidthPx = max(1, rowWidthPx / gridSpanCount)
+        val cellPaddingPx = dp(14f)
+
+        data class Item(var text: String, var span: Int, val textWidthPx: Float)
+
+        fun baseSpanFor(textWidthPx: Float): Int {
+            val desiredPx = textWidthPx + cellPaddingPx * 2
+            return ceil(desiredPx / colWidthPx.toFloat()).toInt().coerceIn(1, gridSpanCount)
+        }
+
+        fun finalizeRow(row: MutableList<Item>) {
+            if (row.isEmpty()) return
+            val sum = row.sumOf { it.span }
+            val remaining = (gridSpanCount - sum).coerceAtLeast(0)
+            if (remaining == 0) return
+
+            var rem = remaining
+            // First, use remaining spans to satisfy items that would otherwise truncate.
+            // neededSpan = ceil((textWidth + padding*2) / colWidth)
+            while (rem > 0) {
+                var bestIndex = -1
+                var bestDeficit = 0
+                for (i in row.indices) {
+                    val needed = baseSpanFor(row[i].textWidthPx)
+                    val deficit = (needed - row[i].span).coerceAtLeast(0)
+                    if (deficit > bestDeficit) {
+                        bestDeficit = deficit
+                        bestIndex = i
+                    }
+                }
+                if (bestIndex < 0 || bestDeficit <= 0) break
+                row[bestIndex].span = (row[bestIndex].span + 1).coerceAtMost(gridSpanCount)
+                rem -= 1
+            }
+
+            // Then, spread any leftover evenly to keep rows visually "filled".
+            if (rem > 0) {
+                val n = row.size
+                val each = rem / n
+                var extra = rem % n
+                for (i in 0 until n) {
+                    var add = each
+                    if (extra > 0) {
+                        add += 1
+                        extra -= 1
+                    }
+                    row[i].span = (row[i].span + add).coerceAtMost(gridSpanCount)
+                }
+            }
+        }
+
+        val out = ArrayList<CandidateCell>(candidates.size)
+        var row = mutableListOf<Item>()
+        var rowSpan = 0
+
+        fun flushRow() {
+            finalizeRow(row)
+            for (it in row) {
+                val availableForItem = (it.span * colWidthPx).toFloat() - cellPaddingPx * 2
+                val ellipsize = it.textWidthPx > availableForItem + 1f
+                out += CandidateCell(text = it.text, spanSize = it.span, ellipsize = ellipsize)
+            }
+            row = mutableListOf()
+            rowSpan = 0
+        }
+
+        for (raw in candidates) {
+            val text = raw.trim()
+            if (text.isEmpty()) continue
+            val textW = candidateTextPaint.measureText(text)
+            val baseSpan = baseSpanFor(textW)
+
+            if (row.isNotEmpty() && rowSpan + baseSpan > gridSpanCount) {
+                flushRow()
+            }
+            row += Item(text = text, span = baseSpan, textWidthPx = textW)
+            rowSpan += baseSpan
+
+            if (rowSpan == gridSpanCount) {
+                flushRow()
+            }
+        }
+        if (row.isNotEmpty()) flushRow()
+
+        return out
+    }
 
     private class SimpleDividerDecoration(
         dividerColor: Int,
@@ -286,7 +414,7 @@ class CandidatePageView @JvmOverloads constructor(
         }
     }
 
-    private class GridDividerDecoration(
+    private class ExcelGridDecoration(
         dividerColor: Int,
         dividerWidthPx: Float,
     ) : RecyclerView.ItemDecoration() {
@@ -304,16 +432,33 @@ class CandidatePageView @JvmOverloads constructor(
                 val params = child.layoutParams as? RecyclerView.LayoutParams ?: continue
                 val position = parent.getChildAdapterPosition(child)
                 if (position == RecyclerView.NO_POSITION) continue
-                val column = position % spanCount
 
-                // right divider (except last column)
-                if (column != spanCount - 1) {
-                    val x = (child.right + params.rightMargin).toFloat()
-                    c.drawRect(x, child.top.toFloat(), x + w, child.bottom.toFloat(), paint)
+                val spanSize = lm.spanSizeLookup.getSpanSize(position).coerceAtLeast(1)
+                val spanIndex = lm.spanSizeLookup.getSpanIndex(position, spanCount)
+                val groupIndex = lm.spanSizeLookup.getSpanGroupIndex(position, spanCount)
+                val endsRow = (spanIndex + spanSize) >= spanCount
+
+                val left = (child.left - params.leftMargin).toFloat()
+                val right = (child.right + params.rightMargin).toFloat()
+                val top = (child.top - params.topMargin).toFloat()
+                val bottom = (child.bottom + params.bottomMargin).toFloat()
+
+                if (spanIndex == 0) {
+                    c.drawRect(left, top, left + w, bottom, paint)
                 }
-                // bottom divider
-                val y = (child.bottom + params.bottomMargin).toFloat()
-                c.drawRect(child.left.toFloat(), y, child.right.toFloat(), y + w, paint)
+                if (groupIndex == 0) {
+                    c.drawRect(left, top, right, top + w, paint)
+                }
+
+                // Always draw right/bottom edges; this creates internal lines once (neighbor doesn't draw left/top).
+                c.drawRect(right, top, right + w, bottom, paint)
+                c.drawRect(left, bottom, right, bottom + w, paint)
+
+                // Outer border for the row end: already covered by the right edge above.
+                // Note: for merged cells (spanSize>1), internal lines are intentionally not drawn.
+                if (endsRow) {
+                    // no-op; kept for readability
+                }
             }
         }
     }

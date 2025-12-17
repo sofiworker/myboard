@@ -29,6 +29,7 @@ object KeyboardStateMachine {
         data class SwitchLocale(val localeTag: String) : Effect
         data object ToggleLocale : Effect
         data object BackLayout : Effect
+        data object ShowSymbols : Effect
         data class UpdateState(val newState: LayoutState, val invalidateKeyIds: Set<String>) : Effect
         data object NoOp : Effect
     }
@@ -44,7 +45,7 @@ object KeyboardStateMachine {
             is Event.Triggered ->
                 specialActionFor(event.key, event.trigger)
                     ?: event.key.behaviors[event.trigger]
-                    ?: defaultActionFor(event.key, event.trigger)
+                    ?: defaultActionFor(event.key, event.trigger, model.state)
             is Event.Action -> event.action
         } ?: return model to listOf(Effect.NoOp)
         return reduceAction(model, action)
@@ -106,6 +107,7 @@ object KeyboardStateMachine {
             }
 
             ActionType.SHOW_POPUP -> model to listOf(Effect.NoOp)
+            ActionType.SHOW_SYMBOLS -> model to listOf(Effect.ShowSymbols)
         }
     }
 
@@ -119,16 +121,20 @@ object KeyboardStateMachine {
         }
     }
 
-    private fun defaultActionFor(key: Key, trigger: KeyTrigger): KeyAction? {
+    private fun defaultActionFor(key: Key, trigger: KeyTrigger, state: LayoutState): KeyAction? {
         return when (trigger) {
-            KeyTrigger.TAP -> KeyAction(actionType = ActionType.COMMIT, value = key.label)
-            KeyTrigger.SWIPE_UP, KeyTrigger.SWIPE_DOWN -> defaultHintActionFor(key, trigger)
+            KeyTrigger.TAP -> {
+                val label = state.labelOverrides[key.keyId] ?: key.label
+                KeyAction(actionType = ActionType.COMMIT, value = label)
+            }
+            KeyTrigger.SWIPE_UP, KeyTrigger.SWIPE_DOWN -> defaultHintActionFor(key, trigger, state)
             KeyTrigger.LONG_PRESS -> null
         }
     }
 
-    private fun defaultHintActionFor(key: Key, trigger: KeyTrigger): KeyAction? {
-        val hintText = pickHintText(key.hints, trigger) ?: return null
+    private fun defaultHintActionFor(key: Key, trigger: KeyTrigger, state: LayoutState): KeyAction? {
+        val mergedHints = mergeHints(key, state)
+        val hintText = pickHintText(mergedHints, trigger) ?: return null
         return KeyAction(actionType = ActionType.COMMIT, value = hintText)
     }
 
@@ -169,6 +175,16 @@ object KeyboardStateMachine {
             if (v.isNotBlank()) return v
         }
         return null
+    }
+
+    private fun mergeHints(key: Key, state: LayoutState): Map<HintPosition, String> {
+        val overrides = state.hintOverrides[key.keyId].orEmpty()
+        if (overrides.isEmpty()) return key.hints
+        if (key.hints.isEmpty()) return overrides
+        return buildMap {
+            putAll(key.hints)
+            putAll(overrides)
+        }
     }
 
     private fun alphabeticKeyIds(keys: List<Key>): Set<String> {

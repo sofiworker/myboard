@@ -386,8 +386,9 @@ class KeyboardSurfaceView @JvmOverloads constructor(
                 canvas.drawRoundRect(rect, cornerRadius, cornerRadius, keyStrokePaint)
             }
 
-            if (key.hints.isNotEmpty()) {
-                for ((pos, text) in key.hints) {
+            val hints = resolveHints(key)
+            if (hints.isNotEmpty()) {
+                for ((pos, text) in hints) {
                     if (text.isBlank()) continue
                     drawHint(canvas, rect, pos, text)
                 }
@@ -454,13 +455,23 @@ class KeyboardSurfaceView @JvmOverloads constructor(
     }
 
     private fun resolveLabel(key: Key): String {
-        val label = key.label
+        val label = layoutState.labelOverrides[key.keyId] ?: key.label
         if (label.length != 1) return label
         val c = label[0]
         if (!c.isLetter()) return label
         return when (layoutState.shift) {
             ShiftState.OFF -> label.lowercase()
             ShiftState.ON, ShiftState.CAPS_LOCK -> label.uppercase()
+        }
+    }
+
+    private fun resolveHints(key: Key): Map<HintPosition, String> {
+        val overrides = layoutState.hintOverrides[key.keyId].orEmpty()
+        if (overrides.isEmpty()) return key.hints
+        if (key.hints.isEmpty()) return overrides
+        return buildMap {
+            putAll(key.hints)
+            putAll(overrides)
         }
     }
 

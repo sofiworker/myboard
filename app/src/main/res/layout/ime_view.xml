@@ -6,45 +6,73 @@
     android:clipChildren="false"
     android:clipToPadding="false">
 
-    <!-- Keep toolbar in-layout; candidates/composing are floating popups (PopupWindow). -->
-    <FrameLayout
-        android:id="@+id/topBarSlot"
+    <xyz.xiao6.myboard.ui.ime.ImePanelView
+        android:id="@+id/imePanel"
         android:layout_width="match_parent"
-        android:layout_height="48dp">
-
-        <xyz.xiao6.myboard.ui.toolbar.ToolbarView
-            android:id="@+id/toolbarView"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent" />
-
-    </FrameLayout>
-
-    <xyz.xiao6.myboard.ui.keyboard.KeyboardSurfaceView
-        android:id="@+id/keyboardView"
-        android:layout_width="match_parent"
-        android:layout_height="240dp"
-        android:layout_marginTop="48dp" />
-
-    <xyz.xiao6.myboard.ui.candidate.CandidatePageView
-        android:id="@+id/candidatePageView"
-        android:layout_width="match_parent"
-        android:layout_height="240dp"
-        android:layout_marginTop="48dp"
-        android:visibility="gone" />
-
-    <xyz.xiao6.myboard.ui.layout.LayoutPickerView
-        android:id="@+id/layoutPickerView"
-        android:layout_width="match_parent"
-        android:layout_height="240dp"
-        android:layout_marginTop="48dp"
-        android:visibility="gone" />
-
-    <!-- Popup overlay above keyboard (key preview + long-press candidates). -->
-    <FrameLayout
-        android:id="@+id/popupHost"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:layout_height="wrap_content"
         android:clipChildren="false"
-        android:clipToPadding="false" />
+        android:clipToPadding="false">
+
+        <LinearLayout
+            android:id="@+id/panelMain"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:clipChildren="false"
+            android:clipToPadding="false">
+
+            <FrameLayout
+                android:id="@+id/topBarSlot"
+                android:layout_width="match_parent"
+                android:layout_height="48dp">
+
+                <xyz.xiao6.myboard.ui.toolbar.ToolbarView
+                    android:id="@+id/toolbarView"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent" />
+
+            </FrameLayout>
+
+            <FrameLayout
+                android:id="@+id/contentSlot"
+                android:layout_width="match_parent"
+                android:layout_height="240dp">
+
+                <xyz.xiao6.myboard.ui.keyboard.KeyboardSurfaceView
+                    android:id="@+id/keyboardView"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent" />
+
+                <xyz.xiao6.myboard.ui.candidate.CandidatePageView
+                    android:id="@+id/candidatePageView"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:visibility="gone" />
+
+                <xyz.xiao6.myboard.ui.layout.LayoutPickerView
+                    android:id="@+id/layoutPickerView"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:visibility="gone" />
+
+            </FrameLayout>
+
+        </LinearLayout>
+
+        <xyz.xiao6.myboard.ui.symbols.SymbolsLayoutView
+            android:id="@+id/symbolsView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="gone" />
+
+        <!-- Popup overlay above keyboard (key preview + long-press candidates). -->
+        <FrameLayout
+            android:id="@+id/popupHost"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipChildren="false"
+            android:clipToPadding="false" />
+
+    </xyz.xiao6.myboard.ui.ime.ImePanelView>
 
 </FrameLayout>

@@ -66,6 +66,29 @@ class DecoderFactory(
             return PinyinDictionaryDecoder(lookup)
         }
 
+        if (scheme == "PINYIN_T9") {
+            val assetPath = spec.assetPath?.trim().orEmpty()
+            if (assetPath.isBlank()) {
+                MLog.w(logTag, "PINYIN_T9 missing assetPath; fallback to PassthroughDecoder")
+                return PassthroughDecoder
+            }
+
+            val dict = try {
+                dictCache.getOrPut(assetPath) {
+                    MLog.d(logTag, "[$buildStamp] Loading MyBoardDictionary from assetPath=$assetPath")
+                    MyBoardDictionary.fromAsset(context, assetPath)
+                }
+            } catch (t: Throwable) {
+                MLog.e(logTag, "Failed to load MyBoardDictionary assetPath=$assetPath; fallback to passthrough", t)
+                return PassthroughDecoder
+            }
+
+            val lookup = DictionaryLookup { searchKey, limit ->
+                dict.candidatesByPrefix(searchKey, limit)
+            }
+            return T9PinyinDecoder(lookup)
+        }
+
         MLog.d(logTag, "No decoder mapping for codeScheme=$scheme dictionaryId=${spec.dictionaryId}; fallback to PassthroughDecoder")
         return PassthroughDecoder
     }

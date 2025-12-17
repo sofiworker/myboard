@@ -16,5 +16,9 @@ __pycache__
 # Generated dictionary binaries (unreleased workflow writes into assets at build time)
 app/src/main/assets/dictionary/*.mybdict
 
+app/src/main/assets/dictionary/*.yaml
+
+app/src/main/assets/dictionary/*.txt
+
 # Generated subtype pack (unreleased workflow writes into assets at build time)
 app/src/main/assets/subtypes/generated.json
