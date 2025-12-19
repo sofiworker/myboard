@@ -1,224 +1,622 @@
 package xyz.xiao6.myboard.model
 
+import kotlinx.serialization.KSerializer
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonDecoder
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonEncoder
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonArray
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 
-/**
- * 特殊按键的固定 keyId 常量（用于 JSON 约束与运行时识别）。
- * Fixed keyId constants for special keys (used for JSON validation and runtime identification).
- */
 object KeyIds {
-    /**
-     * 返回到上一次布局（或回到主布局）的“返回键”。
-     * Back key that navigates to previous layout (or primary layout).
-     */
-    const val BACK_LAYOUT = "key_back_layout"
-
-    /**
-     * 删除/退格键（Backspace）。
-     * Delete/backspace key.
-     */
     const val BACKSPACE = "key_backspace"
-
-    /**
-     * 空格键（Space）。
-     * Space key.
-     */
     const val SPACE = "key_space"
+    const val ENTER = "key_enter"
+    const val SEGMENT = "key_segment"
+    const val LAYER_TOGGLE = "key_layer_toggle"
+    const val BACK = "key_back"
+}
+
+/**
+ * Well-known key primary codes (keep them centralized; avoid magic numbers).
+ *
+ * Note: these are layout-level codes; command handling still uses the emitted text ("\b", "\n", " ").
+ */
+object KeyPrimaryCodes {
+    /** Shift modifier key (UI/state only). */
+    const val SHIFT: Int = -1
+
+    /** Switch layout key (e.g. QWERTY <-> T9). */
+    const val MODE_SWITCH: Int = -2
+
+    /** Android backspace/delete semantics in this project (mapped to "\b" at runtime). */
+    const val BACKSPACE: Int = -5
+
+    /** Locale toggle key (UI/state only). */
+    const val LOCALE_TOGGLE: Int = -99
+
+    /** Manual segment key (commit composing as raw text). */
+    const val SEGMENT: Int = -98
+
+    /** Symbols panel key (UI action). */
+    const val SYMBOLS_PANEL: Int = -100
+
+    /** \"ABC\" back key for numeric/dialer layouts. */
+    const val BACK_TO_QWERTY: Int = -101
+
+    /** Generic back key: go back to previous layout (layout history). */
+    const val BACK: Int = -102
+
+    /** Retype / re-input key used by candidates UI. */
+    const val REINPUT: Int = -200
+
+    /** ASCII/Unicode space. */
+    const val SPACE: Int = 32
+
+    /** ASCII/Unicode LF (newline). */
+    const val ENTER: Int = 10
 }
 
 @Serializable
-/**
- * 布局内“特殊功能键”枚举：用于把某些 key 做统一的特殊处理（不依赖 label / behaviors）。
- * Special function keys (layout-level): handled specially regardless of label/behaviors.
- */
-enum class SpecialKey {
-    /** 回车/换行；Enter. */
-    ENTER,
-    /** 中英文（locale）切换；Toggle locale. */
-    TOGGLE_LOCALE,
-    /** 分词/断开当前 composing（提交当前拼音字母串为原文）；Commit composing as raw text. */
-    SEGMENT,
-}
-
-@Serializable
-/**
- * 按键模型：逻辑输出 + 行为映射 + 主题引用 + 网格几何。
- * Key model: logical output + behavior mapping + theme reference + grid geometry.
- */
-data class Key(
-    /**
-     * 按键唯一标识（例如 "key_q", "key_shift"）。
-     * Unique key id (e.g. "key_q", "key_shift").
-     */
-    val keyId: String,
-    /**
-     * 可选：特殊功能键类型（用于统一的特殊处理）。
-     * Optional special function key type.
-     */
-    val specialKey: SpecialKey? = null,
-    /**
-     * 默认显示的标签文本（例如 "q"）。
-     * Default label shown on the key (e.g. "q").
-     */
-    val label: String,
-    /**
-     * 默认点击输出码值（通常是 Unicode code point；也可用负数表示自定义功能码）。
-     * Primary output code (usually Unicode code point; negative values can represent custom function codes).
-     */
-    val primaryCode: Int,
-    /**
-     * 手势触发器 -> 动作 的映射表（可为空）。
-     * Mapping from gesture trigger -> action (can be empty).
-     */
-    val behaviors: Map<KeyTrigger, KeyAction> = emptyMap(),
-    /**
-     * 主题样式 ID（从 ThemeManager/Theme JSON 的 styles 中引用）。
-     * Theme style id (references Theme JSON `styles`).
-     */
-    val styleId: String,
-    /**
-     * 可选：图标资源 ID（0 表示无图标/未使用）。
-     * Optional icon resource id (0 means none).
-     */
-    val iconResId: Int = 0,
-    /**
-     * 提示文本：以 9 宫格位置为 key 的小提示字符串（例如右上角的 "1"）。
-     * Hints: small hint strings keyed by 3x3 positions (e.g. "1" at top-right).
-     */
-    val hints: Map<HintPosition, String> = emptyMap(),
-    /**
-     * 网格定位（起始行列 + 跨列/跨行）。
-     * Grid position (start row/col + column/row span).
-     */
-    val gridPosition: KeyPosition,
-    /**
-     * 弹性宽度权重（用于同一行内按剩余空间分配）。
-     * Flexible width weight (used to distribute remaining space within a row).
-     */
-    val widthWeight: Float = 1.0f,
-    /**
-     * 固定宽度（dp）；当不为 null 时优先于 [widthWeight]。
-     * Fixed width in dp; when non-null, it overrides [widthWeight].
-     */
-    val widthDp: Float? = null,
-)
-
-@Serializable
-/**
- * 提示文本的位置（将按键矩形划分为 3x3 九宫格）。
- * Hint position in a 3x3 grid within the key bounds.
- */
-enum class HintPosition {
-    TOP_LEFT,
-    TOP_CENTER,
-    TOP_RIGHT,
-    CENTER_LEFT,
-    CENTER,
-    CENTER_RIGHT,
-    BOTTOM_LEFT,
-    BOTTOM_CENTER,
-    BOTTOM_RIGHT,
-}
-
-@Serializable
-/**
- * 按键在网格中的位置与跨度（支持跨行/跨列）。
- * Key position and span in the grid (supports row/column spanning).
- */
-data class KeyPosition(
-    /**
-     * 起始列（从 0 开始）。
-     * Start column (0-based).
-     */
-    val startCol: Int,
-    /**
-     * 起始行（从 0 开始）。
-     * Start row (0-based).
-     */
-    val startRow: Int,
-    /**
-     * 横向跨列数（>= 1）。
-     * Column span (>= 1).
-     */
-    val spanCols: Int = 1,
-    /**
-     * 纵向跨行数（>= 1）。
-     * Row span (>= 1).
-     */
-    val spanRows: Int = 1,
-)
-
-@Serializable
-/**
- * 触发器：由触摸/手势识别层产出。
- * Trigger: produced by touch/gesture recognition.
- */
-enum class KeyTrigger {
-    /** 点击；Tap. */
-    TAP,
-    /** 长按；Long press. */
-    LONG_PRESS,
-    /** 上滑；Swipe up. */
-    SWIPE_UP,
-    /** 下滑；Swipe down. */
-    SWIPE_DOWN,
-}
-
-@Serializable
-/**
- * 动作：由 Controller 执行或分发给上层输入逻辑。
- * Action: executed by controller or dispatched to input logic.
- */
-data class KeyAction(
-    /**
-     * 动作类型。
-     * Action type.
-     */
-    val actionType: ActionType,
-    /**
-     * 单值参数（例如 COMMIT 的字符、SWITCH_LAYOUT 的布局 ID）。
-     * Single value parameter (e.g. COMMIT text, SWITCH_LAYOUT target layout id).
-     */
-    val value: String? = null,
-    /**
-     * 多值参数（例如 SHOW_POPUP 的候选列表）。
-     * Multiple values parameter (e.g. SHOW_POPUP candidates list).
-     */
-    val values: List<String>? = null,
-)
-
-@Serializable
-/**
- * 动作类型枚举。
- * Action type enum.
- */
 enum class ActionType {
-    /** 提交文本；Commit text. */
-    COMMIT,
-    /** 切换 Shift 状态；Toggle shift state. */
-    TOGGLE_SHIFT,
-    /** 同一布局内切换页/层；Switch in-layout layer/page. */
-    SET_LAYER,
-    /** 切换布局；Switch layout. */
-    SWITCH_LAYOUT,
-    /** 切换语言环境（localeTag）；Switch locale (localeTag). */
-    SWITCH_LOCALE,
-    /** 返回上一次布局；Back to previous layout. */
-    BACK_LAYOUT,
-    /** 删除/退格；Backspace. */
-    BACKSPACE,
-    /** 空格；Space. */
-    SPACE,
-    /** 回车/换行；Enter/newline. */
-    ENTER,
-    /** 切换语言环境（在可用 locales 中循环或中英互切）；Toggle locale. */
-    TOGGLE_LOCALE,
-    /** 提交当前 composing 为原文并清空 composing；Commit composing as raw text. */
+    COMMIT_TEXT,
     COMMIT_COMPOSING,
-    /** 热词高亮切换；Toggle hotword highlight. */
-    TOGGLE_HOTWORD_HIGHLIGHT,
-    /** 显示弹窗/候选；Show popup/candidates. */
-    SHOW_POPUP,
-    /** 显示符号面板（整块覆盖 toolbar+keyboard）；Show symbols panel overlay. */
-    SHOW_SYMBOLS,
+    PUSH_TOKEN,
+    REPLACE_TOKENS,
+    CLEAR_COMPOSITION,
+    COMMAND,
+    BACK,
+    TOGGLE_LOCALE,
+    SWITCH_LAYER,
+    SWITCH_ENGINE,
+
+    SWITCH_LAYOUT,
+
+    TOGGLE_MODIFIER,
+    OPEN_POPUP,
+    NO_OP,
+}
+
+@Serializable
+enum class TokenType {
+    LITERAL,
+    SYMBOL_SET,
+    WEIGHTED_SET,
+    SEQUENCE,
+    MARKER,
+}
+
+@Serializable
+enum class GestureType {
+    TAP,
+    DOUBLE_TAP,
+    LONG_PRESS,
+    FLICK_UP,
+    FLICK_DOWN,
+    FLICK_LEFT,
+    FLICK_RIGHT,
+    SWIPE_UP,
+    SWIPE_DOWN,
+    SWIPE_LEFT,
+    SWIPE_RIGHT,
+}
+
+@Serializable
+enum class ModifierKey {
+    SHIFT,
+    CAPS_LOCK,
+    ALT,
+}
+
+@Serializable
+enum class KeyboardLayer {
+    ALPHA,
+    NUM,
+    SYMBOL,
+    EMOJI,
+    CUSTOM,
+}
+
+@Serializable
+enum class InputEngine {
+    EN_DIRECT,
+    ZH_PINYIN,
+    ZH_WUBI,
+    JA_ROMAJI,
+    JA_KANA,
+}
+
+@Serializable
+enum class CommandType {
+    BACKSPACE,
+    ENTER,
+    SPACE,
+    TAB,
+    MOVE_CURSOR_LEFT,
+    MOVE_CURSOR_RIGHT,
+    MOVE_CURSOR_START,
+    MOVE_CURSOR_END,
+    SELECT_CANDIDATE,
+    NEXT_PAGE,
+    PREV_PAGE,
+}
+
+@Serializable
+data class Key(
+    val keyId: String,
+    val primaryCode: Int,
+    val label: String? = null,
+    val hints: Map<String, String> = emptyMap(),
+    val ui: KeyUI,
+    val actions: Map<GestureType, KeyAction> = emptyMap(),
+)
+
+@Serializable
+data class KeyUI(
+    val label: String? = null,
+    val styleId: String,
+    val gridPosition: GridPosition,
+    val icons: List<String> = emptyList(),
+    val accessibilityLabel: String? = null,
+    /**
+     * Width weight inside its row when using weight-based layout.
+     *
+     * When all keys in a row use the default (1.0), geometry falls back to gridPosition-based layout.
+     */
+    val widthWeight: Float = 1f,
+)
+
+@Serializable
+data class GridPosition(
+    val startCol: Int,
+    val startRow: Int,
+    val spanCols: Int = 1,
+)
+
+@Serializable
+data class KeyAction(
+    val actionType: ActionType,
+    val cases: List<KeyActionCase> = emptyList(),
+    /**
+     * Default branch actions:
+     * - Used when [cases] is empty
+     * - Or when no case matches
+     */
+    @SerialName("default")
+    val defaultActions: List<Action> = emptyList(),
+    /**
+     * Built-in fallback when defaultActions is empty.
+     */
+    val fallback: KeyActionDefault? = null,
+)
+
+@Serializable
+enum class KeyActionDefault {
+    /**
+     * Emit [Key.primaryCode] as a literal token (code point -> string) via PUSH_TOKEN.
+     * Invalid/negative code points are ignored (no-op).
+     */
+    PRIMARY_CODE_AS_TOKEN,
+}
+
+@Serializable
+data class KeyActionCase(
+    val whenCondition: WhenCondition? = null,
+    val doActions: List<Action> = emptyList(),
+)
+
+@Serializable
+data class WhenCondition(
+    val layer: KeyboardLayer? = null,
+    val engine: InputEngine? = null,
+    val modifiers: Set<ModifierKey> = emptySet(),
+    val composing: Boolean? = null,
+    val locale: String? = null,
+)
+
+@Serializable(with = ActionSerializer::class)
+sealed interface Action {
+    val type: ActionType
+
+    @Serializable
+    data class CommitText(val text: String) : Action {
+        override val type: ActionType = ActionType.COMMIT_TEXT
+    }
+
+    @Serializable
+    data object CommitComposing : Action {
+        override val type: ActionType = ActionType.COMMIT_COMPOSING
+    }
+
+    @Serializable
+    data class PushToken(val token: Token) : Action {
+        override val type: ActionType = ActionType.PUSH_TOKEN
+    }
+
+    @Serializable
+    data object ClearComposition : Action {
+        override val type: ActionType = ActionType.CLEAR_COMPOSITION
+    }
+
+    @Serializable
+    data object Back : Action {
+        override val type: ActionType = ActionType.BACK
+    }
+
+    @Serializable
+    data object ToggleLocale : Action {
+        override val type: ActionType = ActionType.TOGGLE_LOCALE
+    }
+
+    @Serializable
+    data class Command(val commandType: CommandType) : Action {
+        override val type: ActionType = ActionType.COMMAND
+    }
+
+    @Serializable
+    data class SwitchLayer(val layer: KeyboardLayer) : Action {
+        override val type: ActionType = ActionType.SWITCH_LAYER
+    }
+
+    @Serializable
+    data class SwitchLayout(val layoutId: String) : Action {
+        override val type: ActionType = ActionType.SWITCH_LAYOUT
+    }
+
+    @Serializable
+    data class SwitchEngine(val engine: InputEngine) : Action {
+        override val type: ActionType = ActionType.SWITCH_ENGINE
+    }
+
+    @Serializable
+    data class ToggleModifier(val modifier: ModifierKey) : Action {
+        override val type: ActionType = ActionType.TOGGLE_MODIFIER
+    }
+
+    @Serializable
+    data class OpenPopup(val popupId: String) : Action {
+        override val type: ActionType = ActionType.OPEN_POPUP
+    }
+
+    @Serializable
+    data object NoOp : Action {
+        override val type: ActionType = ActionType.NO_OP
+    }
+}
+
+@Serializable(with = TokenSerializer::class)
+sealed interface Token {
+    val type: TokenType
+
+    @Serializable
+    data class Literal(val text: String) : Token {
+        override val type: TokenType = TokenType.LITERAL
+    }
+
+    @Serializable
+    data class SymbolSet(val symbols: List<String>) : Token {
+        override val type: TokenType = TokenType.SYMBOL_SET
+    }
+
+    @Serializable
+    data class WeightedSet(val symbols: List<WeightedSymbol>) : Token {
+        override val type: TokenType = TokenType.WEIGHTED_SET
+    }
+
+    @Serializable
+    data class Sequence(val tokens: List<Token>) : Token {
+        override val type: TokenType = TokenType.SEQUENCE
+    }
+
+    @Serializable
+    data class Marker(val marker: String) : Token {
+        override val type: TokenType = TokenType.MARKER
+    }
+}
+
+@Serializable
+data class WeightedSymbol(
+    val ch: String,
+    val weight: Double,
+)
+
+private object TokenSerializer : KSerializer<Token> {
+    override val descriptor: SerialDescriptor = JsonElement.serializer().descriptor
+
+    override fun deserialize(decoder: Decoder): Token {
+        val jsonDecoder = decoder as? JsonDecoder ?: error("TokenSerializer requires JsonDecoder")
+        val element = jsonDecoder.decodeJsonElement()
+        return decodeToken(element) ?: Token.Literal("")
+    }
+
+    override fun serialize(encoder: Encoder, value: Token) {
+        val jsonEncoder = encoder as? JsonEncoder ?: error("TokenSerializer requires JsonEncoder")
+        jsonEncoder.encodeJsonElement(toJsonElement(value))
+    }
+
+    private fun decodeToken(element: JsonElement): Token? {
+        return when (element) {
+            is JsonPrimitive -> element.contentOrNull?.let { Token.Literal(it) }
+            is JsonArray -> decodeTokenArray(element)
+            is JsonObject -> decodeTokenObject(element)
+            else -> null
+        }
+    }
+
+    private fun decodeTokenArray(arr: JsonArray): Token? {
+        if (arr.isEmpty()) return null
+
+        val allStrings = arr.all { it is JsonPrimitive && it.isString }
+        if (allStrings) {
+            val symbols =
+                arr.mapNotNull { (it as? JsonPrimitive)?.contentOrNull?.takeIf(String::isNotBlank) }
+            return Token.SymbolSet(symbols)
+        }
+
+        val allWeighted =
+            arr.all {
+                val o = (it as? JsonObject) ?: return@all false
+                o["ch"] is JsonPrimitive && o["weight"] is JsonPrimitive
+            }
+        if (allWeighted) {
+            val symbols =
+                arr.mapNotNull {
+                    val o = it as? JsonObject ?: return@mapNotNull null
+                    val ch = o["ch"]?.jsonPrimitive?.contentOrNull ?: return@mapNotNull null
+                    val weight = o["weight"]?.jsonPrimitive?.contentOrNull?.toDoubleOrNull()
+                        ?: return@mapNotNull null
+                    WeightedSymbol(ch = ch, weight = weight)
+                }
+            return Token.WeightedSet(symbols)
+        }
+
+        return null
+    }
+
+    private fun decodeTokenObject(obj: JsonObject): Token? {
+        val type = obj["type"]?.jsonPrimitive?.contentOrNull?.trim().orEmpty()
+        return when (type) {
+            TokenType.LITERAL.name -> obj["text"]?.jsonPrimitive?.contentOrNull?.let(Token::Literal)
+            TokenType.SYMBOL_SET.name ->
+                obj["symbols"]?.jsonArray?.mapNotNull { it.jsonPrimitive.contentOrNull }
+                    ?.let(Token::SymbolSet)
+
+            TokenType.WEIGHTED_SET.name -> {
+                val list =
+                    obj["symbols"]?.jsonArray?.mapNotNull { e ->
+                        val o = e as? JsonObject ?: return@mapNotNull null
+                        val ch = o["ch"]?.jsonPrimitive?.contentOrNull ?: return@mapNotNull null
+                        val weight = o["weight"]?.jsonPrimitive?.contentOrNull?.toDoubleOrNull()
+                            ?: return@mapNotNull null
+                        WeightedSymbol(ch = ch, weight = weight)
+                    }.orEmpty()
+                Token.WeightedSet(list)
+            }
+
+            TokenType.SEQUENCE.name -> obj["tokens"]?.jsonArray?.mapNotNull(::decodeToken)
+                ?.let(Token::Sequence)
+
+            TokenType.MARKER.name -> obj["marker"]?.jsonPrimitive?.contentOrNull?.let(Token::Marker)
+            else -> null
+        }
+    }
+
+    fun toJsonElement(token: Token): JsonElement {
+        return when (token) {
+            is Token.Literal ->
+                buildJsonObject {
+                    put("type", JsonPrimitive(TokenType.LITERAL.name))
+                    put("text", JsonPrimitive(token.text))
+                }
+
+            is Token.SymbolSet ->
+                buildJsonObject {
+                    put("type", JsonPrimitive(TokenType.SYMBOL_SET.name))
+                    put(
+                        "symbols",
+                        buildJsonArray { token.symbols.forEach { add(JsonPrimitive(it)) } })
+                }
+
+            is Token.WeightedSet ->
+                buildJsonObject {
+                    put("type", JsonPrimitive(TokenType.WEIGHTED_SET.name))
+                    put(
+                        "symbols",
+                        buildJsonArray {
+                            token.symbols.forEach { sym ->
+                                add(buildJsonObject {
+                                    put("ch", JsonPrimitive(sym.ch))
+                                    put("weight", JsonPrimitive(sym.weight))
+                                })
+                            }
+                        },
+                    )
+                }
+
+            is Token.Sequence ->
+                buildJsonObject {
+                    put("type", JsonPrimitive(TokenType.SEQUENCE.name))
+                    put(
+                        "tokens",
+                        buildJsonArray { token.tokens.forEach { add(toJsonElement(it)) } })
+                }
+
+            is Token.Marker ->
+                buildJsonObject {
+                    put("type", JsonPrimitive(TokenType.MARKER.name))
+                    put("marker", JsonPrimitive(token.marker))
+                }
+        }
+    }
+}
+
+private object ActionSerializer : KSerializer<Action> {
+    override val descriptor: SerialDescriptor = JsonElement.serializer().descriptor
+
+    override fun deserialize(decoder: Decoder): Action {
+        val jsonDecoder = decoder as? JsonDecoder ?: error("ActionSerializer requires JsonDecoder")
+        val element = jsonDecoder.decodeJsonElement()
+        val obj: JsonObject = element as? JsonObject ?: element.jsonObject
+
+        val typeRaw = obj["type"]?.jsonPrimitive?.contentOrNull?.trim().orEmpty()
+        val type =
+            runCatching { ActionType.valueOf(typeRaw) }.getOrNull()
+                ?: error("Unknown action type=$typeRaw")
+
+        return when (type) {
+            ActionType.COMMIT_TEXT -> Action.CommitText(
+                obj["text"]?.jsonPrimitive?.contentOrNull ?: ""
+            )
+
+            ActionType.COMMIT_COMPOSING -> Action.CommitComposing
+
+            ActionType.PUSH_TOKEN -> {
+                val tokenEl = obj["token"] ?: error("PUSH_TOKEN requires token")
+                Action.PushToken(TokenSerializer.deserialize(JsonDecoderStub(jsonDecoder, tokenEl)))
+            }
+
+            ActionType.CLEAR_COMPOSITION -> Action.ClearComposition
+
+            ActionType.BACK -> Action.Back
+            ActionType.TOGGLE_LOCALE -> Action.ToggleLocale
+
+            ActionType.COMMAND -> {
+                val cmdRaw = obj["commandType"]?.jsonPrimitive?.contentOrNull?.trim().orEmpty()
+                val cmd = runCatching { CommandType.valueOf(cmdRaw) }.getOrNull()
+                    ?: error("Unknown commandType=$cmdRaw")
+                Action.Command(cmd)
+            }
+
+            ActionType.SWITCH_LAYER -> {
+                val layerRaw = obj["layer"]?.jsonPrimitive?.contentOrNull?.trim().orEmpty()
+                val layer = runCatching { KeyboardLayer.valueOf(layerRaw) }.getOrNull()
+                    ?: error("Unknown layer=$layerRaw")
+                Action.SwitchLayer(layer)
+            }
+
+            ActionType.SWITCH_LAYOUT -> {
+                val layoutId = obj["layoutId"]?.jsonPrimitive?.contentOrNull?.trim().orEmpty()
+                if (layoutId.isBlank()) error("SWITCH_LAYOUT requires layoutId")
+                Action.SwitchLayout(layoutId)
+            }
+
+            ActionType.SWITCH_ENGINE -> {
+                val engineRaw = obj["engine"]?.jsonPrimitive?.contentOrNull?.trim().orEmpty()
+                val engine = runCatching { InputEngine.valueOf(engineRaw) }.getOrNull()
+                    ?: error("Unknown engine=$engineRaw")
+                Action.SwitchEngine(engine)
+            }
+
+            ActionType.TOGGLE_MODIFIER -> {
+                val modRaw = obj["modifier"]?.jsonPrimitive?.contentOrNull?.trim().orEmpty()
+                val mod = runCatching { ModifierKey.valueOf(modRaw) }.getOrNull()
+                    ?: error("Unknown modifier=$modRaw")
+                Action.ToggleModifier(mod)
+            }
+
+            ActionType.OPEN_POPUP -> Action.OpenPopup(
+                obj["popupId"]?.jsonPrimitive?.contentOrNull ?: ""
+            )
+
+            ActionType.REPLACE_TOKENS, ActionType.NO_OP -> Action.NoOp
+        }
+    }
+
+    override fun serialize(encoder: Encoder, value: Action) {
+        val jsonEncoder = encoder as? JsonEncoder ?: error("ActionSerializer requires JsonEncoder")
+        val out =
+            when (value) {
+                is Action.CommitText ->
+                    buildJsonObject {
+                        put("type", JsonPrimitive(ActionType.COMMIT_TEXT.name))
+                        put("text", JsonPrimitive(value.text))
+                    }
+
+                Action.CommitComposing ->
+                    buildJsonObject {
+                        put("type", JsonPrimitive(ActionType.COMMIT_COMPOSING.name))
+                    }
+
+                is Action.PushToken ->
+                    buildJsonObject {
+                        put("type", JsonPrimitive(ActionType.PUSH_TOKEN.name))
+                        put("token", TokenSerializer.toJsonElement(value.token))
+                    }
+
+                Action.ClearComposition ->
+                    buildJsonObject {
+                        put("type", JsonPrimitive(ActionType.CLEAR_COMPOSITION.name))
+                    }
+
+                Action.Back ->
+                    buildJsonObject {
+                        put("type", JsonPrimitive(ActionType.BACK.name))
+                    }
+
+                Action.ToggleLocale ->
+                    buildJsonObject {
+                        put("type", JsonPrimitive(ActionType.TOGGLE_LOCALE.name))
+                    }
+
+                is Action.Command ->
+                    buildJsonObject {
+                        put("type", JsonPrimitive(ActionType.COMMAND.name))
+                        put("commandType", JsonPrimitive(value.commandType.name))
+                    }
+
+                is Action.SwitchLayer ->
+                    buildJsonObject {
+                        put("type", JsonPrimitive(ActionType.SWITCH_LAYER.name))
+                        put("layer", JsonPrimitive(value.layer.name))
+                    }
+
+                is Action.SwitchLayout ->
+                    buildJsonObject {
+                        put("type", JsonPrimitive(ActionType.SWITCH_LAYOUT.name))
+                        put("layoutId", JsonPrimitive(value.layoutId))
+                    }
+
+                is Action.SwitchEngine ->
+                    buildJsonObject {
+                        put("type", JsonPrimitive(ActionType.SWITCH_ENGINE.name))
+                        put("engine", JsonPrimitive(value.engine.name))
+                    }
+
+                is Action.ToggleModifier ->
+                    buildJsonObject {
+                        put("type", JsonPrimitive(ActionType.TOGGLE_MODIFIER.name))
+                        put("modifier", JsonPrimitive(value.modifier.name))
+                    }
+
+                is Action.OpenPopup ->
+                    buildJsonObject {
+                        put("type", JsonPrimitive(ActionType.OPEN_POPUP.name))
+                        put("popupId", JsonPrimitive(value.popupId))
+                    }
+
+                Action.NoOp -> buildJsonObject { put("type", JsonPrimitive(ActionType.NO_OP.name)) }
+            }
+        jsonEncoder.encodeJsonElement(out)
+    }
+}
+
+/**
+ * Minimal JsonDecoder stub to reuse token deserialization against a nested element.
+ */
+private class JsonDecoderStub(
+    private val parent: JsonDecoder,
+    private val element: JsonElement,
+) : JsonDecoder by parent {
+    override fun decodeJsonElement(): JsonElement = element
 }

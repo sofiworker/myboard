@@ -28,122 +28,332 @@
         {
           "keyId": "key_q",
           "label": "q",
-          "styleId": "style_alpha_key",
           "primaryCode": 113,
-          "gridPosition": {
-            "startCol": 0,
-            "startRow": 0,
-            "spanCols": 1
+          "hints": {
+            "BOTTOM_CENTER": "1"
           },
-          "hints": { "BOTTOM_CENTER": "1" }
+          "ui": {
+            "styleId": "style_alpha_key",
+            "gridPosition": {
+              "startCol": 0,
+              "startRow": 0,
+              "spanCols": 1
+            },
+            "icons": [],
+            "accessibilityLabel": null
+          },
+          "actions": {
+            "TAP": {
+              "actionType": "PUSH_TOKEN",
+              "fallback": "PRIMARY_CODE_AS_TOKEN"
+            },
+            "FLICK_UP": {
+              "actionType": "COMMIT_TEXT",
+              "default": [
+                {
+                  "type": "COMMIT_TEXT",
+                  "text": "1"
+                }
+              ]
+            }
+          }
         },
         {
           "keyId": "key_w",
           "label": "w",
-          "styleId": "style_alpha_key",
           "primaryCode": 119,
-          "gridPosition": {
-            "startCol": 1,
-            "startRow": 0,
-            "spanCols": 1
+          "hints": {
+            "BOTTOM_CENTER": "2"
           },
-          "hints": { "BOTTOM_CENTER": "2" }
+          "ui": {
+            "styleId": "style_alpha_key",
+            "gridPosition": {
+              "startCol": 1,
+              "startRow": 0,
+              "spanCols": 1
+            },
+            "icons": [],
+            "accessibilityLabel": null
+          },
+          "actions": {
+            "TAP": {
+              "actionType": "PUSH_TOKEN",
+              "fallback": "PRIMARY_CODE_AS_TOKEN"
+            },
+            "FLICK_UP": {
+              "actionType": "COMMIT_TEXT",
+              "default": [
+                {
+                  "type": "COMMIT_TEXT",
+                  "text": "2"
+                }
+              ]
+            }
+          }
         },
         {
           "keyId": "key_e",
           "label": "e",
-          "styleId": "style_alpha_key",
           "primaryCode": 101,
-          "gridPosition": {
-            "startCol": 2,
-            "startRow": 0,
-            "spanCols": 1
+          "hints": {
+            "BOTTOM_CENTER": "3"
           },
-          "hints": { "BOTTOM_CENTER": "3" }
+          "ui": {
+            "styleId": "style_alpha_key",
+            "gridPosition": {
+              "startCol": 2,
+              "startRow": 0,
+              "spanCols": 1
+            },
+            "icons": [],
+            "accessibilityLabel": null
+          },
+          "actions": {
+            "TAP": {
+              "actionType": "PUSH_TOKEN",
+              "fallback": "PRIMARY_CODE_AS_TOKEN"
+            },
+            "FLICK_UP": {
+              "actionType": "COMMIT_TEXT",
+              "default": [
+                {
+                  "type": "COMMIT_TEXT",
+                  "text": "3"
+                }
+              ]
+            }
+          }
         },
         {
           "keyId": "key_r",
           "label": "r",
-          "styleId": "style_alpha_key",
           "primaryCode": 114,
-          "gridPosition": {
-            "startCol": 3,
-            "startRow": 0,
-            "spanCols": 1
+          "hints": {
+            "BOTTOM_CENTER": "4"
           },
-          "hints": { "BOTTOM_CENTER": "4" }
+          "ui": {
+            "styleId": "style_alpha_key",
+            "gridPosition": {
+              "startCol": 3,
+              "startRow": 0,
+              "spanCols": 1
+            },
+            "icons": [],
+            "accessibilityLabel": null
+          },
+          "actions": {
+            "TAP": {
+              "actionType": "PUSH_TOKEN",
+              "fallback": "PRIMARY_CODE_AS_TOKEN"
+            },
+            "FLICK_UP": {
+              "actionType": "COMMIT_TEXT",
+              "default": [
+                {
+                  "type": "COMMIT_TEXT",
+                  "text": "4"
+                }
+              ]
+            }
+          }
         },
         {
           "keyId": "key_t",
           "label": "t",
-          "styleId": "style_alpha_key",
           "primaryCode": 116,
-          "gridPosition": {
-            "startCol": 4,
-            "startRow": 0,
-            "spanCols": 1
+          "hints": {
+            "BOTTOM_CENTER": "5"
           },
-          "hints": { "BOTTOM_CENTER": "5" }
+          "ui": {
+            "styleId": "style_alpha_key",
+            "gridPosition": {
+              "startCol": 4,
+              "startRow": 0,
+              "spanCols": 1
+            },
+            "icons": [],
+            "accessibilityLabel": null
+          },
+          "actions": {
+            "TAP": {
+              "actionType": "PUSH_TOKEN",
+              "fallback": "PRIMARY_CODE_AS_TOKEN"
+            },
+            "FLICK_UP": {
+              "actionType": "COMMIT_TEXT",
+              "default": [
+                {
+                  "type": "COMMIT_TEXT",
+                  "text": "5"
+                }
+              ]
+            }
+          }
         },
         {
           "keyId": "key_y",
           "label": "y",
-          "styleId": "style_alpha_key",
           "primaryCode": 121,
-          "gridPosition": {
-            "startCol": 5,
-            "startRow": 0,
-            "spanCols": 1
+          "hints": {
+            "BOTTOM_CENTER": "6"
           },
-          "hints": { "BOTTOM_CENTER": "6" }
+          "ui": {
+            "styleId": "style_alpha_key",
+            "gridPosition": {
+              "startCol": 5,
+              "startRow": 0,
+              "spanCols": 1
+            },
+            "icons": [],
+            "accessibilityLabel": null
+          },
+          "actions": {
+            "TAP": {
+              "actionType": "PUSH_TOKEN",
+              "fallback": "PRIMARY_CODE_AS_TOKEN"
+            },
+            "FLICK_UP": {
+              "actionType": "COMMIT_TEXT",
+              "default": [
+                {
+                  "type": "COMMIT_TEXT",
+                  "text": "6"
+                }
+              ]
+            }
+          }
         },
         {
           "keyId": "key_u",
           "label": "u",
-          "styleId": "style_alpha_key",
           "primaryCode": 117,
-          "gridPosition": {
-            "startCol": 6,
-            "startRow": 0,
-            "spanCols": 1
+          "hints": {
+            "BOTTOM_CENTER": "7"
           },
-          "hints": { "BOTTOM_CENTER": "7" }
+          "ui": {
+            "styleId": "style_alpha_key",
+            "gridPosition": {
+              "startCol": 6,
+              "startRow": 0,
+              "spanCols": 1
+            },
+            "icons": [],
+            "accessibilityLabel": null
+          },
+          "actions": {
+            "TAP": {
+              "actionType": "PUSH_TOKEN",
+              "fallback": "PRIMARY_CODE_AS_TOKEN"
+            },
+            "FLICK_UP": {
+              "actionType": "COMMIT_TEXT",
+              "default": [
+                {
+                  "type": "COMMIT_TEXT",
+                  "text": "7"
+                }
+              ]
+            }
+          }
         },
         {
           "keyId": "key_i",
           "label": "i",
-          "styleId": "style_alpha_key",
           "primaryCode": 105,
-          "gridPosition": {
-            "startCol": 7,
-            "startRow": 0,
-            "spanCols": 1
+          "hints": {
+            "BOTTOM_CENTER": "8"
           },
-          "hints": { "BOTTOM_CENTER": "8" }
+          "ui": {
+            "styleId": "style_alpha_key",
+            "gridPosition": {
+              "startCol": 7,
+              "startRow": 0,
+              "spanCols": 1
+            },
+            "icons": [],
+            "accessibilityLabel": null
+          },
+          "actions": {
+            "TAP": {
+              "actionType": "PUSH_TOKEN",
+              "fallback": "PRIMARY_CODE_AS_TOKEN"
+            },
+            "FLICK_UP": {
+              "actionType": "COMMIT_TEXT",
+              "default": [
+                {
+                  "type": "COMMIT_TEXT",
+                  "text": "8"
+                }
+              ]
+            }
+          }
         },
         {
           "keyId": "key_o",
           "label": "o",
-          "styleId": "style_alpha_key",
           "primaryCode": 111,
-          "gridPosition": {
-            "startCol": 8,
-            "startRow": 0,
-            "spanCols": 1
+          "hints": {
+            "BOTTOM_CENTER": "9"
           },
-          "hints": { "BOTTOM_CENTER": "9" }
+          "ui": {
+            "styleId": "style_alpha_key",
+            "gridPosition": {
+              "startCol": 8,
+              "startRow": 0,
+              "spanCols": 1
+            },
+            "icons": [],
+            "accessibilityLabel": null
+          },
+          "actions": {
+            "TAP": {
+              "actionType": "PUSH_TOKEN",
+              "fallback": "PRIMARY_CODE_AS_TOKEN"
+            },
+            "FLICK_UP": {
+              "actionType": "COMMIT_TEXT",
+              "default": [
+                {
+                  "type": "COMMIT_TEXT",
+                  "text": "9"
+                }
+              ]
+            }
+          }
         },
         {
           "keyId": "key_p",
           "label": "p",
-          "styleId": "style_alpha_key",
           "primaryCode": 112,
-          "gridPosition": {
-            "startCol": 9,
-            "startRow": 0,
-            "spanCols": 1
+          "hints": {
+            "BOTTOM_CENTER": "0"
           },
-          "hints": { "BOTTOM_CENTER": "0" }
+          "ui": {
+            "styleId": "style_alpha_key",
+            "gridPosition": {
+              "startCol": 9,
+              "startRow": 0,
+              "spanCols": 1
+            },
+            "icons": [],
+            "accessibilityLabel": null
+          },
+          "actions": {
+            "TAP": {
+              "actionType": "PUSH_TOKEN",
+              "fallback": "PRIMARY_CODE_AS_TOKEN"
+            },
+            "FLICK_UP": {
+              "actionType": "COMMIT_TEXT",
+              "default": [
+                {
+                  "type": "COMMIT_TEXT",
+                  "text": "0"
+                }
+              ]
+            }
+          }
         }
       ]
     },
@@ -155,110 +365,325 @@
         {
           "keyId": "key_a",
           "label": "a",
-          "styleId": "style_alpha_key",
           "primaryCode": 97,
-          "gridPosition": {
-            "startCol": 0,
-            "startRow": 1,
-            "spanCols": 1
+          "hints": {
+            "BOTTOM_CENTER": "~"
           },
-          "hints": { "BOTTOM_CENTER": "~" }
+          "ui": {
+            "styleId": "style_alpha_key",
+            "gridPosition": {
+              "startCol": 0,
+              "startRow": 1,
+              "spanCols": 1
+            },
+            "icons": [],
+            "accessibilityLabel": null
+          },
+          "actions": {
+            "TAP": {
+              "actionType": "PUSH_TOKEN",
+              "fallback": "PRIMARY_CODE_AS_TOKEN"
+            },
+            "FLICK_UP": {
+              "actionType": "COMMIT_TEXT",
+              "default": [
+                {
+                  "type": "COMMIT_TEXT",
+                  "text": "~"
+                }
+              ]
+            }
+          }
         },
         {
           "keyId": "key_s",
           "label": "s",
-          "styleId": "style_alpha_key",
           "primaryCode": 115,
-          "gridPosition": {
-            "startCol": 1,
-            "startRow": 1,
-            "spanCols": 1
+          "hints": {
+            "BOTTOM_CENTER": "!"
           },
-          "hints": { "BOTTOM_CENTER": "!" }
+          "ui": {
+            "styleId": "style_alpha_key",
+            "gridPosition": {
+              "startCol": 1,
+              "startRow": 1,
+              "spanCols": 1
+            },
+            "icons": [],
+            "accessibilityLabel": null
+          },
+          "actions": {
+            "TAP": {
+              "actionType": "PUSH_TOKEN",
+              "fallback": "PRIMARY_CODE_AS_TOKEN"
+            },
+            "FLICK_UP": {
+              "actionType": "COMMIT_TEXT",
+              "default": [
+                {
+                  "type": "COMMIT_TEXT",
+                  "text": "!"
+                }
+              ]
+            }
+          }
         },
         {
           "keyId": "key_d",
           "label": "d",
-          "styleId": "style_alpha_key",
           "primaryCode": 100,
-          "gridPosition": {
-            "startCol": 2,
-            "startRow": 1,
-            "spanCols": 1
+          "hints": {
+            "BOTTOM_CENTER": "@"
           },
-          "hints": { "BOTTOM_CENTER": "@" }
+          "ui": {
+            "styleId": "style_alpha_key",
+            "gridPosition": {
+              "startCol": 2,
+              "startRow": 1,
+              "spanCols": 1
+            },
+            "icons": [],
+            "accessibilityLabel": null
+          },
+          "actions": {
+            "TAP": {
+              "actionType": "PUSH_TOKEN",
+              "fallback": "PRIMARY_CODE_AS_TOKEN"
+            },
+            "FLICK_UP": {
+              "actionType": "COMMIT_TEXT",
+              "default": [
+                {
+                  "type": "COMMIT_TEXT",
+                  "text": "@"
+                }
+              ]
+            }
+          }
         },
         {
           "keyId": "key_f",
           "label": "f",
-          "styleId": "style_alpha_key",
           "primaryCode": 102,
-          "gridPosition": {
-            "startCol": 3,
-            "startRow": 1,
-            "spanCols": 1
+          "hints": {
+            "BOTTOM_CENTER": "#"
           },
-          "hints": { "BOTTOM_CENTER": "#" }
+          "ui": {
+            "styleId": "style_alpha_key",
+            "gridPosition": {
+              "startCol": 3,
+              "startRow": 1,
+              "spanCols": 1
+            },
+            "icons": [],
+            "accessibilityLabel": null
+          },
+          "actions": {
+            "TAP": {
+              "actionType": "PUSH_TOKEN",
+              "fallback": "PRIMARY_CODE_AS_TOKEN"
+            },
+            "FLICK_UP": {
+              "actionType": "COMMIT_TEXT",
+              "default": [
+                {
+                  "type": "COMMIT_TEXT",
+                  "text": "#"
+                }
+              ]
+            }
+          }
         },
         {
           "keyId": "key_g",
           "label": "g",
-          "styleId": "style_alpha_key",
           "primaryCode": 103,
-          "gridPosition": {
-            "startCol": 4,
-            "startRow": 1,
-            "spanCols": 1
+          "hints": {
+            "BOTTOM_CENTER": "\\"
           },
-          "hints": { "BOTTOM_CENTER": "\\" }
+          "ui": {
+            "styleId": "style_alpha_key",
+            "gridPosition": {
+              "startCol": 4,
+              "startRow": 1,
+              "spanCols": 1
+            },
+            "icons": [],
+            "accessibilityLabel": null
+          },
+          "actions": {
+            "TAP": {
+              "actionType": "PUSH_TOKEN",
+              "fallback": "PRIMARY_CODE_AS_TOKEN"
+            },
+            "FLICK_UP": {
+              "actionType": "COMMIT_TEXT",
+              "default": [
+                {
+                  "type": "COMMIT_TEXT",
+                  "text": "\\"
+                }
+              ]
+            }
+          }
         },
         {
           "keyId": "key_h",
           "label": "h",
-          "styleId": "style_alpha_key",
           "primaryCode": 104,
-          "gridPosition": {
-            "startCol": 5,
-            "startRow": 1,
-            "spanCols": 1
+          "hints": {
+            "BOTTOM_CENTER": "\""
           },
-          "hints": { "BOTTOM_CENTER": "“" }
+          "ui": {
+            "styleId": "style_alpha_key",
+            "gridPosition": {
+              "startCol": 5,
+              "startRow": 1,
+              "spanCols": 1
+            },
+            "icons": [],
+            "accessibilityLabel": null
+          },
+          "actions": {
+            "TAP": {
+              "actionType": "PUSH_TOKEN",
+              "fallback": "PRIMARY_CODE_AS_TOKEN"
+            },
+            "FLICK_UP": {
+              "actionType": "COMMIT_TEXT",
+              "cases": [
+                {
+                  "whenCondition": {
+                    "locale": "zh"
+                  },
+                  "doActions": [
+                    {
+                      "type": "COMMIT_TEXT",
+                      "text": "“"
+                    }
+                  ]
+                }
+              ],
+              "default": [
+                {
+                  "type": "COMMIT_TEXT",
+                  "text": "\""
+                }
+              ]
+            }
+          }
         },
         {
           "keyId": "key_j",
           "label": "j",
-          "styleId": "style_alpha_key",
           "primaryCode": 106,
-          "gridPosition": {
-            "startCol": 6,
-            "startRow": 1,
-            "spanCols": 1
+          "hints": {
+            "BOTTOM_CENTER": "\""
           },
-          "hints": { "BOTTOM_CENTER": "”" }
+          "ui": {
+            "styleId": "style_alpha_key",
+            "gridPosition": {
+              "startCol": 6,
+              "startRow": 1,
+              "spanCols": 1
+            },
+            "icons": [],
+            "accessibilityLabel": null
+          },
+          "actions": {
+            "TAP": {
+              "actionType": "PUSH_TOKEN",
+              "fallback": "PRIMARY_CODE_AS_TOKEN"
+            },
+            "FLICK_UP": {
+              "actionType": "COMMIT_TEXT",
+              "cases": [
+                {
+                  "whenCondition": {
+                    "locale": "zh"
+                  },
+                  "doActions": [
+                    {
+                      "type": "COMMIT_TEXT",
+                      "text": "”"
+                    }
+                  ]
+                }
+              ],
+              "default": [
+                {
+                  "type": "COMMIT_TEXT",
+                  "text": "\""
+                }
+              ]
+            }
+          }
         },
         {
           "keyId": "key_k",
           "label": "k",
-          "styleId": "style_alpha_key",
           "primaryCode": 107,
-          "gridPosition": {
-            "startCol": 7,
-            "startRow": 1,
-            "spanCols": 1
+          "hints": {
+            "BOTTOM_CENTER": "."
           },
-          "hints": { "BOTTOM_CENTER": "." }
+          "ui": {
+            "styleId": "style_alpha_key",
+            "gridPosition": {
+              "startCol": 7,
+              "startRow": 1,
+              "spanCols": 1
+            },
+            "icons": [],
+            "accessibilityLabel": null
+          },
+          "actions": {
+            "TAP": {
+              "actionType": "PUSH_TOKEN",
+              "fallback": "PRIMARY_CODE_AS_TOKEN"
+            },
+            "FLICK_UP": {
+              "actionType": "COMMIT_TEXT",
+              "default": [
+                {
+                  "type": "COMMIT_TEXT",
+                  "text": "."
+                }
+              ]
+            }
+          }
         },
         {
           "keyId": "key_l",
           "label": "l",
-          "styleId": "style_alpha_key",
           "primaryCode": 108,
-          "gridPosition": {
-            "startCol": 8,
-            "startRow": 1,
-            "spanCols": 1
+          "hints": {
+            "BOTTOM_CENTER": "?"
           },
-          "hints": { "BOTTOM_CENTER": "?" }
+          "ui": {
+            "styleId": "style_alpha_key",
+            "gridPosition": {
+              "startCol": 8,
+              "startRow": 1,
+              "spanCols": 1
+            },
+            "icons": [],
+            "accessibilityLabel": null
+          },
+          "actions": {
+            "TAP": {
+              "actionType": "PUSH_TOKEN",
+              "fallback": "PRIMARY_CODE_AS_TOKEN"
+            },
+            "FLICK_UP": {
+              "actionType": "COMMIT_TEXT",
+              "default": [
+                {
+                  "type": "COMMIT_TEXT",
+                  "text": "?"
+                }
+              ]
+            }
+          }
         }
       ]
     },
@@ -270,118 +695,293 @@
         {
           "keyId": "key_shift",
           "label": "⇧",
-          "styleId": "style_function_key",
           "primaryCode": -1,
-          "gridPosition": {
-            "startCol": 0,
-            "startRow": 2,
-            "spanCols": 1
+          "ui": {
+            "styleId": "style_function_key",
+            "gridPosition": {
+              "startCol": 0,
+              "startRow": 2,
+              "spanCols": 1
+            },
+            "icons": [],
+            "accessibilityLabel": null
           },
-          "widthWeight": 1.5,
-          "behaviors": {
+          "actions": {
             "TAP": {
-              "actionType": "TOGGLE_SHIFT"
+              "actionType": "TOGGLE_MODIFIER",
+              "cases": [
+                {
+                  "whenCondition": {},
+                  "doActions": [
+                    {
+                      "type": "TOGGLE_MODIFIER",
+                      "modifier": "SHIFT"
+                    }
+                  ]
+                }
+              ]
             }
           }
         },
         {
           "keyId": "key_z",
           "label": "z",
-          "styleId": "style_alpha_key",
           "primaryCode": 122,
-          "gridPosition": {
-            "startCol": 1,
-            "startRow": 2,
-            "spanCols": 1
+          "hints": {
+            "BOTTOM_CENTER": "("
           },
-          "hints": { "BOTTOM_CENTER": "(" }
+          "ui": {
+            "styleId": "style_alpha_key",
+            "gridPosition": {
+              "startCol": 1,
+              "startRow": 2,
+              "spanCols": 1
+            },
+            "icons": [],
+            "accessibilityLabel": null
+          },
+          "actions": {
+            "TAP": {
+              "actionType": "PUSH_TOKEN",
+              "fallback": "PRIMARY_CODE_AS_TOKEN"
+            },
+            "FLICK_UP": {
+              "actionType": "COMMIT_TEXT",
+              "default": [
+                {
+                  "type": "COMMIT_TEXT",
+                  "text": "("
+                }
+              ]
+            }
+          }
         },
         {
           "keyId": "key_x",
           "label": "x",
-          "styleId": "style_alpha_key",
           "primaryCode": 120,
-          "gridPosition": {
-            "startCol": 2,
-            "startRow": 2,
-            "spanCols": 1
+          "hints": {
+            "BOTTOM_CENTER": ")"
           },
-          "hints": { "BOTTOM_CENTER": ")" }
+          "ui": {
+            "styleId": "style_alpha_key",
+            "gridPosition": {
+              "startCol": 2,
+              "startRow": 2,
+              "spanCols": 1
+            },
+            "icons": [],
+            "accessibilityLabel": null
+          },
+          "actions": {
+            "TAP": {
+              "actionType": "PUSH_TOKEN",
+              "fallback": "PRIMARY_CODE_AS_TOKEN"
+            },
+            "FLICK_UP": {
+              "actionType": "COMMIT_TEXT",
+              "default": [
+                {
+                  "type": "COMMIT_TEXT",
+                  "text": ")"
+                }
+              ]
+            }
+          }
         },
         {
           "keyId": "key_c",
           "label": "c",
-          "styleId": "style_alpha_key",
           "primaryCode": 99,
-          "gridPosition": {
-            "startCol": 3,
-            "startRow": 2,
-            "spanCols": 1
+          "hints": {
+            "BOTTOM_CENTER": "-"
           },
-          "hints": { "BOTTOM_CENTER": "-" }
+          "ui": {
+            "styleId": "style_alpha_key",
+            "gridPosition": {
+              "startCol": 3,
+              "startRow": 2,
+              "spanCols": 1
+            },
+            "icons": [],
+            "accessibilityLabel": null
+          },
+          "actions": {
+            "TAP": {
+              "actionType": "PUSH_TOKEN",
+              "fallback": "PRIMARY_CODE_AS_TOKEN"
+            },
+            "FLICK_UP": {
+              "actionType": "COMMIT_TEXT",
+              "default": [
+                {
+                  "type": "COMMIT_TEXT",
+                  "text": "-"
+                }
+              ]
+            }
+          }
         },
         {
           "keyId": "key_v",
           "label": "v",
-          "styleId": "style_alpha_key",
           "primaryCode": 118,
-          "gridPosition": {
-            "startCol": 4,
-            "startRow": 2,
-            "spanCols": 1
+          "hints": {
+            "BOTTOM_CENTER": "_"
           },
-          "hints": { "BOTTOM_CENTER": "_" }
+          "ui": {
+            "styleId": "style_alpha_key",
+            "gridPosition": {
+              "startCol": 4,
+              "startRow": 2,
+              "spanCols": 1
+            },
+            "icons": [],
+            "accessibilityLabel": null
+          },
+          "actions": {
+            "TAP": {
+              "actionType": "PUSH_TOKEN",
+              "fallback": "PRIMARY_CODE_AS_TOKEN"
+            },
+            "FLICK_UP": {
+              "actionType": "COMMIT_TEXT",
+              "default": [
+                {
+                  "type": "COMMIT_TEXT",
+                  "text": "_"
+                }
+              ]
+            }
+          }
         },
         {
           "keyId": "key_b",
           "label": "b",
-          "styleId": "style_alpha_key",
           "primaryCode": 98,
-          "gridPosition": {
-            "startCol": 5,
-            "startRow": 2,
-            "spanCols": 1
+          "hints": {
+            "BOTTOM_CENTER": ":"
           },
-          "hints": { "BOTTOM_CENTER": ":" }
+          "ui": {
+            "styleId": "style_alpha_key",
+            "gridPosition": {
+              "startCol": 5,
+              "startRow": 2,
+              "spanCols": 1
+            },
+            "icons": [],
+            "accessibilityLabel": null
+          },
+          "actions": {
+            "TAP": {
+              "actionType": "PUSH_TOKEN",
+              "fallback": "PRIMARY_CODE_AS_TOKEN"
+            },
+            "FLICK_UP": {
+              "actionType": "COMMIT_TEXT",
+              "default": [
+                {
+                  "type": "COMMIT_TEXT",
+                  "text": ":"
+                }
+              ]
+            }
+          }
         },
         {
           "keyId": "key_n",
           "label": "n",
-          "styleId": "style_alpha_key",
           "primaryCode": 110,
-          "gridPosition": {
-            "startCol": 6,
-            "startRow": 2,
-            "spanCols": 1
+          "hints": {
+            "BOTTOM_CENTER": ";"
           },
-          "hints": { "BOTTOM_CENTER": ";" }
+          "ui": {
+            "styleId": "style_alpha_key",
+            "gridPosition": {
+              "startCol": 6,
+              "startRow": 2,
+              "spanCols": 1
+            },
+            "icons": [],
+            "accessibilityLabel": null
+          },
+          "actions": {
+            "TAP": {
+              "actionType": "PUSH_TOKEN",
+              "fallback": "PRIMARY_CODE_AS_TOKEN"
+            },
+            "FLICK_UP": {
+              "actionType": "COMMIT_TEXT",
+              "default": [
+                {
+                  "type": "COMMIT_TEXT",
+                  "text": ";"
+                }
+              ]
+            }
+          }
         },
         {
           "keyId": "key_m",
           "label": "m",
-          "styleId": "style_alpha_key",
           "primaryCode": 109,
-          "gridPosition": {
-            "startCol": 7,
-            "startRow": 2,
-            "spanCols": 1
+          "hints": {
+            "BOTTOM_CENTER": "/"
           },
-          "hints": { "BOTTOM_CENTER": "/" }
+          "ui": {
+            "styleId": "style_alpha_key",
+            "gridPosition": {
+              "startCol": 7,
+              "startRow": 2,
+              "spanCols": 1
+            },
+            "icons": [],
+            "accessibilityLabel": null
+          },
+          "actions": {
+            "TAP": {
+              "actionType": "PUSH_TOKEN",
+              "fallback": "PRIMARY_CODE_AS_TOKEN"
+            },
+            "FLICK_UP": {
+              "actionType": "COMMIT_TEXT",
+              "default": [
+                {
+                  "type": "COMMIT_TEXT",
+                  "text": "/"
+                }
+              ]
+            }
+          }
         },
         {
           "keyId": "key_backspace",
           "label": "⌫",
-          "styleId": "style_function_key",
           "primaryCode": -5,
-          "gridPosition": {
-            "startCol": 8,
-            "startRow": 2,
-            "spanCols": 1
+          "ui": {
+            "styleId": "style_function_key",
+            "gridPosition": {
+              "startCol": 8,
+              "startRow": 2,
+              "spanCols": 1
+            },
+            "icons": [],
+            "accessibilityLabel": null
           },
-          "widthWeight": 1.5,
-          "behaviors": {
+          "actions": {
             "TAP": {
-              "actionType": "BACKSPACE"
+              "actionType": "COMMAND",
+              "cases": [
+                {
+                  "whenCondition": {},
+                  "doActions": [
+                    {
+                      "type": "COMMAND",
+                      "commandType": "BACKSPACE"
+                    }
+                  ]
+                }
+              ]
             }
           }
         }
@@ -395,97 +995,165 @@
         {
           "keyId": "key_symbols",
           "label": "符",
-          "styleId": "style_function_key_important",
           "primaryCode": -100,
-          "gridPosition": {
-            "startCol": 0,
-            "startRow": 3,
-            "spanCols": 1
+          "ui": {
+            "styleId": "style_function_key_important",
+            "gridPosition": {
+              "startCol": 0,
+              "startRow": 3,
+              "spanCols": 1
+            },
+            "icons": [],
+            "accessibilityLabel": null
           },
-          "widthWeight": 1.5,
-          "behaviors": {
+          "actions": {
             "TAP": {
-              "actionType": "SHOW_SYMBOLS"
+              "actionType": "SWITCH_LAYOUT",
+              "default": [
+                {
+                  "type": "SWITCH_LAYOUT",
+                  "layoutId": "symbols"
+                }
+              ]
             }
           }
         },
         {
           "keyId": "key_mode_switch",
           "label": "123",
-          "styleId": "style_function_key_important",
           "primaryCode": -2,
-          "gridPosition": { "startCol": 1, "startRow": 3, "spanCols": 1 },
-          "widthWeight": 1.5,
-          "behaviors": { "TAP": { "actionType": "SWITCH_LAYOUT", "value": "numeric" } }
+          "ui": {
+            "styleId": "style_function_key_important",
+            "gridPosition": {
+              "startCol": 1,
+              "startRow": 3,
+              "spanCols": 1
+            },
+            "icons": [],
+            "accessibilityLabel": null
+          },
+          "actions": {
+            "TAP": {
+              "actionType": "SWITCH_LAYOUT",
+              "default": [
+                {
+                  "type": "SWITCH_LAYOUT",
+                  "layoutId": "numeric"
+                }
+              ]
+            }
+          }
         },
         {
           "keyId": "key_comma",
           "label": ",",
-          "styleId": "style_function_key",
           "primaryCode": 44,
-          "gridPosition": {
-            "startCol": 2,
-            "startRow": 3,
-            "spanCols": 1
-          }
+          "ui": {
+            "styleId": "style_function_key",
+            "gridPosition": {
+              "startCol": 2,
+              "startRow": 3,
+              "spanCols": 1
+            },
+            "icons": [],
+            "accessibilityLabel": null
+          },
+          "actions": {}
         },
         {
           "keyId": "key_space",
           "label": "space",
-          "styleId": "style_function_key_important",
           "primaryCode": 32,
-          "gridPosition": {
-            "startCol": 3,
-            "startRow": 3,
-            "spanCols": 1
+          "ui": {
+            "styleId": "style_function_key_important",
+            "gridPosition": {
+              "startCol": 3,
+              "startRow": 3,
+              "spanCols": 1
+            },
+            "icons": [],
+            "accessibilityLabel": null,
+            "widthWeight": 3.0
           },
-          "widthWeight": 5.0,
-          "behaviors": {
+          "actions": {
             "TAP": {
-              "actionType": "SPACE"
+              "actionType": "COMMAND",
+              "default": [
+                {
+                  "type": "COMMAND",
+                  "commandType": "SPACE"
+                }
+              ]
             }
           }
         },
         {
           "keyId": "key_period",
           "label": "。",
-          "styleId": "style_function_key",
           "primaryCode": 12290,
-          "gridPosition": {
-            "startCol": 4,
-            "startRow": 3,
-            "spanCols": 1
-          }
+          "ui": {
+            "styleId": "style_function_key",
+            "gridPosition": {
+              "startCol": 4,
+              "startRow": 3,
+              "spanCols": 1
+            },
+            "icons": [],
+            "accessibilityLabel": null
+          },
+          "actions": {}
         },
         {
           "keyId": "key_lang_toggle",
-          "specialKey": "TOGGLE_LOCALE",
           "label": "中",
-          "styleId": "style_function_key",
           "primaryCode": -99,
-          "gridPosition": {
-            "startCol": 5,
-            "startRow": 3,
-            "spanCols": 1
+          "hints": {
+            "BOTTOM_RIGHT": "/英"
           },
-          "hints": { "BOTTOM_RIGHT": "/英" }
+          "ui": {
+            "styleId": "style_function_key",
+            "gridPosition": {
+              "startCol": 5,
+              "startRow": 3,
+              "spanCols": 1
+            },
+            "icons": [],
+            "accessibilityLabel": null
+          },
+          "actions": {
+            "TAP": {
+              "actionType": "TOGGLE_LOCALE",
+              "default": [
+                {
+                  "type": "TOGGLE_LOCALE"
+                }
+              ]
+            }
+          }
         },
         {
           "keyId": "key_enter",
-          "specialKey": "ENTER",
           "label": "↵",
-          "styleId": "style_function_key_important",
           "primaryCode": 10,
-          "gridPosition": {
-            "startCol": 6,
-            "startRow": 3,
-            "spanCols": 1
+          "ui": {
+            "styleId": "style_function_key_important",
+            "gridPosition": {
+              "startCol": 6,
+              "startRow": 3,
+              "spanCols": 1
+            },
+            "icons": [],
+            "accessibilityLabel": null
           },
-          "widthWeight": 1.5,
-          "behaviors": {
+          "actions": {
             "TAP": {
-              "actionType": "COMMIT",
-              "value": "\n"
+              "actionType": "COMMAND",
+              "default": [
+                {
+                  "type": "COMMAND",
+                  "commandType": "ENTER"
+                }
+              ]
             }
           }
         }

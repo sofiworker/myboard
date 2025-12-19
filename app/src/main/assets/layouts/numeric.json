@@ -4,17 +4,12 @@
   "locale": [],
   "totalWidthRatio": 1.0,
   "totalWidthDpOffset": 0,
-  "totalHeightRatio": 0.2,
+  "totalHeightRatio": 0.28,
   "totalHeightDpOffset": 0,
   "defaults": {
     "horizontalGapDp": 6,
     "verticalGapDp": 6,
-    "padding": {
-      "topDp": 8,
-      "bottomDp": 8,
-      "leftDp": 8,
-      "rightDp": 8
-    }
+    "padding": { "topDp": 8, "bottomDp": 8, "leftDp": 8, "rightDp": 8 }
   },
   "rows": [
     {
@@ -22,9 +17,34 @@
       "heightRatio": 0.25,
       "alignment": "JUSTIFY",
       "keys": [
-        { "keyId": "key_1", "label": "1", "styleId": "style_function_key_important", "primaryCode": 49, "gridPosition": { "startCol": 0, "startRow": 0, "spanCols": 1 } },
-        { "keyId": "key_2", "label": "2", "styleId": "style_function_key_important", "primaryCode": 50, "gridPosition": { "startCol": 1, "startRow": 0, "spanCols": 1 } },
-        { "keyId": "key_3", "label": "3", "styleId": "style_function_key_important", "primaryCode": 51, "gridPosition": { "startCol": 2, "startRow": 0, "spanCols": 1 } }
+        {
+          "keyId": "key_7",
+          "label": "7",
+          "primaryCode": 55,
+          "ui": { "styleId": "style_function_key_important", "gridPosition": { "startCol": 0, "startRow": 0, "spanCols": 1 }, "icons": [], "accessibilityLabel": "7" },
+          "actions": { "TAP": { "actionType": "PUSH_TOKEN", "fallback": "PRIMARY_CODE_AS_TOKEN" } }
+        },
+        {
+          "keyId": "key_8",
+          "label": "8",
+          "primaryCode": 56,
+          "ui": { "styleId": "style_function_key_important", "gridPosition": { "startCol": 1, "startRow": 0, "spanCols": 1 }, "icons": [], "accessibilityLabel": "8" },
+          "actions": { "TAP": { "actionType": "PUSH_TOKEN", "fallback": "PRIMARY_CODE_AS_TOKEN" } }
+        },
+        {
+          "keyId": "key_9",
+          "label": "9",
+          "primaryCode": 57,
+          "ui": { "styleId": "style_function_key_important", "gridPosition": { "startCol": 2, "startRow": 0, "spanCols": 1 }, "icons": [], "accessibilityLabel": "9" },
+          "actions": { "TAP": { "actionType": "PUSH_TOKEN", "fallback": "PRIMARY_CODE_AS_TOKEN" } }
+        },
+        {
+          "keyId": "key_backspace",
+          "label": "⌫",
+          "primaryCode": -5,
+          "ui": { "styleId": "style_function_key", "gridPosition": { "startCol": 3, "startRow": 0, "spanCols": 1 }, "icons": [], "accessibilityLabel": "backspace" },
+          "actions": { "TAP": { "actionType": "COMMAND", "default": [ { "type": "COMMAND", "commandType": "BACKSPACE" } ] } }
+        }
       ]
     },
     {
@@ -32,9 +52,34 @@
       "heightRatio": 0.25,
       "alignment": "JUSTIFY",
       "keys": [
-        { "keyId": "key_4", "label": "4", "styleId": "style_function_key_important", "primaryCode": 52, "gridPosition": { "startCol": 0, "startRow": 1, "spanCols": 1 } },
-        { "keyId": "key_5", "label": "5", "styleId": "style_function_key_important", "primaryCode": 53, "gridPosition": { "startCol": 1, "startRow": 1, "spanCols": 1 } },
-        { "keyId": "key_6", "label": "6", "styleId": "style_function_key_important", "primaryCode": 54, "gridPosition": { "startCol": 2, "startRow": 1, "spanCols": 1 } }
+        {
+          "keyId": "key_4",
+          "label": "4",
+          "primaryCode": 52,
+          "ui": { "styleId": "style_function_key_important", "gridPosition": { "startCol": 0, "startRow": 1, "spanCols": 1 }, "icons": [], "accessibilityLabel": "4" },
+          "actions": { "TAP": { "actionType": "PUSH_TOKEN", "fallback": "PRIMARY_CODE_AS_TOKEN" } }
+        },
+        {
+          "keyId": "key_5",
+          "label": "5",
+          "primaryCode": 53,
+          "ui": { "styleId": "style_function_key_important", "gridPosition": { "startCol": 1, "startRow": 1, "spanCols": 1 }, "icons": [], "accessibilityLabel": "5" },
+          "actions": { "TAP": { "actionType": "PUSH_TOKEN", "fallback": "PRIMARY_CODE_AS_TOKEN" } }
+        },
+        {
+          "keyId": "key_6",
+          "label": "6",
+          "primaryCode": 54,
+          "ui": { "styleId": "style_function_key_important", "gridPosition": { "startCol": 2, "startRow": 1, "spanCols": 1 }, "icons": [], "accessibilityLabel": "6" },
+          "actions": { "TAP": { "actionType": "PUSH_TOKEN", "fallback": "PRIMARY_CODE_AS_TOKEN" } }
+        },
+        {
+          "keyId": "key_space",
+          "label": "space",
+          "primaryCode": 32,
+          "ui": { "styleId": "style_function_key_important", "gridPosition": { "startCol": 3, "startRow": 1, "spanCols": 1 }, "icons": [], "accessibilityLabel": "space" },
+          "actions": { "TAP": { "actionType": "COMMAND", "default": [ { "type": "COMMAND", "commandType": "SPACE" } ] } }
+        }
       ]
     },
     {
@@ -42,9 +87,34 @@
       "heightRatio": 0.25,
       "alignment": "JUSTIFY",
       "keys": [
-        { "keyId": "key_7", "label": "7", "styleId": "style_function_key_important", "primaryCode": 55, "gridPosition": { "startCol": 0, "startRow": 2, "spanCols": 1 } },
-        { "keyId": "key_8", "label": "8", "styleId": "style_function_key_important", "primaryCode": 56, "gridPosition": { "startCol": 1, "startRow": 2, "spanCols": 1 } },
-        { "keyId": "key_9", "label": "9", "styleId": "style_function_key_important", "primaryCode": 57, "gridPosition": { "startCol": 2, "startRow": 2, "spanCols": 1 } }
+        {
+          "keyId": "key_1",
+          "label": "1",
+          "primaryCode": 49,
+          "ui": { "styleId": "style_function_key_important", "gridPosition": { "startCol": 0, "startRow": 2, "spanCols": 1 }, "icons": [], "accessibilityLabel": "1" },
+          "actions": { "TAP": { "actionType": "PUSH_TOKEN", "fallback": "PRIMARY_CODE_AS_TOKEN" } }
+        },
+        {
+          "keyId": "key_2",
+          "label": "2",
+          "primaryCode": 50,
+          "ui": { "styleId": "style_function_key_important", "gridPosition": { "startCol": 1, "startRow": 2, "spanCols": 1 }, "icons": [], "accessibilityLabel": "2" },
+          "actions": { "TAP": { "actionType": "PUSH_TOKEN", "fallback": "PRIMARY_CODE_AS_TOKEN" } }
+        },
+        {
+          "keyId": "key_3",
+          "label": "3",
+          "primaryCode": 51,
+          "ui": { "styleId": "style_function_key_important", "gridPosition": { "startCol": 2, "startRow": 2, "spanCols": 1 }, "icons": [], "accessibilityLabel": "3" },
+          "actions": { "TAP": { "actionType": "PUSH_TOKEN", "fallback": "PRIMARY_CODE_AS_TOKEN" } }
+        },
+        {
+          "keyId": "key_enter",
+          "label": "↵",
+          "primaryCode": 10,
+          "ui": { "styleId": "style_function_key_important", "gridPosition": { "startCol": 3, "startRow": 2, "spanCols": 1 }, "icons": [], "accessibilityLabel": "enter" },
+          "actions": { "TAP": { "actionType": "COMMAND", "default": [ { "type": "COMMAND", "commandType": "ENTER" } ] } }
+        }
       ]
     },
     {
@@ -53,30 +123,32 @@
       "alignment": "JUSTIFY",
       "keys": [
         {
-          "keyId": "key_back_layout",
+          "keyId": "key_back",
           "label": "ABC",
-          "styleId": "style_function_key",
-          "primaryCode": -101,
-          "gridPosition": { "startCol": 0, "startRow": 3, "spanCols": 1 },
-          "widthWeight": 1.5,
-          "behaviors": { "TAP": { "actionType": "BACK_LAYOUT" } }
+          "primaryCode": -102,
+          "ui": { "styleId": "style_function_key", "gridPosition": { "startCol": 0, "startRow": 3, "spanCols": 1 }, "icons": [], "accessibilityLabel": "ABC" },
+          "actions": { "TAP": { "actionType": "BACK", "default": [ { "type": "BACK" } ] } }
         },
         {
           "keyId": "key_0",
           "label": "0",
-          "styleId": "style_function_key_important",
           "primaryCode": 48,
-          "gridPosition": { "startCol": 1, "startRow": 3, "spanCols": 1 },
-          "widthWeight": 2.0
+          "ui": { "styleId": "style_function_key_important", "gridPosition": { "startCol": 1, "startRow": 3, "spanCols": 1 }, "icons": [], "accessibilityLabel": "0" },
+          "actions": { "TAP": { "actionType": "PUSH_TOKEN", "fallback": "PRIMARY_CODE_AS_TOKEN" } }
         },
         {
-          "keyId": "key_backspace",
-          "label": "⌫",
-          "styleId": "style_function_key",
-          "primaryCode": -5,
-          "gridPosition": { "startCol": 2, "startRow": 3, "spanCols": 1 },
-          "widthWeight": 1.5,
-          "behaviors": { "TAP": { "actionType": "BACKSPACE" } }
+          "keyId": "key_period",
+          "label": ".",
+          "primaryCode": 46,
+          "ui": { "styleId": "style_function_key", "gridPosition": { "startCol": 2, "startRow": 3, "spanCols": 1 }, "icons": [], "accessibilityLabel": "." },
+          "actions": { "TAP": { "actionType": "PUSH_TOKEN", "fallback": "PRIMARY_CODE_AS_TOKEN" } }
+        },
+        {
+          "keyId": "key_symbols",
+          "label": "符",
+          "primaryCode": -100,
+          "ui": { "styleId": "style_function_key", "gridPosition": { "startCol": 3, "startRow": 3, "spanCols": 1 }, "icons": [], "accessibilityLabel": "symbols" },
+          "actions": { "TAP": { "actionType": "SWITCH_LAYOUT", "default": [ { "type": "SWITCH_LAYOUT", "layoutId": "symbols" } ] } }
         }
       ]
     }

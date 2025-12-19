@@ -1,36 +1,41 @@
 package xyz.xiao6.myboard.controller
 
+import xyz.xiao6.myboard.model.Action
 import xyz.xiao6.myboard.model.ActionType
-import xyz.xiao6.myboard.model.HintPosition
+import xyz.xiao6.myboard.model.CommandType
+import xyz.xiao6.myboard.model.GestureType
+import xyz.xiao6.myboard.model.InputEngine
 import xyz.xiao6.myboard.model.Key
 import xyz.xiao6.myboard.model.KeyAction
-import xyz.xiao6.myboard.model.KeyTrigger
-import xyz.xiao6.myboard.model.SpecialKey
+import xyz.xiao6.myboard.model.KeyboardLayer
+import xyz.xiao6.myboard.model.ModifierKey
+import xyz.xiao6.myboard.model.Token
+import xyz.xiao6.myboard.model.KeyActionDefault
+import java.util.Locale
 
 /**
- * 状态机：把输入事件归约为“布局切换”或“状态切换”或“提交输出”等 effect。
- * State machine: reduces input events into effects (layout switch vs state change vs commit).
+ * Reduces key trigger events into high-level effects (commit text, push token, switch layer, etc.).
  *
- * 关键约束 / Key constraints:
- * - Layout Switch：几何/Key/Row 发生根本变化 -> 必须加载新的 Layout JSON，并触发 requestLayout()
- * - State Change：仅内容/样式/隐藏变化 -> 只更新 LayoutState，并局部 invalidate(Rect)，禁止 requestLayout()
+ * NOTE: Key model follows `assets/layouts/a.kt` and is intentionally NOT backward compatible.
  */
 object KeyboardStateMachine {
 
     sealed interface Event {
-        data class Triggered(val key: Key, val trigger: KeyTrigger) : Event
-        data class Action(val action: KeyAction) : Event
+        data class Triggered(val key: Key, val trigger: GestureType) : Event
+        data class ActionEvent(val action: KeyAction, val key: Key? = null) : Event
     }
 
     sealed interface Effect {
         data class CommitText(val text: String) : Effect
+        data class PushToken(val token: Token) : Effect
         data object CommitComposing : Effect
-        data class SwitchLayout(val layoutId: String) : Effect
-        data class SwitchLocale(val localeTag: String) : Effect
+        data object Back : Effect
         data object ToggleLocale : Effect
-        data object BackLayout : Effect
-        data object ShowSymbols : Effect
-        data class UpdateState(val newState: LayoutState, val invalidateKeyIds: Set<String>) : Effect
+        data class SwitchLayout(val layoutId: String) : Effect
+        data class SwitchLayer(val layer: KeyboardLayer) : Effect
+        data class SwitchEngine(val engine: InputEngine) : Effect
+        data class ToggleModifier(val modifier: ModifierKey) : Effect
+        data object ClearComposition : Effect
         data object NoOp : Effect
     }
 
@@ -41,158 +46,155 @@ object KeyboardStateMachine {
     )
 
     fun reduce(model: Model, event: Event): Pair<Model, List<Effect>> {
-        val action = when (event) {
-            is Event.Triggered ->
-                specialActionFor(event.key, event.trigger)
-                    ?: event.key.behaviors[event.trigger]
-                    ?: defaultActionFor(event.key, event.trigger, model.state)
-            is Event.Action -> event.action
-        } ?: return model to listOf(Effect.NoOp)
-        return reduceAction(model, action)
+        val actions: List<Action> =
+            when (event) {
+                is Event.Triggered -> resolveTriggeredActions(event.key, event.trigger, model.state)
+                is Event.ActionEvent -> resolveInlineKeyAction(event.action, event.key, model.state)
+            }
+
+        if (actions.isEmpty()) return model to listOf(Effect.NoOp)
+
+        val effects = actions.flatMap { actionToEffects(it) }
+        return model to effects.ifEmpty { listOf(Effect.NoOp) }
     }
 
-    private fun reduceAction(model: Model, action: KeyAction): Pair<Model, List<Effect>> {
-        return when (action.actionType) {
-            ActionType.COMMIT -> {
-                val text = action.value ?: return model to listOf(Effect.NoOp)
-                model to listOf(Effect.CommitText(text))
-            }
+    private fun resolveTriggeredActions(key: Key, trigger: GestureType, state: LayoutState): List<Action> {
+        val action = key.actions[trigger] ?: return defaultActionsFor(key, trigger)
+        if (action.cases.isNotEmpty()) {
+            val matched = action.cases.firstOrNull { matches(it.whenCondition, state) }
+            if (matched != null) return matched.doActions
+        }
 
-            ActionType.BACKSPACE -> model to listOf(Effect.CommitText("\b"))
-            ActionType.SPACE -> model to listOf(Effect.CommitText(" "))
-            ActionType.ENTER -> model to listOf(Effect.CommitText("\n"))
-            ActionType.TOGGLE_LOCALE -> model to listOf(Effect.ToggleLocale)
-            ActionType.COMMIT_COMPOSING -> model to listOf(Effect.CommitComposing)
+        if (action.defaultActions.isNotEmpty()) return action.defaultActions
 
-            ActionType.SWITCH_LAYOUT -> {
-                val targetLayoutId = action.value ?: return model to listOf(Effect.NoOp)
-                if (targetLayoutId == model.currentLayoutId) model to listOf(Effect.NoOp)
-                else model to listOf(Effect.SwitchLayout(targetLayoutId))
-            }
-
-            ActionType.SWITCH_LOCALE -> {
-                val tag = action.value?.trim().orEmpty()
-                if (tag.isBlank()) model to listOf(Effect.NoOp)
-                else model to listOf(Effect.SwitchLocale(tag))
-            }
-
-            ActionType.BACK_LAYOUT -> model to listOf(Effect.BackLayout)
-
-            ActionType.TOGGLE_SHIFT -> {
-                val newShift = when (model.state.shift) {
-                    ShiftState.OFF -> ShiftState.ON
-                    ShiftState.ON -> ShiftState.OFF
-                    ShiftState.CAPS_LOCK -> ShiftState.OFF
-                }
-                val newState = model.state.copy(shift = newShift)
-                val invalidateIds = alphabeticKeyIds(model.keys)
-                model.copy(state = newState) to listOf(Effect.UpdateState(newState, invalidateIds))
-            }
-
-            ActionType.SET_LAYER -> {
-                val layerName = action.value ?: return model to listOf(Effect.NoOp)
-                val newLayer = runCatching { Layer.valueOf(layerName) }.getOrNull() ?: return model to listOf(Effect.NoOp)
-                if (newLayer == model.state.layer) return model to listOf(Effect.NoOp)
-                val newState = model.state.copy(layer = newLayer)
-                val invalidateIds = model.keys.mapTo(LinkedHashSet()) { it.keyId }
-                model.copy(state = newState) to listOf(Effect.UpdateState(newState, invalidateIds))
-            }
-
-            ActionType.TOGGLE_HOTWORD_HIGHLIGHT -> {
-                val keyId = action.value ?: return model to listOf(Effect.NoOp)
-                val highlighted = model.state.highlightedKeyIds.toMutableSet()
-                if (!highlighted.add(keyId)) highlighted.remove(keyId)
-                val newState = model.state.copy(highlightedKeyIds = highlighted)
-                model.copy(state = newState) to listOf(Effect.UpdateState(newState, setOf(keyId)))
-            }
-
-            ActionType.SHOW_POPUP -> model to listOf(Effect.NoOp)
-            ActionType.SHOW_SYMBOLS -> model to listOf(Effect.ShowSymbols)
+        return defaultActionsForNoMatchedCase(key, trigger, action).ifEmpty {
+            if (action.cases.isEmpty()) defaultActionsForActionType(key, trigger, action.actionType) else emptyList()
         }
     }
 
-    private fun specialActionFor(key: Key, trigger: KeyTrigger): KeyAction? {
-        val sk = key.specialKey ?: return null
-        if (trigger != KeyTrigger.TAP) return null
-        return when (sk) {
-            SpecialKey.ENTER -> KeyAction(actionType = ActionType.ENTER)
-            SpecialKey.TOGGLE_LOCALE -> KeyAction(actionType = ActionType.TOGGLE_LOCALE)
-            SpecialKey.SEGMENT -> KeyAction(actionType = ActionType.COMMIT_COMPOSING)
+    private fun resolveInlineKeyAction(action: KeyAction, key: Key?, state: LayoutState): List<Action> {
+        if (action.cases.isNotEmpty()) {
+            val matched = action.cases.firstOrNull { matches(it.whenCondition, state) }
+            if (matched != null) return matched.doActions
+        }
+
+        if (action.defaultActions.isNotEmpty()) return action.defaultActions
+
+        val k = key ?: return emptyList()
+        return defaultActionsForNoMatchedCase(k, GestureType.TAP, action).ifEmpty {
+            if (action.cases.isEmpty()) defaultActionsForActionType(k, GestureType.TAP, action.actionType) else emptyList()
         }
     }
 
-    private fun defaultActionFor(key: Key, trigger: KeyTrigger, state: LayoutState): KeyAction? {
-        return when (trigger) {
-            KeyTrigger.TAP -> {
-                val label = state.labelOverrides[key.keyId] ?: key.label
-                KeyAction(actionType = ActionType.COMMIT, value = label)
+    private fun defaultActionsForNoMatchedCase(key: Key, trigger: GestureType, action: KeyAction): List<Action> {
+        if (trigger != GestureType.TAP) return emptyList()
+        return when (action.fallback) {
+            KeyActionDefault.PRIMARY_CODE_AS_TOKEN -> {
+                val code = key.primaryCode
+                if (code < 0 || !Character.isValidCodePoint(code)) return emptyList()
+                val text = String(Character.toChars(code))
+                if (text.isBlank()) emptyList() else listOf(Action.PushToken(Token.Literal(text)))
             }
-            KeyTrigger.SWIPE_UP, KeyTrigger.SWIPE_DOWN -> defaultHintActionFor(key, trigger, state)
-            KeyTrigger.LONG_PRESS -> null
+            null -> emptyList()
         }
     }
 
-    private fun defaultHintActionFor(key: Key, trigger: KeyTrigger, state: LayoutState): KeyAction? {
-        val mergedHints = mergeHints(key, state)
-        val hintText = pickHintText(mergedHints, trigger) ?: return null
-        return KeyAction(actionType = ActionType.COMMIT, value = hintText)
+    private fun defaultActionsFor(key: Key, trigger: GestureType): List<Action> {
+        if (trigger != GestureType.TAP) return emptyList()
+        val text = key.ui.label ?: key.label ?: ""
+        if (text.isBlank()) return emptyList()
+        return listOf(Action.CommitText(text))
     }
 
-    private fun pickHintText(hints: Map<HintPosition, String>, trigger: KeyTrigger): String? {
-        if (hints.isEmpty()) return null
-        val order =
-            when (trigger) {
-                KeyTrigger.SWIPE_UP ->
-                    listOf(
-                        HintPosition.TOP_CENTER,
-                        HintPosition.TOP_RIGHT,
-                        HintPosition.TOP_LEFT,
-                        HintPosition.CENTER_RIGHT,
-                        HintPosition.CENTER_LEFT,
-                        HintPosition.CENTER,
-                        HintPosition.BOTTOM_CENTER,
-                        HintPosition.BOTTOM_RIGHT,
-                        HintPosition.BOTTOM_LEFT,
-                    )
+    private fun defaultActionsForActionType(key: Key?, trigger: GestureType, actionType: ActionType): List<Action> {
+        if (trigger != GestureType.TAP) return emptyList()
+        val text = key?.ui?.label ?: key?.label ?: ""
 
-                KeyTrigger.SWIPE_DOWN ->
-                    listOf(
-                        HintPosition.BOTTOM_CENTER,
-                        HintPosition.BOTTOM_RIGHT,
-                        HintPosition.BOTTOM_LEFT,
-                        HintPosition.CENTER_RIGHT,
-                        HintPosition.CENTER_LEFT,
-                        HintPosition.CENTER,
-                        HintPosition.TOP_CENTER,
-                        HintPosition.TOP_RIGHT,
-                        HintPosition.TOP_LEFT,
-                    )
-
-                else -> emptyList()
+        return when (actionType) {
+            ActionType.COMMIT_TEXT -> text.takeIf { it.isNotBlank() }?.let { listOf(Action.CommitText(it)) }.orEmpty()
+            ActionType.COMMIT_COMPOSING -> listOf(Action.CommitComposing)
+            ActionType.PUSH_TOKEN -> text.takeIf { it.isNotBlank() }?.let { listOf(Action.PushToken(Token.Literal(it))) }.orEmpty()
+            ActionType.CLEAR_COMPOSITION -> listOf(Action.ClearComposition)
+            ActionType.REPLACE_TOKENS -> listOf(Action.NoOp)
+            ActionType.COMMAND -> {
+                val cmd =
+                    when (key?.keyId) {
+                        xyz.xiao6.myboard.model.KeyIds.BACKSPACE -> CommandType.BACKSPACE
+                        xyz.xiao6.myboard.model.KeyIds.SPACE -> CommandType.SPACE
+                        xyz.xiao6.myboard.model.KeyIds.ENTER -> CommandType.ENTER
+                        else -> null
+                    }
+                cmd?.let { listOf(Action.Command(it)) }.orEmpty()
             }
-        for (pos in order) {
-            val v = hints[pos]?.trim().orEmpty()
-            if (v.isNotBlank()) return v
-        }
-        return null
-    }
-
-    private fun mergeHints(key: Key, state: LayoutState): Map<HintPosition, String> {
-        val overrides = state.hintOverrides[key.keyId].orEmpty()
-        if (overrides.isEmpty()) return key.hints
-        if (key.hints.isEmpty()) return overrides
-        return buildMap {
-            putAll(key.hints)
-            putAll(overrides)
+            ActionType.BACK -> listOf(Action.Back)
+            ActionType.TOGGLE_LOCALE -> listOf(Action.ToggleLocale)
+            ActionType.SWITCH_LAYOUT -> emptyList()
+            ActionType.SWITCH_LAYER, ActionType.SWITCH_ENGINE, ActionType.TOGGLE_MODIFIER, ActionType.OPEN_POPUP, ActionType.NO_OP ->
+                emptyList()
         }
     }
 
-    private fun alphabeticKeyIds(keys: List<Key>): Set<String> {
-        val out = LinkedHashSet<String>()
-        for (key in keys) {
-            val label = key.label
-            if (label.length == 1 && label[0].isLetter()) out += key.keyId
+    private fun matches(cond: xyz.xiao6.myboard.model.WhenCondition?, state: LayoutState): Boolean {
+        if (cond == null) return true
+        cond.engine?.let {
+            val current = state.engine?.trim().orEmpty()
+            if (!it.name.equals(current, ignoreCase = true)) return false
         }
-        return out
+        cond.layer?.let {
+            if (!it.name.equals(state.layer.name, ignoreCase = true)) return false
+        }
+        // Modifiers/composing/locale are not wired into LayoutState yet; treat them as "not match" only when explicitly required.
+        if (cond.modifiers.isNotEmpty()) return false
+        if (cond.composing != null) return false
+        if (!cond.locale.isNullOrBlank()) {
+            val current = normalizeLocaleTag(state.localeTag.orEmpty())
+            val required = normalizeLocaleTag(cond.locale)
+            if (required.isBlank()) return false
+            if (!localeMatches(required = required, current = current)) return false
+        }
+        return true
+    }
+
+    private fun localeMatches(required: String, current: String): Boolean {
+        if (current.isBlank()) return false
+        if (required.contains('-')) return required.equals(current, ignoreCase = true)
+        // Language-only: "zh" matches "zh-CN" / "zh-HK" etc.
+        return current.startsWith(required, ignoreCase = true)
+    }
+
+    private fun normalizeLocaleTag(tag: String): String {
+        val t = tag.trim().replace('_', '-')
+        val parts = t.split('-').filter { it.isNotBlank() }
+        if (parts.isEmpty()) return ""
+        val language = parts[0].lowercase(Locale.ROOT)
+        val region = parts.getOrNull(1)?.uppercase(Locale.ROOT)
+        return if (region.isNullOrBlank()) language else "$language-$region"
+    }
+
+    private fun actionToEffects(action: Action): List<Effect> {
+        return when (action) {
+            is Action.CommitText -> listOf(Effect.CommitText(action.text))
+            Action.CommitComposing -> listOf(Effect.CommitComposing)
+            is Action.PushToken -> listOf(Effect.PushToken(action.token))
+            Action.ClearComposition -> listOf(Effect.ClearComposition)
+            Action.Back -> listOf(Effect.Back)
+            Action.ToggleLocale -> listOf(Effect.ToggleLocale)
+            is Action.Command -> {
+                val text =
+                    when (action.commandType) {
+                        CommandType.BACKSPACE -> "\b"
+                        CommandType.ENTER -> "\n"
+                        CommandType.SPACE -> " "
+                        else -> ""
+                    }
+                if (text.isEmpty()) listOf(Effect.NoOp) else listOf(Effect.CommitText(text))
+            }
+            is Action.SwitchLayer -> listOf(Effect.SwitchLayer(action.layer))
+            is Action.SwitchLayout -> listOf(Effect.SwitchLayout(action.layoutId))
+            is Action.SwitchEngine -> listOf(Effect.SwitchEngine(action.engine))
+            is Action.ToggleModifier -> listOf(Effect.ToggleModifier(action.modifier))
+            is Action.OpenPopup -> listOf(Effect.NoOp)
+            Action.NoOp -> listOf(Effect.NoOp)
+        }
     }
 }

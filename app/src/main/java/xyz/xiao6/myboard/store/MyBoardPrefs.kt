@@ -53,6 +53,34 @@ class MyBoardPrefs(context: Context) {
             sp.edit().putInt(KEY_VIBRATION_STRENGTH_PERCENT, value.coerceIn(0, 100)).apply()
         }
 
+    var globalKeyboardWidthRatio: Float?
+        get() = sp.getFloat(KEY_GLOBAL_KB_WIDTH_RATIO, SENTINEL_FLOAT).takeIf { it > 0f }
+        set(value) {
+            val v = value?.takeIf { it > 0f } ?: SENTINEL_FLOAT
+            sp.edit().putFloat(KEY_GLOBAL_KB_WIDTH_RATIO, v).apply()
+        }
+
+    var globalKeyboardWidthDpOffset: Float?
+        get() = sp.getFloat(KEY_GLOBAL_KB_WIDTH_DPOFFSET, SENTINEL_FLOAT).takeIf { it != SENTINEL_FLOAT }
+        set(value) {
+            val v = value ?: SENTINEL_FLOAT
+            sp.edit().putFloat(KEY_GLOBAL_KB_WIDTH_DPOFFSET, v).apply()
+        }
+
+    var globalKeyboardHeightRatio: Float?
+        get() = sp.getFloat(KEY_GLOBAL_KB_HEIGHT_RATIO, SENTINEL_FLOAT).takeIf { it > 0f }
+        set(value) {
+            val v = value?.takeIf { it > 0f } ?: SENTINEL_FLOAT
+            sp.edit().putFloat(KEY_GLOBAL_KB_HEIGHT_RATIO, v).apply()
+        }
+
+    var globalKeyboardHeightDpOffset: Float?
+        get() = sp.getFloat(KEY_GLOBAL_KB_HEIGHT_DPOFFSET, SENTINEL_FLOAT).takeIf { it != SENTINEL_FLOAT }
+        set(value) {
+            val v = value ?: SENTINEL_FLOAT
+            sp.edit().putFloat(KEY_GLOBAL_KB_HEIGHT_DPOFFSET, v).apply()
+        }
+
     fun getPreferredLayoutId(localeTag: String): String? {
         val key = KEY_PREFERRED_LAYOUT_PREFIX + normalizeLocaleTag(localeTag)
         return sp.getString(key, null)?.trim()?.takeIf { it.isNotBlank() }
@@ -94,6 +122,7 @@ class MyBoardPrefs(context: Context) {
     }
 
     private companion object {
+        private const val SENTINEL_FLOAT = -1f
         private const val PREFS_NAME = "myboard_prefs"
         private const val KEY_ONBOARDING_COMPLETED = "onboarding_completed"
         private const val KEY_USER_LOCALE_TAG = "user_locale_tag"
@@ -103,5 +132,10 @@ class MyBoardPrefs(context: Context) {
         private const val KEY_CLICK_SOUND_VOLUME_PERCENT = "click_sound_volume_percent"
         private const val KEY_VIBRATION_FOLLOW_SYSTEM = "vibration_follow_system"
         private const val KEY_VIBRATION_STRENGTH_PERCENT = "vibration_strength_percent"
+
+        private const val KEY_GLOBAL_KB_WIDTH_RATIO = "global_keyboard_width_ratio"
+        private const val KEY_GLOBAL_KB_WIDTH_DPOFFSET = "global_keyboard_width_dp_offset"
+        private const val KEY_GLOBAL_KB_HEIGHT_RATIO = "global_keyboard_height_ratio"
+        private const val KEY_GLOBAL_KB_HEIGHT_DPOFFSET = "global_keyboard_height_dp_offset"
     }
 }

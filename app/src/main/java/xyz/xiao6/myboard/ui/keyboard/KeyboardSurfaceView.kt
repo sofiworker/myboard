@@ -18,9 +18,7 @@ import xyz.xiao6.myboard.controller.ShiftState
 import xyz.xiao6.myboard.model.KeyboardLayout
 import xyz.xiao6.myboard.model.KeyAction
 import xyz.xiao6.myboard.model.Key
-import xyz.xiao6.myboard.model.KeyTrigger
-import xyz.xiao6.myboard.model.ActionType
-import xyz.xiao6.myboard.model.HintPosition
+import xyz.xiao6.myboard.model.GestureType
 import xyz.xiao6.myboard.model.KeyStyle
 import xyz.xiao6.myboard.model.ThemeSpec
 import xyz.xiao6.myboard.ui.popup.PopupView
@@ -51,7 +49,7 @@ class KeyboardSurfaceView @JvmOverloads constructor(
     private var theme: ThemeRuntime? = null
     private var layoutBackgroundColor: Int = Color.parseColor("#F2F2F7")
 
-    var onTrigger: ((keyId: String, trigger: KeyTrigger) -> Unit)? = null
+    var onTrigger: ((keyId: String, trigger: GestureType) -> Unit)? = null
     var onAction: ((KeyAction) -> Unit)? = null
 
     private val previewDelayMs = 100L
@@ -66,7 +64,7 @@ class KeyboardSurfaceView @JvmOverloads constructor(
     private var downY = 0f
     private var downAbsX = 0f
     private var downAbsY = 0f
-    private var resolvedTrigger: KeyTrigger? = null
+    private var resolvedTrigger: GestureType? = null
     private var movedSinceDown: Boolean = false
     private var longPressPopupKeyId: String? = null
     private var longPressPopupCommitted: Boolean = false
@@ -82,26 +80,11 @@ class KeyboardSurfaceView @JvmOverloads constructor(
         val keyId = activeKeyId ?: return@Runnable
         val key = keys.firstOrNull { it.keyId == keyId } ?: return@Runnable
         val rect = activeKeyRect ?: return@Runnable
-
-        val action = key.behaviors[KeyTrigger.LONG_PRESS]
-        if (action?.actionType != ActionType.SHOW_POPUP) {
-            MLog.d(logTag, "longPress keyId=$keyId no SHOW_POPUP behavior")
-            return@Runnable
-        }
-        val candidates = action.values?.filter { it.isNotBlank() }.orEmpty()
-        if (candidates.isEmpty()) {
-            MLog.d(logTag, "longPress keyId=$keyId SHOW_POPUP but candidates empty")
-            return@Runnable
-        }
-
-        MLog.d(logTag, "longPress keyId=$keyId candidates=${candidates.size}")
+        MLog.d(logTag, "longPress keyId=$keyId")
         popup.dismissPreview()
         longPressPopupKeyId = keyId
         longPressPopupCommitted = false
-        popup.showLongPressCandidates(this, rect, candidates) { selected ->
-            longPressPopupCommitted = true
-            onAction?.invoke(KeyAction(actionType = ActionType.COMMIT, value = selected))
-        }
+        onTrigger?.invoke(keyId, GestureType.LONG_PRESS)
     }
 
     private val keyFillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -214,7 +197,7 @@ class KeyboardSurfaceView @JvmOverloads constructor(
 
                     if (!fallbackCommitted && fallbackKeyId != null && event.actionMasked == MotionEvent.ACTION_UP) {
                         MLog.d(logTag, "popup fallback TAP keyId=$fallbackKeyId")
-                        onTrigger?.invoke(fallbackKeyId, KeyTrigger.TAP)
+                        onTrigger?.invoke(fallbackKeyId, GestureType.TAP)
                     }
                 }
                 return true
@@ -274,7 +257,7 @@ class KeyboardSurfaceView @JvmOverloads constructor(
                         popup?.dismissPreview()
                     }
                     if (abs(dy) > swipeThresholdPx && abs(dy) > abs(dx)) {
-                        resolvedTrigger = if (dy < 0f) KeyTrigger.SWIPE_UP else KeyTrigger.SWIPE_DOWN
+                        resolvedTrigger = if (dy < 0f) GestureType.FLICK_UP else GestureType.FLICK_DOWN
                         cancelPreviewAndLongPress()
                         popup?.dismissPreview()
                         MLog.d(logTag, "SWIPE trigger=$resolvedTrigger keyId=$keyId dy=${dy.toInt()} dx=${dx.toInt()}")
@@ -331,7 +314,7 @@ class KeyboardSurfaceView @JvmOverloads constructor(
                             "UP keyId=$keyId trigger=TAP moved=$movedSinceDown inRect=${touchRect.contains(upX, upY)} absDist=${absDist.toInt()} " +
                                 "x=${upX.toInt()} y=${upY.toInt()} absX=${absX.toInt()} absY=${absY.toInt()} pid=$activePointerId ai=${event.actionIndex} pc=${event.pointerCount}",
                         )
-                        onTrigger?.invoke(keyId, KeyTrigger.TAP)
+                        onTrigger?.invoke(keyId, GestureType.TAP)
                     }
                 }
                 activeKeyId = null
@@ -376,7 +359,7 @@ class KeyboardSurfaceView @JvmOverloads constructor(
             val rect = keyRects[key.keyId] ?: continue
             val pressed = layoutState.highlightedKeyIds.contains(key.keyId)
 
-            val style = resolveKeyStyle(key.styleId)
+            val style = resolveKeyStyle(key.ui.styleId)
             val cornerRadius = dp((style?.cornerRadiusDp ?: themeSpec?.global?.paint?.cornerRadiusDp ?: 10f))
 
             applyKeyPaints(style, pressed)
@@ -388,9 +371,9 @@ class KeyboardSurfaceView @JvmOverloads constructor(
 
             val hints = resolveHints(key)
             if (hints.isNotEmpty()) {
-                for ((pos, text) in hints) {
-                    if (text.isBlank()) continue
-                    drawHint(canvas, rect, pos, text)
+                for (h in hints) {
+                    if (h.text.isBlank()) continue
+                    drawHint(canvas, rect, h.anchor, h.text)
                 }
             }
 
@@ -455,7 +438,7 @@ class KeyboardSurfaceView @JvmOverloads constructor(
     }
 
     private fun resolveLabel(key: Key): String {
-        val label = layoutState.labelOverrides[key.keyId] ?: key.label
+        val label = layoutState.labelOverrides[key.keyId] ?: (key.ui.label ?: key.label).orEmpty()
         if (label.length != 1) return label
         val c = label[0]
         if (!c.isLetter()) return label
@@ -465,62 +448,134 @@ class KeyboardSurfaceView @JvmOverloads constructor(
         }
     }
 
-    private fun resolveHints(key: Key): Map<HintPosition, String> {
-        val overrides = layoutState.hintOverrides[key.keyId].orEmpty()
-        if (overrides.isEmpty()) return key.hints
-        if (key.hints.isEmpty()) return overrides
-        return buildMap {
-            putAll(key.hints)
-            putAll(overrides)
-        }
+    private enum class HintGridPosition {
+        TOP_LEFT,
+        TOP_CENTER,
+        TOP_RIGHT,
+        CENTER_LEFT,
+        CENTER,
+        CENTER_RIGHT,
+        BOTTOM_LEFT,
+        BOTTOM_CENTER,
+        BOTTOM_RIGHT,
     }
 
-    private fun drawHint(canvas: Canvas, rect: RectF, position: HintPosition, text: String) {
+    private sealed interface HintAnchor {
+        data class Grid(val position: HintGridPosition) : HintAnchor
+
+        /**
+         * Relative anchor inside the key rect.
+         * - x,y are ratios in [0,1] (0=left/top, 1=right/bottom).
+         * - align controls textAlign; default is CENTER.
+         */
+        data class Relative(val x: Float, val y: Float, val align: Paint.Align = Paint.Align.CENTER) : HintAnchor
+    }
+
+    private data class HintEntry(
+        val anchor: HintAnchor,
+        val text: String,
+    )
+
+    private fun resolveHints(key: Key): List<HintEntry> {
+        fun parseHints(raw: Map<String, String>): List<HintEntry> {
+            val out = ArrayList<HintEntry>(raw.size)
+            for ((k, v) in raw) {
+                val keyRaw = k.trim()
+                val text = v
+                if (keyRaw.isBlank() || text.isBlank()) continue
+
+                val grid = runCatching { HintGridPosition.valueOf(keyRaw) }.getOrNull()
+                if (grid != null) {
+                    out += HintEntry(anchor = HintAnchor.Grid(grid), text = text)
+                    continue
+                }
+
+                // Coordinate format: "x,y" or "x,y,ALIGN" (ratios in [0,1]).
+                val parts = keyRaw.split(',').map { it.trim() }.filter { it.isNotBlank() }
+                if (parts.size >= 2) {
+                    val x = parts[0].toFloatOrNull()
+                    val y = parts[1].toFloatOrNull()
+                    if (x != null && y != null) {
+                        val align =
+                            when (parts.getOrNull(2)?.uppercase()) {
+                                "LEFT" -> Paint.Align.LEFT
+                                "RIGHT" -> Paint.Align.RIGHT
+                                "CENTER", null -> Paint.Align.CENTER
+                                else -> Paint.Align.CENTER
+                            }
+                        out += HintEntry(
+                            anchor = HintAnchor.Relative(x = x.coerceIn(0f, 1f), y = y.coerceIn(0f, 1f), align = align),
+                            text = text,
+                        )
+                    }
+                }
+            }
+            return out
+        }
+
+        // Override wins, and should NOT stack on top of base hints (avoid "symbol pile-up" when switching locale).
+        val overrideRaw: Map<String, String> = layoutState.hintOverrides[key.keyId] ?: emptyMap()
+        val merged: Map<String, String> = key.hints + overrideRaw
+        return parseHints(merged)
+    }
+
+    private fun drawHint(canvas: Canvas, rect: RectF, anchor: HintAnchor, text: String) {
         val paddingX = dp(6f)
         val paddingY = dp(4f)
         val fm = hintPaint.fontMetrics
         val textHeight = fm.descent - fm.ascent
 
         val (x, y, align) =
-            when (position) {
-                HintPosition.TOP_LEFT ->
-                    Triple(rect.left + paddingX, rect.top + paddingY - fm.ascent, Paint.Align.LEFT)
+            when (anchor) {
+                is HintAnchor.Relative -> {
+                    val px = rect.left + rect.width() * anchor.x
+                    val py = rect.top + rect.height() * anchor.y
+                    // Use baseline positioning; nudge away from edges a bit.
+                    val xClamped = px.coerceIn(rect.left + paddingX, rect.right - paddingX)
+                    val yClamped = (py - fm.descent).coerceIn(rect.top + paddingY - fm.ascent, rect.bottom - paddingY - fm.descent)
+                    Triple(xClamped, yClamped, anchor.align)
+                }
+                is HintAnchor.Grid ->
+                    when (anchor.position) {
+                        HintGridPosition.TOP_LEFT ->
+                            Triple(rect.left + paddingX, rect.top + paddingY - fm.ascent, Paint.Align.LEFT)
 
-                HintPosition.TOP_CENTER ->
-                    Triple(rect.centerX(), rect.top + paddingY - fm.ascent, Paint.Align.CENTER)
+                        HintGridPosition.TOP_CENTER ->
+                            Triple(rect.centerX(), rect.top + paddingY - fm.ascent, Paint.Align.CENTER)
 
-                HintPosition.TOP_RIGHT ->
-                    Triple(rect.right - paddingX, rect.top + paddingY - fm.ascent, Paint.Align.RIGHT)
+                        HintGridPosition.TOP_RIGHT ->
+                            Triple(rect.right - paddingX, rect.top + paddingY - fm.ascent, Paint.Align.RIGHT)
 
-                HintPosition.CENTER_LEFT ->
-                    Triple(
-                        rect.left + paddingX,
-                        rect.centerY() + textHeight / 2f - fm.descent,
-                        Paint.Align.LEFT,
-                    )
+                        HintGridPosition.CENTER_LEFT ->
+                            Triple(
+                                rect.left + paddingX,
+                                rect.centerY() + textHeight / 2f - fm.descent,
+                                Paint.Align.LEFT,
+                            )
 
-                HintPosition.CENTER ->
-                    Triple(
-                        rect.centerX(),
-                        rect.centerY() + textHeight / 2f - fm.descent,
-                        Paint.Align.CENTER,
-                    )
+                        HintGridPosition.CENTER ->
+                            Triple(
+                                rect.centerX(),
+                                rect.centerY() + textHeight / 2f - fm.descent,
+                                Paint.Align.CENTER,
+                            )
 
-                HintPosition.CENTER_RIGHT ->
-                    Triple(
-                        rect.right - paddingX,
-                        rect.centerY() + textHeight / 2f - fm.descent,
-                        Paint.Align.RIGHT,
-                    )
+                        HintGridPosition.CENTER_RIGHT ->
+                            Triple(
+                                rect.right - paddingX,
+                                rect.centerY() + textHeight / 2f - fm.descent,
+                                Paint.Align.RIGHT,
+                            )
 
-                HintPosition.BOTTOM_LEFT ->
-                    Triple(rect.left + paddingX, rect.bottom - paddingY - fm.descent, Paint.Align.LEFT)
+                        HintGridPosition.BOTTOM_LEFT ->
+                            Triple(rect.left + paddingX, rect.bottom - paddingY - fm.descent, Paint.Align.LEFT)
 
-                HintPosition.BOTTOM_CENTER ->
-                    Triple(rect.centerX(), rect.bottom - paddingY - fm.descent, Paint.Align.CENTER)
+                        HintGridPosition.BOTTOM_CENTER ->
+                            Triple(rect.centerX(), rect.bottom - paddingY - fm.descent, Paint.Align.CENTER)
 
-                HintPosition.BOTTOM_RIGHT ->
-                    Triple(rect.right - paddingX, rect.bottom - paddingY - fm.descent, Paint.Align.RIGHT)
+                        HintGridPosition.BOTTOM_RIGHT ->
+                            Triple(rect.right - paddingX, rect.bottom - paddingY - fm.descent, Paint.Align.RIGHT)
+                    }
             }
 
         hintPaint.textAlign = align
@@ -598,35 +653,56 @@ class KeyboardSurfaceView @JvmOverloads constructor(
 
             val rowAvailableWidth =
                 (availableWidth * row.widthRatio) + row.widthDpOffset.dpToPx() - rowStartPaddingPx - rowEndPaddingPx
-            val keysInRow = row.keys.sortedBy { it.gridPosition.startCol }
+            val keysInRow = row.keys.sortedBy { it.ui.gridPosition.startCol }
             if (keysInRow.isEmpty()) return@forEach
 
-            val fixedWidthSum = keysInRow.sumOf { (it.widthDp ?: 0f).toDouble() }.toFloat().dpToPx()
-            val totalWeight = keysInRow.filter { it.widthDp == null }.sumOf { it.widthWeight.toDouble() }.toFloat()
-            val totalGaps = rowGapPx * (keysInRow.size - 1)
-            val remaining =
-                (rowAvailableWidth - fixedWidthSum - totalGaps).coerceAtLeast(0f)
+            val usesWeight = keysInRow.any { it.ui.widthWeight != 1f }
 
-            val widths = keysInRow.map { key ->
-                key.widthDp?.dpToPx()
-                    ?: if (totalWeight > 0f) remaining * (key.widthWeight / totalWeight) else 0f
-            }
-
-            val rowTotalWidth = widths.sum() + totalGaps
             val startX = when (row.alignment) {
                 xyz.xiao6.myboard.model.RowAlignment.LEFT -> leftPx + rowStartPaddingPx
                 xyz.xiao6.myboard.model.RowAlignment.CENTER ->
-                    leftPx + rowStartPaddingPx + ((rowAvailableWidth - rowTotalWidth) / 2f).coerceAtLeast(0f)
+                    if (usesWeight) {
+                        leftPx + rowStartPaddingPx
+                    } else {
+                        val colCount =
+                            keysInRow.maxOf {
+                                val gp = it.ui.gridPosition
+                                gp.startCol + gp.spanCols
+                            }.coerceAtLeast(1)
+                        val totalGaps = rowGapPx * (colCount - 1)
+                        val cellWidth = ((rowAvailableWidth - totalGaps) / colCount).coerceAtLeast(0f)
+                        val rowTotalWidth = (cellWidth * colCount) + totalGaps
+                        leftPx + rowStartPaddingPx + ((rowAvailableWidth - rowTotalWidth) / 2f).coerceAtLeast(0f)
+                    }
                 xyz.xiao6.myboard.model.RowAlignment.JUSTIFY -> leftPx + rowStartPaddingPx
             }
 
-            var x = startX
-            keysInRow.forEachIndexed { index, key ->
-                val keyWidth = widths[index]
-                val keyHeight = rowHeight
-                val rect = RectF(x, rowTop, x + keyWidth, rowTop + keyHeight)
-                result[key.keyId] = rect
-                x += keyWidth + rowGapPx
+            if (usesWeight) {
+                val totalGaps = rowGapPx * (keysInRow.size - 1).coerceAtLeast(0)
+                val available = (rowAvailableWidth - totalGaps).coerceAtLeast(0f)
+                val totalWeight = keysInRow.sumOf { it.ui.widthWeight.toDouble() }.toFloat().coerceAtLeast(0.0001f)
+                val unit = available / totalWeight
+                var x = startX
+                for (key in keysInRow) {
+                    val w = unit * key.ui.widthWeight
+                    result[key.keyId] = RectF(x, rowTop, x + w, rowTop + rowHeight)
+                    x += w + rowGapPx
+                }
+            } else {
+                val colCount =
+                    keysInRow.maxOf {
+                        val gp = it.ui.gridPosition
+                        gp.startCol + gp.spanCols
+                    }.coerceAtLeast(1)
+                val totalGaps = rowGapPx * (colCount - 1)
+                val cellWidth = ((rowAvailableWidth - totalGaps) / colCount).coerceAtLeast(0f)
+                for (key in keysInRow) {
+                    val gp = key.ui.gridPosition
+                    val x = startX + gp.startCol * (cellWidth + rowGapPx)
+                    val keyWidth = (cellWidth * gp.spanCols) + rowGapPx * (gp.spanCols - 1)
+                    val rect = RectF(x, rowTop, x + keyWidth, rowTop + rowHeight)
+                    result[key.keyId] = rect
+                }
             }
         }
 
@@ -654,7 +730,7 @@ class KeyboardSurfaceView @JvmOverloads constructor(
 
         val out = LinkedHashMap<String, RectF>(visualRects.size)
         rows.forEachIndexed { rowIndex, row ->
-            val keysInRow = row.keys.sortedBy { it.gridPosition.startCol }
+            val keysInRow = row.keys.sortedBy { it.ui.gridPosition.startCol }
             if (keysInRow.isEmpty()) return@forEachIndexed
 
             val (rowTop, rowBottom) = rowBounds[row.rowId] ?: return@forEachIndexed

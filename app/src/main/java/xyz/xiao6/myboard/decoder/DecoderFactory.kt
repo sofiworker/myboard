@@ -10,7 +10,7 @@ import java.util.concurrent.ConcurrentHashMap
  * DecoderFactory：根据 DictionarySpec 构建对应的 Decoder。
  *
  * 目前实现：
- * - dict_pinyin + assetPath -> PinyinDictionaryDecoder(MyBoardDictionary)
+ * - PINYIN_* -> TokenPinyinDecoder(MyBoardDictionary)
  * - 其他 -> PassthroughDecoder（后续接入英文/笔画/手写等）
  */
 class DecoderFactory(
@@ -26,11 +26,11 @@ class DecoderFactory(
 
         val scheme = spec.codeScheme?.trim().orEmpty()
 
-        // Minimal mapping for now (drive by canonical scheme, not by external source format).
-        if (scheme == "PINYIN_FULL") {
+        // Unified pinyin decoder: drive by token input (qwerty letters + T9 symbol sets).
+        if (scheme == "PINYIN_FULL" || scheme == "PINYIN_T9") {
             val assetPath = spec.assetPath?.trim().orEmpty()
             if (assetPath.isBlank()) {
-                MLog.w(logTag, "PINYIN_FULL missing assetPath; fallback to PassthroughDecoder")
+                MLog.w(logTag, "$scheme missing assetPath; fallback to PassthroughDecoder")
                 return PassthroughDecoder
             }
 
@@ -50,9 +50,8 @@ class DecoderFactory(
                 out
             }
 
-            // Smoke test: verify some known keys can produce candidates (helps diagnose "no candidates" issues).
             runCatching {
-                MLog.d(logTag, "[$buildStamp] smoke test begin")
+                MLog.d(logTag, "[$buildStamp] smoke test begin scheme=$scheme")
                 val keys = listOf("a", "ao", "ni", "nihao", "ni hao", "zhong", "zhongguo", "wo", "women")
                 for (k in keys) {
                     val outPrefix = dict.candidatesByPrefix(k, 5)
@@ -63,30 +62,8 @@ class DecoderFactory(
             }.onFailure { t ->
                 MLog.w(logTag, "smoke test failed", t)
             }
-            return PinyinDictionaryDecoder(lookup)
-        }
 
-        if (scheme == "PINYIN_T9") {
-            val assetPath = spec.assetPath?.trim().orEmpty()
-            if (assetPath.isBlank()) {
-                MLog.w(logTag, "PINYIN_T9 missing assetPath; fallback to PassthroughDecoder")
-                return PassthroughDecoder
-            }
-
-            val dict = try {
-                dictCache.getOrPut(assetPath) {
-                    MLog.d(logTag, "[$buildStamp] Loading MyBoardDictionary from assetPath=$assetPath")
-                    MyBoardDictionary.fromAsset(context, assetPath)
-                }
-            } catch (t: Throwable) {
-                MLog.e(logTag, "Failed to load MyBoardDictionary assetPath=$assetPath; fallback to passthrough", t)
-                return PassthroughDecoder
-            }
-
-            val lookup = DictionaryLookup { searchKey, limit ->
-                dict.candidatesByPrefix(searchKey, limit)
-            }
-            return T9PinyinDecoder(lookup)
+            return TokenPinyinDecoder(lookup)
         }
 
         MLog.d(logTag, "No decoder mapping for codeScheme=$scheme dictionaryId=${spec.dictionaryId}; fallback to PassthroughDecoder")

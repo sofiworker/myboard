@@ -47,10 +47,9 @@ import android.widget.Toast
 import android.view.View.GONE
 import android.view.View.VISIBLE
 import android.widget.FrameLayout
+import android.view.KeyEvent
 import xyz.xiao6.myboard.store.MyBoardPrefs
-import xyz.xiao6.myboard.model.ActionType
 import xyz.xiao6.myboard.model.DictionarySpec
-import xyz.xiao6.myboard.model.KeyAction
 import kotlin.math.roundToInt
 import java.util.Locale.ROOT
 import xyz.xiao6.myboard.util.PinyinSyllableSegmenter
@@ -80,6 +79,7 @@ class MyBoardImeService : InputMethodService() {
     private var symbolsView: SymbolsLayoutView? = null
     private var topBarSlotView: View? = null
     private var popupMarginPx: Int = 0
+    private var currentEditorInfo: EditorInfo? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -167,7 +167,7 @@ class MyBoardImeService : InputMethodService() {
         symbolsView.onBack = { hideSymbols() }
         symbolsView.onCommitSymbol = { symbol ->
             playKeyFeedback(keyboardView)
-            controller?.onAction(KeyAction(actionType = ActionType.COMMIT, value = symbol))
+            commitTextToEditor(symbol)
             if (!symbolsView.isLocked()) hideSymbols()
         }
 
@@ -252,7 +252,7 @@ class MyBoardImeService : InputMethodService() {
             )
         }
         candidatePageView.onBackspace = {
-            controller?.onAction(xyz.xiao6.myboard.model.KeyAction(actionType = xyz.xiao6.myboard.model.ActionType.BACKSPACE))
+            commitTextToEditor("\b")
         }
         candidatePageView.onRetype = {
             controller?.resetComposing()
@@ -351,7 +351,8 @@ class MyBoardImeService : InputMethodService() {
             .onEach { layout ->
                 val resolved = layout ?: return@onEach
                 val layoutId = resolved.layoutId
-                imePanel.applyKeyboardLayoutSize(resolved)
+                val sized = applyGlobalKeyboardSize(resolved)
+                imePanel.applyKeyboardLayoutSize(sized)
                 dicts.setLayoutId(layoutId)
                 activeLocaleTag?.let { tag -> prefs?.setPreferredLayoutId(tag, layoutId) }
             }
@@ -364,6 +365,32 @@ class MyBoardImeService : InputMethodService() {
 
         // Initial locale/layout selection will be done in onStartInputView.
         return view
+    }
+
+    private fun applyGlobalKeyboardSize(layout: xyz.xiao6.myboard.model.KeyboardLayout): xyz.xiao6.myboard.model.KeyboardLayout {
+        val p = prefs ?: return layout
+
+        // If user never set a global size, the first used layout becomes the global baseline.
+        if (p.globalKeyboardWidthRatio == null) {
+            p.globalKeyboardWidthRatio = layout.totalWidthRatio
+            p.globalKeyboardWidthDpOffset = layout.totalWidthDpOffset
+        }
+        if (p.globalKeyboardHeightRatio == null) {
+            p.globalKeyboardHeightRatio = layout.totalHeightRatio
+            p.globalKeyboardHeightDpOffset = layout.totalHeightDpOffset
+        }
+
+        val wRatio = p.globalKeyboardWidthRatio ?: layout.totalWidthRatio
+        val hRatio = p.globalKeyboardHeightRatio ?: layout.totalHeightRatio
+        val wOff = p.globalKeyboardWidthDpOffset ?: layout.totalWidthDpOffset
+        val hOff = p.globalKeyboardHeightDpOffset ?: layout.totalHeightDpOffset
+
+        return layout.copy(
+            totalWidthRatio = wRatio,
+            totalWidthDpOffset = wOff,
+            totalHeightRatio = hRatio,
+            totalHeightDpOffset = hOff,
+        )
     }
 
     private fun toggleLocale() {
@@ -573,6 +600,7 @@ class MyBoardImeService : InputMethodService() {
 
     override fun onStartInputView(info: EditorInfo?, restarting: Boolean) {
         super.onStartInputView(info, restarting)
+        currentEditorInfo = info
 
         val systemLocale = resources.configuration.locales[0] ?: Locale.getDefault()
         val enabledTags = prefs?.getEnabledLocaleTags().orEmpty()
@@ -628,6 +656,29 @@ class MyBoardImeService : InputMethodService() {
         val ic = currentInputConnection ?: return
         if (text == "\b") {
             ic.deleteSurroundingText(1, 0)
+            return
+        }
+        if (text == "\n") {
+            val info = currentEditorInfo
+            val inputType = info?.inputType ?: 0
+            val isMultiLine = (inputType and android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE) != 0
+            if (isMultiLine) {
+                ic.commitText("\n", 1)
+                return
+            }
+
+            val actionFromOptions = info?.imeOptions?.and(EditorInfo.IME_MASK_ACTION) ?: EditorInfo.IME_ACTION_NONE
+            val actionId = info?.actionId ?: 0
+            val performed =
+                when {
+                    actionId != 0 -> ic.performEditorAction(actionId)
+                    actionFromOptions != EditorInfo.IME_ACTION_NONE -> ic.performEditorAction(actionFromOptions)
+                    else -> false
+                }
+            if (!performed) {
+                ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER))
+                ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ENTER))
+            }
             return
         }
         ic.commitText(text, 1)
@@ -732,15 +783,14 @@ class MyBoardImeService : InputMethodService() {
         val nextLabel = nextToggle?.let { shortLocaleKeyLabel(it) }
 
         val labelOverrides = LinkedHashMap<String, String>()
-        val hintOverrides = LinkedHashMap<String, Map<xyz.xiao6.myboard.model.HintPosition, String>>()
+        val hintOverrides = LinkedHashMap<String, Map<String, String>>()
 
-        // Locale toggle key(s): drive by SpecialKey so custom layouts work.
+        // Locale toggle key: best-effort by keyId.
         for (key in keys) {
-            if (key.specialKey != xyz.xiao6.myboard.model.SpecialKey.TOGGLE_LOCALE) continue
+            if (key.keyId != "key_lang_toggle") continue
             labelOverrides[key.keyId] = currentLabel
             if (!nextLabel.isNullOrBlank()) {
-                hintOverrides[key.keyId] =
-                    mapOf(xyz.xiao6.myboard.model.HintPosition.BOTTOM_RIGHT to "/$nextLabel")
+                hintOverrides[key.keyId] = mapOf("BOTTOM_RIGHT" to "/$nextLabel")
             }
         }
 
@@ -750,10 +800,11 @@ class MyBoardImeService : InputMethodService() {
         val wantsChinesePunct = currentNormalized.startsWith("zh", ignoreCase = true)
         val commaOut = if (wantsChinesePunct) "，" else ","
         val periodOut = if (wantsChinesePunct) "。" else "."
+        val openQuoteOut = if (wantsChinesePunct) "“" else "\""
+        val closeQuoteOut = if (wantsChinesePunct) "”" else "\""
 
         for (key in keys) {
-            if (key.specialKey != null) continue
-            val label = key.label.trim()
+            val label = (key.ui.label ?: key.label).orEmpty().trim()
             when {
                 key.keyId == "key_comma" || label == "," || label == "，" || key.primaryCode == 44 -> {
                     labelOverrides[key.keyId] = commaOut
@@ -764,9 +815,17 @@ class MyBoardImeService : InputMethodService() {
             }
         }
 
+        // QWERTY locale-specific symbols on flick-up keys (keep same layout; override hints + enable WhenCondition.locale).
+        for (key in keys) {
+            when (key.keyId) {
+                "key_h" -> hintOverrides[key.keyId] = mapOf("BOTTOM_CENTER" to openQuoteOut)
+                "key_j" -> hintOverrides[key.keyId] = mapOf("BOTTOM_CENTER" to closeQuoteOut)
+            }
+        }
+
         val invalidateIds = (labelOverrides.keys + hintOverrides.keys).toSet()
         c.updateState(
-            reducer = { s -> s.copy(labelOverrides = labelOverrides, hintOverrides = hintOverrides) },
+            reducer = { s -> s.copy(localeTag = currentNormalized, labelOverrides = labelOverrides, hintOverrides = hintOverrides) },
             invalidateKeyIds = invalidateIds,
         )
     }

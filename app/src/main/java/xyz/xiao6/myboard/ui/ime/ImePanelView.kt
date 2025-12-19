@@ -2,6 +2,7 @@ package xyz.xiao6.myboard.ui.ime
 
 import android.content.Context
 import android.util.AttributeSet
+import android.view.Gravity
 import android.view.View
 import android.widget.FrameLayout
 import xyz.xiao6.myboard.R
@@ -31,15 +32,28 @@ class ImePanelView @JvmOverloads constructor(
         val display = resources.displayMetrics
         val density = display.density
         val screenHeightPx = display.heightPixels
+        val screenWidthPx = display.widthPixels
 
         val targetKeyboardHeightPx =
             (screenHeightPx * layout.totalHeightRatio + (layout.totalHeightDpOffset * density)).roundToInt()
                 .coerceAtLeast((density * 160f).roundToInt())
 
+        val targetKeyboardWidthPx =
+            (screenWidthPx * layout.totalWidthRatio + (layout.totalWidthDpOffset * density)).roundToInt()
+                .coerceIn((density * 240f).roundToInt(), screenWidthPx)
+
         val slot = contentSlot ?: return
         val slotLp = slot.layoutParams ?: return
+        var changed = false
         if (slotLp.height != targetKeyboardHeightPx) {
             slotLp.height = targetKeyboardHeightPx
+            changed = true
+        }
+        if (slotLp.width != targetKeyboardWidthPx) {
+            slotLp.width = targetKeyboardWidthPx
+            changed = true
+        }
+        if (changed) {
             slot.layoutParams = slotLp
             slot.requestLayout()
         }
@@ -47,8 +61,23 @@ class ImePanelView @JvmOverloads constructor(
         val topBarHeightPx = resolveSlotHeightPx(topBarSlot, fallbackDp = 48f)
         val panelLp = layoutParams ?: return
         val targetPanelHeightPx = targetKeyboardHeightPx + topBarHeightPx
+        var panelChanged = false
         if (panelLp.height != targetPanelHeightPx) {
             panelLp.height = targetPanelHeightPx
+            panelChanged = true
+        }
+        if (panelLp.width != targetKeyboardWidthPx) {
+            panelLp.width = targetKeyboardWidthPx
+            panelChanged = true
+        }
+        if (panelLp is FrameLayout.LayoutParams) {
+            val desiredGravity = Gravity.CENTER_HORIZONTAL
+            if (panelLp.gravity != desiredGravity) {
+                panelLp.gravity = desiredGravity
+                panelChanged = true
+            }
+        }
+        if (panelChanged) {
             layoutParams = panelLp
             requestLayout()
         }

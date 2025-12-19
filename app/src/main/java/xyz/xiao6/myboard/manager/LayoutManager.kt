@@ -42,7 +42,7 @@ class LayoutManager(
 
         for (file in files) {
             val text = readAssetText("$assetsDir/$file")
-            val layout = LayoutParser.parse(text)
+            val layout = LayoutParser.parseOrNull(text) ?: continue
 
             val errors = layout.validate()
             require(errors.isEmpty()) {

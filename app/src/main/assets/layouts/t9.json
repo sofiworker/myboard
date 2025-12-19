@@ -28,83 +28,170 @@
         {
           "keyId": "key_comma",
           "label": ",",
-          "styleId": "style_function_key",
           "primaryCode": 44,
-          "gridPosition": {
-            "startCol": 0,
-            "startRow": 0,
-            "spanCols": 1
-          }
+          "ui": {
+            "styleId": "style_function_key",
+            "gridPosition": {
+              "startCol": 0,
+              "startRow": 0,
+              "spanCols": 1
+            },
+            "icons": [],
+            "accessibilityLabel": null
+          },
+          "actions": {}
         },
         {
-          "keyId": "key_1",
-          "specialKey": "SEGMENT",
+          "keyId": "key_segment",
           "label": "分词",
-          "styleId": "style_function_key_important",
-          "primaryCode": 49,
-          "gridPosition": {
-            "startCol": 1,
-            "startRow": 0,
-            "spanCols": 1
-          },
+          "primaryCode": -98,
           "hints": {
             "BOTTOM_CENTER": "1"
+          },
+          "ui": {
+            "styleId": "style_function_key_important",
+            "gridPosition": {
+              "startCol": 1,
+              "startRow": 0,
+              "spanCols": 1
+            },
+            "icons": [],
+            "accessibilityLabel": null
+          },
+          "actions": {
+            "TAP": {
+              "actionType": "COMMIT_COMPOSING",
+              "default": [
+                {
+                  "type": "COMMIT_COMPOSING"
+                }
+              ]
+            },
+            "SWIPE_DOWN": {
+              "actionType": "PUSH_TOKEN",
+              "default": [
+                {
+                  "type": "PUSH_TOKEN",
+                  "token": "1"
+                }
+              ]
+            }
           }
         },
         {
           "keyId": "key_2",
           "label": "ABC",
-          "styleId": "style_function_key_important",
           "primaryCode": 50,
-          "gridPosition": {
-            "startCol": 2,
-            "startRow": 0,
-            "spanCols": 1
-          },
           "hints": {
             "BOTTOM_CENTER": "2"
           },
-          "behaviors": {
+          "ui": {
+            "styleId": "style_function_key_important",
+            "gridPosition": {
+              "startCol": 2,
+              "startRow": 0,
+              "spanCols": 1
+            },
+            "icons": [],
+            "accessibilityLabel": null
+          },
+          "actions": {
             "TAP": {
-              "actionType": "COMMIT",
-              "value": "2"
+              "actionType": "PUSH_TOKEN",
+              "default": [
+                {
+                  "type": "PUSH_TOKEN",
+                  "token": [
+                    "a",
+                    "b",
+                    "c"
+                  ]
+                }
+              ]
+            },
+            "SWIPE_DOWN": {
+              "actionType": "PUSH_TOKEN",
+              "default": [
+                {
+                  "type": "PUSH_TOKEN",
+                  "token": "2"
+                }
+              ]
             }
           }
         },
         {
           "keyId": "key_3",
           "label": "DEF",
-          "styleId": "style_function_key_important",
           "primaryCode": 51,
-          "gridPosition": {
-            "startCol": 3,
-            "startRow": 0,
-            "spanCols": 1
-          },
           "hints": {
             "BOTTOM_CENTER": "3"
           },
-          "behaviors": {
+          "ui": {
+            "styleId": "style_function_key_important",
+            "gridPosition": {
+              "startCol": 3,
+              "startRow": 0,
+              "spanCols": 1
+            },
+            "icons": [],
+            "accessibilityLabel": null
+          },
+          "actions": {
             "TAP": {
-              "actionType": "COMMIT",
-              "value": "3"
+              "actionType": "PUSH_TOKEN",
+              "default": [
+                {
+                  "type": "PUSH_TOKEN",
+                  "token": [
+                    "d",
+                    "e",
+                    "f"
+                  ]
+                }
+              ]
+            },
+            "SWIPE_DOWN": {
+              "actionType": "PUSH_TOKEN",
+              "default": [
+                {
+                  "type": "PUSH_TOKEN",
+                  "token": "3"
+                }
+              ]
             }
           }
         },
         {
           "keyId": "key_backspace",
           "label": "⌫",
-          "styleId": "style_function_key",
           "primaryCode": -5,
-          "gridPosition": {
-            "startCol": 4,
-            "startRow": 0,
-            "spanCols": 1
+          "ui": {
+            "styleId": "style_function_key",
+            "gridPosition": {
+              "startCol": 4,
+              "startRow": 0,
+              "spanCols": 1
+            },
+            "icons": [],
+            "accessibilityLabel": null
           },
-          "widthWeight": 1.2,
-          "behaviors": {
+          "actions": {
             "TAP": {
-              "actionType": "BACKSPACE"
+              "actionType": "COMMAND",
+              "cases": [
+                {
+                  "whenCondition": {
+                    "layer": "ALPHA"
+                  },
+                  "doActions": [
+                    {
+                      "type": "COMMAND",
+                      "commandType": "BACKSPACE"
+                    }
+                  ]
+                }
+              ]
             }
           }
         }
@@ -118,89 +205,167 @@
         {
           "keyId": "key_period",
           "label": "。",
-          "styleId": "style_function_key",
           "primaryCode": 12290,
-          "gridPosition": {
-            "startCol": 0,
-            "startRow": 1,
-            "spanCols": 1
-          }
+          "ui": {
+            "styleId": "style_function_key",
+            "gridPosition": {
+              "startCol": 0,
+              "startRow": 1,
+              "spanCols": 1
+            },
+            "icons": [],
+            "accessibilityLabel": null
+          },
+          "actions": {}
         },
         {
           "keyId": "key_4",
           "label": "GHI",
-          "styleId": "style_function_key_important",
           "primaryCode": 52,
-          "gridPosition": {
-            "startCol": 1,
-            "startRow": 1,
-            "spanCols": 1
-          },
           "hints": {
             "BOTTOM_CENTER": "4"
           },
-          "behaviors": {
+          "ui": {
+            "styleId": "style_function_key_important",
+            "gridPosition": {
+              "startCol": 1,
+              "startRow": 1,
+              "spanCols": 1
+            },
+            "icons": [],
+            "accessibilityLabel": null
+          },
+          "actions": {
             "TAP": {
-              "actionType": "COMMIT",
-              "value": "4"
+              "actionType": "PUSH_TOKEN",
+              "default": [
+                {
+                  "type": "PUSH_TOKEN",
+                  "token": [
+                    "g",
+                    "h",
+                    "i"
+                  ]
+                }
+              ]
+            },
+            "SWIPE_DOWN": {
+              "actionType": "PUSH_TOKEN",
+              "default": [
+                {
+                  "type": "PUSH_TOKEN",
+                  "token": "4"
+                }
+              ]
             }
           }
         },
         {
           "keyId": "key_5",
           "label": "JKL",
-          "styleId": "style_function_key_important",
           "primaryCode": 53,
-          "gridPosition": {
-            "startCol": 2,
-            "startRow": 1,
-            "spanCols": 1
-          },
           "hints": {
             "BOTTOM_CENTER": "5"
           },
-          "behaviors": {
+          "ui": {
+            "styleId": "style_function_key_important",
+            "gridPosition": {
+              "startCol": 2,
+              "startRow": 1,
+              "spanCols": 1
+            },
+            "icons": [],
+            "accessibilityLabel": null
+          },
+          "actions": {
             "TAP": {
-              "actionType": "COMMIT",
-              "value": "5"
+              "actionType": "PUSH_TOKEN",
+              "default": [
+                {
+                  "type": "PUSH_TOKEN",
+                  "token": [
+                    "j",
+                    "k",
+                    "l"
+                  ]
+                }
+              ]
+            },
+            "SWIPE_DOWN": {
+              "actionType": "PUSH_TOKEN",
+              "default": [
+                {
+                  "type": "PUSH_TOKEN",
+                  "token": "5"
+                }
+              ]
             }
           }
         },
         {
           "keyId": "key_6",
           "label": "MNO",
-          "styleId": "style_function_key_important",
           "primaryCode": 54,
-          "gridPosition": {
-            "startCol": 3,
-            "startRow": 1,
-            "spanCols": 1
-          },
           "hints": {
             "BOTTOM_CENTER": "6"
           },
-          "behaviors": {
+          "ui": {
+            "styleId": "style_function_key_important",
+            "gridPosition": {
+              "startCol": 3,
+              "startRow": 1,
+              "spanCols": 1
+            },
+            "icons": [],
+            "accessibilityLabel": null
+          },
+          "actions": {
             "TAP": {
-              "actionType": "COMMIT",
-              "value": "6"
+              "actionType": "PUSH_TOKEN",
+              "default": [
+                {
+                  "type": "PUSH_TOKEN",
+                  "token": [
+                    "m",
+                    "n",
+                    "o"
+                  ]
+                }
+              ]
+            },
+            "SWIPE_DOWN": {
+              "actionType": "PUSH_TOKEN",
+              "default": [
+                {
+                  "type": "PUSH_TOKEN",
+                  "token": "6"
+                }
+              ]
             }
           }
         },
         {
           "keyId": "key_reinput",
           "label": "重输",
-          "styleId": "style_function_key",
           "primaryCode": -200,
-          "gridPosition": {
-            "startCol": 4,
-            "startRow": 1,
-            "spanCols": 1
+          "ui": {
+            "styleId": "style_function_key",
+            "gridPosition": {
+              "startCol": 4,
+              "startRow": 1,
+              "spanCols": 1
+            },
+            "icons": [],
+            "accessibilityLabel": null
           },
-          "widthWeight": 1.2,
-          "behaviors": {
+          "actions": {
             "TAP": {
-              "actionType": "COMMIT",
-              "value": ""
+              "actionType": "CLEAR_COMPOSITION",
+              "default": [
+                {
+                  "type": "CLEAR_COMPOSITION"
+                }
+              ]
             }
           }
         }
@@ -214,93 +379,181 @@
         {
           "keyId": "key_question",
           "label": "?",
-          "styleId": "style_function_key",
           "primaryCode": 63,
-          "gridPosition": {
-            "startCol": 0,
-            "startRow": 2,
-            "spanCols": 1
+          "ui": {
+            "styleId": "style_function_key",
+            "gridPosition": {
+              "startCol": 0,
+              "startRow": 2,
+              "spanCols": 1
+            },
+            "icons": [],
+            "accessibilityLabel": null
           },
-          "behaviors": {
-            "LONG_PRESS": {
-              "actionType": "SHOW_POPUP",
-              "values": [
-                "!"
-              ]
-            }
-          }
+          "actions": {}
         },
         {
           "keyId": "key_7",
           "label": "PQRS",
-          "styleId": "style_function_key_important",
           "primaryCode": 55,
-          "gridPosition": {
-            "startCol": 1,
-            "startRow": 2,
-            "spanCols": 1
-          },
           "hints": {
             "BOTTOM_CENTER": "7"
           },
-          "behaviors": {
+          "ui": {
+            "styleId": "style_function_key_important",
+            "gridPosition": {
+              "startCol": 1,
+              "startRow": 2,
+              "spanCols": 1
+            },
+            "icons": [],
+            "accessibilityLabel": null
+          },
+          "actions": {
             "TAP": {
-              "actionType": "COMMIT",
-              "value": "7"
+              "actionType": "PUSH_TOKEN",
+              "default": [
+                {
+                  "type": "PUSH_TOKEN",
+                  "token": [
+                    "p",
+                    "q",
+                    "r",
+                    "s"
+                  ]
+                }
+              ]
+            },
+            "SWIPE_DOWN": {
+              "actionType": "PUSH_TOKEN",
+              "default": [
+                {
+                  "type": "PUSH_TOKEN",
+                  "token": "7"
+                }
+              ]
             }
           }
         },
         {
           "keyId": "key_8",
           "label": "TUV",
-          "styleId": "style_function_key_important",
           "primaryCode": 56,
-          "gridPosition": {
-            "startCol": 2,
-            "startRow": 2,
-            "spanCols": 1
-          },
           "hints": {
             "BOTTOM_CENTER": "8"
           },
-          "behaviors": {
+          "ui": {
+            "styleId": "style_function_key_important",
+            "gridPosition": {
+              "startCol": 2,
+              "startRow": 2,
+              "spanCols": 1
+            },
+            "icons": [],
+            "accessibilityLabel": null
+          },
+          "actions": {
             "TAP": {
-              "actionType": "COMMIT",
-              "value": "8"
+              "actionType": "PUSH_TOKEN",
+              "default": [
+                {
+                  "type": "PUSH_TOKEN",
+                  "token": [
+                    "t",
+                    "u",
+                    "v"
+                  ]
+                }
+              ]
+            },
+            "SWIPE_DOWN": {
+              "actionType": "PUSH_TOKEN",
+              "default": [
+                {
+                  "type": "PUSH_TOKEN",
+                  "token": "8"
+                }
+              ]
             }
           }
         },
         {
           "keyId": "key_9",
           "label": "WXYZ",
-          "styleId": "style_function_key_important",
           "primaryCode": 57,
-          "gridPosition": {
-            "startCol": 3,
-            "startRow": 2,
-            "spanCols": 1
-          },
           "hints": {
             "BOTTOM_CENTER": "9"
           },
-          "behaviors": {
+          "ui": {
+            "styleId": "style_function_key_important",
+            "gridPosition": {
+              "startCol": 3,
+              "startRow": 2,
+              "spanCols": 1
+            },
+            "icons": [],
+            "accessibilityLabel": null
+          },
+          "actions": {
             "TAP": {
-              "actionType": "COMMIT",
-              "value": "9"
+              "actionType": "PUSH_TOKEN",
+              "default": [
+                {
+                  "type": "PUSH_TOKEN",
+                  "token": [
+                    "w",
+                    "x",
+                    "y",
+                    "z"
+                  ]
+                }
+              ]
+            },
+            "SWIPE_DOWN": {
+              "actionType": "PUSH_TOKEN",
+              "default": [
+                {
+                  "type": "PUSH_TOKEN",
+                  "token": "9"
+                }
+              ]
             }
           }
         },
         {
           "keyId": "key_0",
           "label": "0",
-          "styleId": "style_function_key",
           "primaryCode": 48,
-          "gridPosition": {
-            "startCol": 4,
-            "startRow": 2,
-            "spanCols": 1
+          "ui": {
+            "styleId": "style_function_key",
+            "gridPosition": {
+              "startCol": 4,
+              "startRow": 2,
+              "spanCols": 1
+            },
+            "icons": [],
+            "accessibilityLabel": null
           },
-          "widthWeight": 1.2
+          "actions": {
+            "TAP": {
+              "actionType": "COMMAND",
+              "default": [
+                {
+                  "type": "COMMAND",
+                  "commandType": "SPACE"
+                }
+              ]
+            },
+            "SWIPE_DOWN": {
+              "actionType": "PUSH_TOKEN",
+              "default": [
+                {
+                  "type": "PUSH_TOKEN",
+                  "token": "0"
+                }
+              ]
+            }
+          }
         }
       ]
     },
@@ -312,93 +565,133 @@
         {
           "keyId": "key_symbols",
           "label": "符",
-          "styleId": "style_function_key_important",
           "primaryCode": -100,
-          "gridPosition": {
-            "startCol": 0,
-            "startRow": 3,
-            "spanCols": 1
+          "ui": {
+            "styleId": "style_function_key_important",
+            "gridPosition": {
+              "startCol": 0,
+              "startRow": 3,
+              "spanCols": 1
+            },
+            "icons": [],
+            "accessibilityLabel": null
           },
-          "widthWeight": 1.5,
-          "behaviors": {
+          "actions": {
             "TAP": {
-              "actionType": "SHOW_SYMBOLS"
+              "actionType": "SWITCH_LAYOUT",
+              "default": [
+                {
+                  "type": "SWITCH_LAYOUT",
+                  "layoutId": "symbols"
+                }
+              ]
             }
           }
         },
         {
           "keyId": "key_mode_switch",
           "label": "123",
-          "styleId": "style_function_key_important",
           "primaryCode": -2,
-          "gridPosition": {
-            "startCol": 1,
-            "startRow": 3,
-            "spanCols": 1
+          "ui": {
+            "styleId": "style_function_key_important",
+            "gridPosition": {
+              "startCol": 1,
+              "startRow": 3,
+              "spanCols": 1
+            },
+            "icons": [],
+            "accessibilityLabel": null
           },
-          "widthWeight": 1.5,
-          "behaviors": {
+          "actions": {
             "TAP": {
               "actionType": "SWITCH_LAYOUT",
-              "value": "numeric"
+              "default": [
+                {
+                  "type": "SWITCH_LAYOUT",
+                  "layoutId": "numeric"
+                }
+              ]
             }
           }
         },
         {
           "keyId": "key_space",
           "label": "space",
-          "styleId": "style_function_key_important",
           "primaryCode": 32,
-          "gridPosition": {
-            "startCol": 2,
-            "startRow": 3,
-            "spanCols": 1
+          "ui": {
+            "styleId": "style_function_key_important",
+            "gridPosition": {
+              "startCol": 2,
+              "startRow": 3,
+              "spanCols": 1
+            },
+            "icons": [],
+            "accessibilityLabel": null,
+            "widthWeight": 2.0
           },
-          "widthWeight": 5.0,
-          "behaviors": {
+          "actions": {
             "TAP": {
-              "actionType": "SPACE"
+              "actionType": "COMMAND",
+              "default": [
+                {
+                  "type": "COMMAND",
+                  "commandType": "SPACE"
+                }
+              ]
             }
           }
         },
         {
           "keyId": "key_lang_toggle",
-          "specialKey": "TOGGLE_LOCALE",
           "label": "中",
-          "styleId": "style_function_key",
           "primaryCode": -99,
-          "gridPosition": {
-            "startCol": 3,
-            "startRow": 3,
-            "spanCols": 1
-          },
-          "widthWeight": 1.5,
           "hints": {
             "BOTTOM_RIGHT": "/英"
           },
-          "behaviors": {
+          "ui": {
+            "styleId": "style_function_key",
+            "gridPosition": {
+              "startCol": 3,
+              "startRow": 3,
+              "spanCols": 1
+            },
+            "icons": [],
+            "accessibilityLabel": null
+          },
+          "actions": {
             "TAP": {
-              "actionType": "COMMIT",
-              "value": ""
+              "actionType": "TOGGLE_LOCALE",
+              "default": [
+                {
+                  "type": "TOGGLE_LOCALE"
+                }
+              ]
             }
           }
         },
         {
           "keyId": "key_search",
-          "specialKey": "ENTER",
           "label": "搜索",
-          "styleId": "style_function_key_important",
           "primaryCode": 10,
-          "gridPosition": {
-            "startCol": 4,
-            "startRow": 3,
-            "spanCols": 1
+          "ui": {
+            "styleId": "style_function_key_important",
+            "gridPosition": {
+              "startCol": 4,
+              "startRow": 3,
+              "spanCols": 1
+            },
+            "icons": [],
+            "accessibilityLabel": null
           },
-          "widthWeight": 2.0,
-          "behaviors": {
+          "actions": {
             "TAP": {
-              "actionType": "COMMIT",
-              "value": "\n"
+              "actionType": "COMMAND",
+              "default": [
+                {
+                  "type": "COMMAND",
+                  "commandType": "ENTER"
+                }
+              ]
             }
           }
         }

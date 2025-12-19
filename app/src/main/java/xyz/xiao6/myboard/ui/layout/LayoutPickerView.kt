@@ -334,9 +334,9 @@ class LayoutPickerView @JvmOverloads constructor(
             val rows = layout.rows.take(4)
             if (rows.isEmpty()) return
 
-            val colCounts =
-                rows.map { row ->
-                    row.keys.maxOfOrNull { it.gridPosition.startCol + it.gridPosition.spanCols } ?: row.keys.size
+                val colCounts =
+                    rows.map { row ->
+                    row.keys.maxOfOrNull { it.ui.gridPosition.startCol + it.ui.gridPosition.spanCols } ?: row.keys.size
                 }.map { it.coerceAtLeast(1) }
             val maxCols = colCounts.maxOrNull()?.coerceAtLeast(1) ?: 1
 
@@ -355,10 +355,10 @@ class LayoutPickerView @JvmOverloads constructor(
                 val yBottom = yTop + rowH
                 val colW = w / maxCols
 
-                val keys = row.keys.sortedBy { it.gridPosition.startCol }
+                val keys = row.keys.sortedBy { it.ui.gridPosition.startCol }
                 for (k in keys) {
-                    val start = k.gridPosition.startCol
-                    val span = k.gridPosition.spanCols.coerceAtLeast(1)
+                    val start = k.ui.gridPosition.startCol
+                    val span = k.ui.gridPosition.spanCols.coerceAtLeast(1)
                     val xLeft = left + start * colW
                     val xRight = left + (start + span) * colW - dp(2f)
                     val rx = (xRight - xLeft).coerceAtLeast(dp(6f))
@@ -368,7 +368,7 @@ class LayoutPickerView @JvmOverloads constructor(
                     canvas.drawRoundRect(rectLeft, yTop, rectRight, yBottom, radius, radius, keyPaint)
                     canvas.drawRoundRect(rectLeft, yTop, rectRight, yBottom, radius, radius, strokePaint)
 
-                    val label = k.label.take(1)
+                    val label = (k.ui.label ?: k.label).orEmpty().take(1)
                     val cy = (yTop + yBottom) / 2f - (textPaint.ascent() + textPaint.descent()) / 2f
                     canvas.drawText(label, (rectLeft + rectRight) / 2f, cy, textPaint)
                 }

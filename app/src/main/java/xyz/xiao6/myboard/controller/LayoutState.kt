@@ -6,7 +6,16 @@ package xyz.xiao6.myboard.controller
  */
 data class LayoutState(
     val shift: ShiftState = ShiftState.OFF,
-    val layer: Layer = Layer.BASE,
+    val layer: xyz.xiao6.myboard.model.KeyboardLayer = xyz.xiao6.myboard.model.KeyboardLayer.ALPHA,
+    /**
+     * Current locale tag (normalized, e.g. "zh-CN" or "en-US") used for key action matching.
+     */
+    val localeTag: String? = null,
+    /**
+     * Input engine tag used for scripted key behavior matching (e.g. "ZH_PINYIN", "DIRECT").
+     * Empty/null means "unknown".
+     */
+    val engine: String? = null,
     val hiddenKeyIds: Set<String> = emptySet(),
     val highlightedKeyIds: Set<String> = emptySet(),
     /**
@@ -17,7 +26,7 @@ data class LayoutState(
     /**
      * Per-key hint override (no geometry change). Merged on top of Key.hints (override wins).
      */
-    val hintOverrides: Map<String, Map<xyz.xiao6.myboard.model.HintPosition, String>> = emptyMap(),
+    val hintOverrides: Map<String, Map<String, String>> = emptyMap(),
 )
 
 /**
@@ -34,8 +43,4 @@ enum class ShiftState {
  * 同一布局内的“页/层”切换：要求几何不变（仅内容变化）。
  * In-layout layer/page switching: geometry must remain unchanged (content changes only).
  */
-enum class Layer {
-    BASE,
-    SYMBOLS_1,
-    SYMBOLS_2,
-}
+// In-layout layer/page is now represented by model.KeyboardLayer.

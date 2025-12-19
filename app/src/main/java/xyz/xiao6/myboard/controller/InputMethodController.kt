@@ -10,11 +10,18 @@ import kotlinx.coroutines.flow.asStateFlow
 import xyz.xiao6.myboard.decoder.DecodeUpdate
 import xyz.xiao6.myboard.decoder.Decoder
 import xyz.xiao6.myboard.decoder.PassthroughDecoder
+import xyz.xiao6.myboard.decoder.TokenDecoder
+import xyz.xiao6.myboard.decoder.TokenDecoderAdapter
 import xyz.xiao6.myboard.manager.LayoutManager
 import xyz.xiao6.myboard.model.KeyboardLayout
 import xyz.xiao6.myboard.model.Key
 import xyz.xiao6.myboard.model.KeyAction
-import xyz.xiao6.myboard.model.KeyTrigger
+import xyz.xiao6.myboard.model.Token as KeyToken
+import xyz.xiao6.myboard.model.GestureType
+import xyz.xiao6.myboard.model.KeyboardLayer
+import xyz.xiao6.myboard.model.ModifierKey
+import xyz.xiao6.myboard.model.Action
+import xyz.xiao6.myboard.model.ActionType
 import xyz.xiao6.myboard.ui.keyboard.KeyboardSurfaceView
 import xyz.xiao6.myboard.util.MLog
 
@@ -31,6 +38,7 @@ class InputMethodController(
     private var keyboardView: KeyboardSurfaceView? = null
     private val layoutHistory = ArrayDeque<String>()
     private var primaryLayoutId: String = ""
+    private val symbolsLayoutId = "symbols"
 
     private val _layoutState = MutableStateFlow(LayoutState())
     val layoutState: StateFlow<LayoutState> = _layoutState.asStateFlow()
@@ -66,6 +74,7 @@ class InputMethodController(
         data class SetDecoder(val decoder: Decoder) : DecodeRequest
         data object Reset : DecodeRequest
         data class Text(val text: String) : DecodeRequest
+        data class Token(val token: KeyToken) : DecodeRequest
         data class CandidateSelected(val text: String) : DecodeRequest
     }
 
@@ -81,6 +90,7 @@ class InputMethodController(
                         }
                         DecodeRequest.Reset -> decoder.reset()
                         is DecodeRequest.Text -> decoder.onText(req.text)
+                        is DecodeRequest.Token -> onToken(decoder, req.token)
                         is DecodeRequest.CandidateSelected -> decoder.onCandidateSelected(req.text)
                     }
                 withContext(Dispatchers.Main.immediate) {
@@ -99,7 +109,16 @@ class InputMethodController(
     fun setDecoder(newDecoder: Decoder) {
         MLog.d(logTag, "setDecoder=${newDecoder::class.simpleName}")
         clearDecodeUiState()
+        updateState({ it.copy(engine = inferEngineTag(newDecoder)) }, invalidateKeyIds = emptySet())
         decodeRequests.trySend(DecodeRequest.SetDecoder(newDecoder))
+    }
+
+    private fun inferEngineTag(decoder: Decoder): String {
+        return when (decoder) {
+            is xyz.xiao6.myboard.decoder.TokenPinyinDecoder -> "ZH_PINYIN"
+            xyz.xiao6.myboard.decoder.PassthroughDecoder -> "DIRECT"
+            else -> decoder::class.simpleName ?: "UNKNOWN"
+        }
     }
 
     /**
@@ -107,11 +126,20 @@ class InputMethodController(
      * Layout switch: load a new layout JSON and force geometry recomputation (requestLayout).
      */
     fun loadLayout(layoutId: String) {
-        layoutManager.loadAllFromAssets()
-        val layout = layoutManager.getLayout(layoutId)
         layoutHistory.clear()
         primaryLayoutId = layoutId
-        applyNewLayout(layout, pushToHistory = false)
+        switchToLayout(layoutId, pushToHistory = false)
+    }
+
+    private fun switchToLayout(layoutId: String, pushToHistory: Boolean) {
+        if (layoutId == symbolsLayoutId) {
+            MLog.d(logTag, "switchToLayout(symbols) -> showSymbols panel")
+            onShowSymbols?.invoke()
+            return
+        }
+        layoutManager.loadAllFromAssets()
+        val layout = layoutManager.getLayout(layoutId)
+        applyNewLayout(layout, pushToHistory = pushToHistory)
     }
 
     /**
@@ -129,7 +157,7 @@ class InputMethodController(
      * 处理按键手势触发。
      * Handle key trigger (gesture).
      */
-    fun onKeyTriggered(keyId: String, trigger: KeyTrigger) {
+    fun onKeyTriggered(keyId: String, trigger: GestureType) {
         val key = model.keys.firstOrNull { it.keyId == keyId } ?: return
         MLog.d(
             logTag,
@@ -143,7 +171,7 @@ class InputMethodController(
      * Handle an action (e.g. Shift or layout switch).
      */
     fun onAction(action: KeyAction) {
-        dispatch(KeyboardStateMachine.Event.Action(action))
+        dispatch(KeyboardStateMachine.Event.ActionEvent(action))
     }
 
     fun onCandidateSelected(text: String) {
@@ -162,18 +190,45 @@ class InputMethodController(
         for (effect in effects) {
             when (effect) {
                 is KeyboardStateMachine.Effect.CommitText -> {
-                    // Enter during composition: commit composing as raw text, do NOT auto-pick the first candidate.
-                    if (effect.text == "\n" && (_composingText.value.isNotEmpty() || _candidates.value.isNotEmpty())) {
-                        MLog.d(logTag, "Effect.CommitText(ENTER) -> CommitComposing (avoid auto-pick)")
+                    if (effect.text == "\n") {
+                        val candidates = _candidates.value
                         val composing = _composingText.value
-                        if (composing.isNotEmpty()) {
-                            onCommitText?.invoke(composing)
+                        // ENTER with candidates: commit the top candidate.
+                        if (candidates.isNotEmpty()) {
+                            val top = candidates.first()
+                            MLog.d(logTag, "Effect.CommitText(ENTER) -> commitTopCandidate len=${top.length}")
+                            onCommitText?.invoke(top)
+                            clearDecodeUiState()
+                            decodeRequests.trySend(DecodeRequest.Reset)
+                            continue
                         }
-                        clearDecodeUiState()
-                        decodeRequests.trySend(DecodeRequest.Reset)
-                    } else {
-                        MLog.d(logTag, "Effect.CommitText text=${effect.text.take(16)}")
-                        decodeRequests.trySend(DecodeRequest.Text(effect.text))
+                        // ENTER with composing but no candidates: commit composing raw.
+                        if (composing.isNotEmpty()) {
+                            MLog.d(logTag, "Effect.CommitText(ENTER) -> commitComposingRaw len=${composing.length}")
+                            onCommitText?.invoke(composing)
+                            clearDecodeUiState()
+                            decodeRequests.trySend(DecodeRequest.Reset)
+                            continue
+                        }
+                    }
+
+                    MLog.d(logTag, "Effect.CommitText text=${effect.text.take(16)}")
+                    decodeRequests.trySend(DecodeRequest.Text(effect.text))
+                }
+
+                is KeyboardStateMachine.Effect.PushToken -> {
+                    val token = applyShiftToToken(effect.token)
+                    MLog.d(logTag, "Effect.PushToken type=${token.type}")
+                    decodeRequests.trySend(DecodeRequest.Token(token))
+
+                    if (shouldReleaseShiftAfterToken(token)) {
+                        val layout = _currentLayout.value
+                        val invalidateIds =
+                            layout?.rows?.flatMapTo(LinkedHashSet()) { row -> row.keys.map { it.keyId } }.orEmpty()
+                        updateState(
+                            reducer = { it.copy(shift = ShiftState.OFF) },
+                            invalidateKeyIds = invalidateIds,
+                        )
                     }
                 }
 
@@ -191,44 +246,72 @@ class InputMethodController(
 
                 is KeyboardStateMachine.Effect.SwitchLayout -> {
                     MLog.d(logTag, "Effect.SwitchLayout layoutId=${effect.layoutId}")
-                    layoutManager.loadAllFromAssets()
-                    val layout = layoutManager.getLayout(effect.layoutId)
-                    applyNewLayout(layout, pushToHistory = true)
+                    switchToLayout(effect.layoutId, pushToHistory = true)
                 }
 
-                is KeyboardStateMachine.Effect.SwitchLocale -> {
-                    MLog.d(logTag, "Effect.SwitchLocale localeTag=${effect.localeTag}")
-                    // Locale change usually implies dictionary/mode change; clear current candidates.
-                    clearDecodeUiState()
-                    decodeRequests.trySend(DecodeRequest.Reset)
-                    onSwitchLocale?.invoke(effect.localeTag)
+                KeyboardStateMachine.Effect.Back -> {
+                    val target =
+                        layoutHistory.removeLastOrNull()
+                            ?: primaryLayoutId.takeIf { it.isNotBlank() && it != model.currentLayoutId }
+                            ?: "qwerty"
+                    MLog.d(logTag, "Effect.Back -> $target")
+                    switchToLayout(target, pushToHistory = false)
                 }
 
                 KeyboardStateMachine.Effect.ToggleLocale -> {
                     MLog.d(logTag, "Effect.ToggleLocale")
-                    clearDecodeUiState()
-                    decodeRequests.trySend(DecodeRequest.Reset)
                     onToggleLocale?.invoke()
                 }
 
-                KeyboardStateMachine.Effect.BackLayout -> {
-                    val targetId = layoutHistory.removeLastOrNull()
-                        ?: primaryLayoutId.takeIf { it.isNotBlank() && it != model.currentLayoutId }
-                        ?: continue
+                is KeyboardStateMachine.Effect.SwitchLayer -> {
+                    MLog.d(logTag, "Effect.SwitchLayer layer=${effect.layer}")
+                    clearDecodeUiState()
+                    decodeRequests.trySend(DecodeRequest.Reset)
 
-                    layoutManager.loadAllFromAssets()
-                    val layout = layoutManager.getLayout(targetId)
-                    applyNewLayout(layout, pushToHistory = false)
+                    val layout = _currentLayout.value
+                    val overrideLabels = layout?.let { computeLabelOverrides(it, effect.layer) }.orEmpty()
+                    val invalidateIds =
+                        if (layout == null) emptySet()
+                        else layout.rows.flatMapTo(LinkedHashSet()) { row -> row.keys.map { it.keyId } }
+
+                    updateState(
+                        reducer = { s -> s.copy(layer = effect.layer, labelOverrides = overrideLabels) },
+                        invalidateKeyIds = invalidateIds,
+                    )
                 }
 
-                KeyboardStateMachine.Effect.ShowSymbols -> {
-                    MLog.d(logTag, "Effect.ShowSymbols")
-                    onShowSymbols?.invoke()
+                is KeyboardStateMachine.Effect.SwitchEngine -> {
+                    MLog.d(logTag, "Effect.SwitchEngine engine=${effect.engine} (no-op for now)")
                 }
 
-                is KeyboardStateMachine.Effect.UpdateState -> {
-                    _layoutState.value = effect.newState
-                    keyboardView?.setLayoutState(effect.newState, effect.invalidateKeyIds)
+                is KeyboardStateMachine.Effect.ToggleModifier -> {
+                    MLog.d(logTag, "Effect.ToggleModifier modifier=${effect.modifier} (partial)")
+                    when (effect.modifier) {
+                        ModifierKey.SHIFT -> {
+                            val layout = _currentLayout.value
+                            val invalidateIds =
+                                layout?.rows?.flatMapTo(LinkedHashSet()) { row -> row.keys.map { it.keyId } }.orEmpty()
+                            updateState(
+                                reducer = { it.copy(shift = if (it.shift == ShiftState.OFF) ShiftState.ON else ShiftState.OFF) },
+                                invalidateKeyIds = invalidateIds,
+                            )
+                        }
+                        ModifierKey.CAPS_LOCK -> {
+                            val layout = _currentLayout.value
+                            val invalidateIds =
+                                layout?.rows?.flatMapTo(LinkedHashSet()) { row -> row.keys.map { it.keyId } }.orEmpty()
+                            updateState(
+                                reducer = { it.copy(shift = if (it.shift == ShiftState.CAPS_LOCK) ShiftState.OFF else ShiftState.CAPS_LOCK) },
+                                invalidateKeyIds = invalidateIds,
+                            )
+                        }
+                        ModifierKey.ALT -> Unit
+                    }
+                }
+
+                KeyboardStateMachine.Effect.ClearComposition -> {
+                    clearDecodeUiState()
+                    decodeRequests.trySend(DecodeRequest.Reset)
                 }
 
                 KeyboardStateMachine.Effect.NoOp -> Unit
@@ -292,5 +375,49 @@ class InputMethodController(
         _composingText.value = ""
         _composingOptions.value = emptyList()
         _candidates.value = emptyList()
+    }
+
+    private fun onToken(decoder: Decoder, token: KeyToken): DecodeUpdate {
+        val tokenDecoder: TokenDecoder =
+            (decoder as? TokenDecoder) ?: TokenDecoderAdapter(decoder)
+        return tokenDecoder.onToken(token)
+    }
+
+    private fun applyShiftToToken(token: KeyToken): KeyToken {
+        val shift = _layoutState.value.shift
+        if (shift == ShiftState.OFF) return token
+        if (token !is KeyToken.Literal) return token
+        if (token.text.length != 1) return token
+        val c = token.text[0]
+        if (!c.isLetter()) return token
+        val out = if (shift == ShiftState.OFF) c.lowercaseChar() else c.uppercaseChar()
+        return if (out == c) token else KeyToken.Literal(out.toString())
+    }
+
+    private fun shouldReleaseShiftAfterToken(token: KeyToken): Boolean {
+        val state = _layoutState.value
+        if (state.shift != ShiftState.ON) return false
+        if (token !is KeyToken.Literal) return false
+        if (token.text.length != 1) return false
+        return token.text[0].isLetter()
+    }
+
+    private fun computeLabelOverrides(layout: KeyboardLayout, layer: KeyboardLayer): Map<String, String> {
+        val out = LinkedHashMap<String, String>()
+        for (row in layout.rows) {
+            for (key in row.keys) {
+                val action = key.actions[GestureType.TAP] ?: continue
+                val case = action.cases.firstOrNull { it.whenCondition?.layer == layer } ?: continue
+                val first = case.doActions.firstOrNull() ?: continue
+                val label =
+                    when (first) {
+                        is Action.CommitText -> first.text
+                        is Action.PushToken -> (first.token as? xyz.xiao6.myboard.model.Token.Literal)?.text
+                        else -> null
+                    } ?: continue
+                out[key.keyId] = label
+            }
+        }
+        return out
     }
 }

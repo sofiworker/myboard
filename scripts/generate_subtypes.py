@@ -160,9 +160,16 @@ def main(argv: list[str] | None = None) -> int:
 
     layouts: list[LayoutDef] = []
     for f in layout_files:
-        obj = _load_json(f)
+        try:
+            obj = _load_json(f)
+        except json.JSONDecodeError:
+            # Allow keeping schema/examples (e.g. action.json/token.json) under layouts dir.
+            continue
         if not isinstance(obj, dict):
             raise SystemExit(f"{f}: layout json root must be an object")
+        # Allow keeping schema/examples (e.g. key.json/action.json/token.json) under layouts dir.
+        if not obj.get("layoutId"):
+            continue
         layouts.append(_parse_layout(obj, f))
 
     dictionaries: list[DictionaryDef] = []

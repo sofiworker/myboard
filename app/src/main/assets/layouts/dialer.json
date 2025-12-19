@@ -1,0 +1,156 @@
+{
+  "layoutId": "dialer",
+  "name": "Dialer",
+  "locale": [],
+  "totalWidthRatio": 1.0,
+  "totalWidthDpOffset": 0,
+  "totalHeightRatio": 0.32,
+  "totalHeightDpOffset": 0,
+  "defaults": {
+    "horizontalGapDp": 6,
+    "verticalGapDp": 6,
+    "padding": { "topDp": 8, "bottomDp": 8, "leftDp": 8, "rightDp": 8 }
+  },
+  "rows": [
+    {
+      "rowId": "row_1",
+      "heightRatio": 0.25,
+      "alignment": "JUSTIFY",
+      "keys": [
+        {
+          "keyId": "key_1",
+          "label": "1",
+          "primaryCode": 49,
+          "ui": { "styleId": "style_function_key_important", "gridPosition": { "startCol": 0, "startRow": 0, "spanCols": 1 }, "icons": [], "accessibilityLabel": "1" },
+          "actions": { "TAP": { "actionType": "PUSH_TOKEN", "fallback": "PRIMARY_CODE_AS_TOKEN" } }
+        },
+        {
+          "keyId": "key_2",
+          "label": "2",
+          "primaryCode": 50,
+          "ui": { "styleId": "style_function_key_important", "gridPosition": { "startCol": 1, "startRow": 0, "spanCols": 1 }, "icons": [], "accessibilityLabel": "2" },
+          "actions": { "TAP": { "actionType": "PUSH_TOKEN", "fallback": "PRIMARY_CODE_AS_TOKEN" } }
+        },
+        {
+          "keyId": "key_3",
+          "label": "3",
+          "primaryCode": 51,
+          "ui": { "styleId": "style_function_key_important", "gridPosition": { "startCol": 2, "startRow": 0, "spanCols": 1 }, "icons": [], "accessibilityLabel": "3" },
+          "actions": { "TAP": { "actionType": "PUSH_TOKEN", "fallback": "PRIMARY_CODE_AS_TOKEN" } }
+        }
+      ]
+    },
+    {
+      "rowId": "row_2",
+      "heightRatio": 0.25,
+      "alignment": "JUSTIFY",
+      "keys": [
+        {
+          "keyId": "key_4",
+          "label": "4",
+          "primaryCode": 52,
+          "ui": { "styleId": "style_function_key_important", "gridPosition": { "startCol": 0, "startRow": 1, "spanCols": 1 }, "icons": [], "accessibilityLabel": "4" },
+          "actions": { "TAP": { "actionType": "PUSH_TOKEN", "fallback": "PRIMARY_CODE_AS_TOKEN" } }
+        },
+        {
+          "keyId": "key_5",
+          "label": "5",
+          "primaryCode": 53,
+          "ui": { "styleId": "style_function_key_important", "gridPosition": { "startCol": 1, "startRow": 1, "spanCols": 1 }, "icons": [], "accessibilityLabel": "5" },
+          "actions": { "TAP": { "actionType": "PUSH_TOKEN", "fallback": "PRIMARY_CODE_AS_TOKEN" } }
+        },
+        {
+          "keyId": "key_6",
+          "label": "6",
+          "primaryCode": 54,
+          "ui": { "styleId": "style_function_key_important", "gridPosition": { "startCol": 2, "startRow": 1, "spanCols": 1 }, "icons": [], "accessibilityLabel": "6" },
+          "actions": { "TAP": { "actionType": "PUSH_TOKEN", "fallback": "PRIMARY_CODE_AS_TOKEN" } }
+        }
+      ]
+    },
+    {
+      "rowId": "row_3",
+      "heightRatio": 0.25,
+      "alignment": "JUSTIFY",
+      "keys": [
+        {
+          "keyId": "key_7",
+          "label": "7",
+          "primaryCode": 55,
+          "ui": { "styleId": "style_function_key_important", "gridPosition": { "startCol": 0, "startRow": 2, "spanCols": 1 }, "icons": [], "accessibilityLabel": "7" },
+          "actions": { "TAP": { "actionType": "PUSH_TOKEN", "fallback": "PRIMARY_CODE_AS_TOKEN" } }
+        },
+        {
+          "keyId": "key_8",
+          "label": "8",
+          "primaryCode": 56,
+          "ui": { "styleId": "style_function_key_important", "gridPosition": { "startCol": 1, "startRow": 2, "spanCols": 1 }, "icons": [], "accessibilityLabel": "8" },
+          "actions": { "TAP": { "actionType": "PUSH_TOKEN", "fallback": "PRIMARY_CODE_AS_TOKEN" } }
+        },
+        {
+          "keyId": "key_9",
+          "label": "9",
+          "primaryCode": 57,
+          "ui": { "styleId": "style_function_key_important", "gridPosition": { "startCol": 2, "startRow": 2, "spanCols": 1 }, "icons": [], "accessibilityLabel": "9" },
+          "actions": { "TAP": { "actionType": "PUSH_TOKEN", "fallback": "PRIMARY_CODE_AS_TOKEN" } }
+        }
+      ]
+    },
+    {
+      "rowId": "row_4",
+      "heightRatio": 0.25,
+      "alignment": "JUSTIFY",
+      "keys": [
+        {
+          "keyId": "key_star",
+          "label": "*",
+          "primaryCode": 42,
+          "ui": { "styleId": "style_function_key", "gridPosition": { "startCol": 0, "startRow": 3, "spanCols": 1 }, "icons": [], "accessibilityLabel": "*" },
+          "actions": { "TAP": { "actionType": "PUSH_TOKEN", "fallback": "PRIMARY_CODE_AS_TOKEN" } }
+        },
+        {
+          "keyId": "key_0",
+          "label": "0",
+          "primaryCode": 48,
+          "ui": { "styleId": "style_function_key_important", "gridPosition": { "startCol": 1, "startRow": 3, "spanCols": 1 }, "icons": [], "accessibilityLabel": "0" },
+          "actions": { "TAP": { "actionType": "PUSH_TOKEN", "fallback": "PRIMARY_CODE_AS_TOKEN" } }
+        },
+        {
+          "keyId": "key_hash",
+          "label": "#",
+          "primaryCode": 35,
+          "ui": { "styleId": "style_function_key", "gridPosition": { "startCol": 2, "startRow": 3, "spanCols": 1 }, "icons": [], "accessibilityLabel": "#" },
+          "actions": { "TAP": { "actionType": "PUSH_TOKEN", "fallback": "PRIMARY_CODE_AS_TOKEN" } }
+        }
+      ]
+    },
+    {
+      "rowId": "row_5",
+      "heightRatio": 0.25,
+      "alignment": "JUSTIFY",
+      "keys": [
+        {
+          "keyId": "key_back",
+          "label": "ABC",
+          "primaryCode": -102,
+          "ui": { "styleId": "style_function_key", "gridPosition": { "startCol": 0, "startRow": 4, "spanCols": 1 }, "icons": [], "accessibilityLabel": "ABC" },
+          "actions": { "TAP": { "actionType": "BACK", "default": [ { "type": "BACK" } ] } }
+        },
+        {
+          "keyId": "key_space",
+          "label": "space",
+          "primaryCode": 32,
+          "ui": { "styleId": "style_function_key_important", "gridPosition": { "startCol": 1, "startRow": 4, "spanCols": 1 }, "icons": [], "accessibilityLabel": "space" },
+          "actions": { "TAP": { "actionType": "COMMAND", "default": [ { "type": "COMMAND", "commandType": "SPACE" } ] } }
+        },
+        {
+          "keyId": "key_backspace",
+          "label": "⌫",
+          "primaryCode": -5,
+          "ui": { "styleId": "style_function_key", "gridPosition": { "startCol": 2, "startRow": 4, "spanCols": 1 }, "icons": [], "accessibilityLabel": "backspace" },
+          "actions": { "TAP": { "actionType": "COMMAND", "default": [ { "type": "COMMAND", "commandType": "BACKSPACE" } ] } }
+        }
+      ]
+    }
+  ]
+}
