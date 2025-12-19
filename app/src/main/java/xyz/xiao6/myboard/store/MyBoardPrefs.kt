@@ -1,10 +1,19 @@
 package xyz.xiao6.myboard.store
 
 import android.content.Context
+import android.content.SharedPreferences
 import java.util.Locale
 
 class MyBoardPrefs(context: Context) {
     private val sp = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+
+    init {
+        // Migrate old sentinel values (-1f) to NaN so real -1 offsets are allowed.
+        migrateFloatSentinel(KEY_GLOBAL_KB_WIDTH_RATIO)
+        migrateFloatSentinel(KEY_GLOBAL_KB_WIDTH_DPOFFSET)
+        migrateFloatSentinel(KEY_GLOBAL_KB_HEIGHT_RATIO)
+        migrateFloatSentinel(KEY_GLOBAL_KB_HEIGHT_DPOFFSET)
+    }
 
     fun getEnabledLocaleTags(): List<String> {
         val raw = sp.getString(KEY_ENABLED_LOCALES, null)?.trim().orEmpty()
@@ -54,30 +63,42 @@ class MyBoardPrefs(context: Context) {
         }
 
     var globalKeyboardWidthRatio: Float?
-        get() = sp.getFloat(KEY_GLOBAL_KB_WIDTH_RATIO, SENTINEL_FLOAT).takeIf { it > 0f }
+        get() {
+            val v = sp.getFloat(KEY_GLOBAL_KB_WIDTH_RATIO, Float.NaN)
+            return v.takeIf { it.isFinite() && it > 0f }
+        }
         set(value) {
-            val v = value?.takeIf { it > 0f } ?: SENTINEL_FLOAT
+            val v = value?.takeIf { it.isFinite() && it > 0f } ?: Float.NaN
             sp.edit().putFloat(KEY_GLOBAL_KB_WIDTH_RATIO, v).apply()
         }
 
     var globalKeyboardWidthDpOffset: Float?
-        get() = sp.getFloat(KEY_GLOBAL_KB_WIDTH_DPOFFSET, SENTINEL_FLOAT).takeIf { it != SENTINEL_FLOAT }
+        get() {
+            val v = sp.getFloat(KEY_GLOBAL_KB_WIDTH_DPOFFSET, Float.NaN)
+            return v.takeIf { it.isFinite() }
+        }
         set(value) {
-            val v = value ?: SENTINEL_FLOAT
+            val v = value?.takeIf { it.isFinite() } ?: Float.NaN
             sp.edit().putFloat(KEY_GLOBAL_KB_WIDTH_DPOFFSET, v).apply()
         }
 
     var globalKeyboardHeightRatio: Float?
-        get() = sp.getFloat(KEY_GLOBAL_KB_HEIGHT_RATIO, SENTINEL_FLOAT).takeIf { it > 0f }
+        get() {
+            val v = sp.getFloat(KEY_GLOBAL_KB_HEIGHT_RATIO, Float.NaN)
+            return v.takeIf { it.isFinite() && it > 0f }
+        }
         set(value) {
-            val v = value?.takeIf { it > 0f } ?: SENTINEL_FLOAT
+            val v = value?.takeIf { it.isFinite() && it > 0f } ?: Float.NaN
             sp.edit().putFloat(KEY_GLOBAL_KB_HEIGHT_RATIO, v).apply()
         }
 
     var globalKeyboardHeightDpOffset: Float?
-        get() = sp.getFloat(KEY_GLOBAL_KB_HEIGHT_DPOFFSET, SENTINEL_FLOAT).takeIf { it != SENTINEL_FLOAT }
+        get() {
+            val v = sp.getFloat(KEY_GLOBAL_KB_HEIGHT_DPOFFSET, Float.NaN)
+            return v.takeIf { it.isFinite() }
+        }
         set(value) {
-            val v = value ?: SENTINEL_FLOAT
+            val v = value?.takeIf { it.isFinite() } ?: Float.NaN
             sp.edit().putFloat(KEY_GLOBAL_KB_HEIGHT_DPOFFSET, v).apply()
         }
 
@@ -112,6 +133,16 @@ class MyBoardPrefs(context: Context) {
         sp.edit().clear().apply()
     }
 
+    fun addOnChangeListener(onChange: () -> Unit): SharedPreferences.OnSharedPreferenceChangeListener {
+        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, _ -> onChange() }
+        sp.registerOnSharedPreferenceChangeListener(listener)
+        return listener
+    }
+
+    fun removeOnChangeListener(listener: SharedPreferences.OnSharedPreferenceChangeListener) {
+        sp.unregisterOnSharedPreferenceChangeListener(listener)
+    }
+
     private fun normalizeLocaleTag(tag: String): String {
         val t = tag.trim().replace('_', '-')
         val parts = t.split('-').filter { it.isNotBlank() }
@@ -122,7 +153,6 @@ class MyBoardPrefs(context: Context) {
     }
 
     private companion object {
-        private const val SENTINEL_FLOAT = -1f
         private const val PREFS_NAME = "myboard_prefs"
         private const val KEY_ONBOARDING_COMPLETED = "onboarding_completed"
         private const val KEY_USER_LOCALE_TAG = "user_locale_tag"
@@ -137,5 +167,12 @@ class MyBoardPrefs(context: Context) {
         private const val KEY_GLOBAL_KB_WIDTH_DPOFFSET = "global_keyboard_width_dp_offset"
         private const val KEY_GLOBAL_KB_HEIGHT_RATIO = "global_keyboard_height_ratio"
         private const val KEY_GLOBAL_KB_HEIGHT_DPOFFSET = "global_keyboard_height_dp_offset"
+    }
+
+    private fun migrateFloatSentinel(key: String) {
+        val v = sp.getFloat(key, Float.NaN)
+        if (v == -1f) {
+            sp.edit().putFloat(key, Float.NaN).apply()
+        }
     }
 }

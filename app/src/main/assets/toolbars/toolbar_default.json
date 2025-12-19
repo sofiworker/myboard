@@ -6,7 +6,7 @@
     { "itemId": "layout", "name": "Layout", "icon": "layout", "enabled": true, "priority": 100 },
     { "itemId": "voice", "name": "Voice", "icon": "voice", "enabled": true, "priority": 80 },
     { "itemId": "emoji", "name": "Emoji", "icon": "emoji", "enabled": true, "priority": 60 },
+    { "itemId": "kb_resize", "name": "Resize", "icon": "kb_resize", "enabled": true, "priority": 55 },
     { "itemId": "settings", "name": "Settings", "icon": "settings", "enabled": true, "priority": 1000 }
   ]
 }
-

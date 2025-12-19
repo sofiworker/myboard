@@ -183,6 +183,29 @@ class InputMethodController(
         decodeRequests.trySend(DecodeRequest.Reset)
     }
 
+    fun resetLayoutStateToDefault(
+        keepEngineTag: Boolean = true,
+        keepLocaleTag: Boolean = true,
+    ) {
+        val prev = _layoutState.value
+        val next =
+            LayoutState(
+                shift = ShiftState.OFF,
+                layer = xyz.xiao6.myboard.model.KeyboardLayer.ALPHA,
+                localeTag = if (keepLocaleTag) prev.localeTag else null,
+                engine = if (keepEngineTag) prev.engine else null,
+                hiddenKeyIds = emptySet(),
+                highlightedKeyIds = emptySet(),
+                labelOverrides = emptyMap(),
+                hintOverrides = emptyMap(),
+            )
+
+        val layout = _currentLayout.value
+        val invalidateIds =
+            layout?.rows?.flatMapTo(LinkedHashSet()) { row -> row.keys.map { it.keyId } }.orEmpty()
+        updateState(reducer = { next }, invalidateKeyIds = invalidateIds)
+    }
+
     private fun dispatch(event: KeyboardStateMachine.Event) {
         val (newModel, effects) = KeyboardStateMachine.reduce(model, event)
         model = newModel

@@ -20,6 +20,37 @@ class DecoderFactory(
     private val buildStamp = "2025-12-14-prefix-v1"
     private val dictCache = ConcurrentHashMap<String, MyBoardDictionary>()
 
+    fun candidatesByPrefix(
+        spec: DictionarySpec?,
+        rawKey: String,
+        limit: Int = 50,
+    ): List<String> {
+        if (spec == null) return emptyList()
+        if (!spec.enabled) return emptyList()
+        if (limit <= 0) return emptyList()
+
+        val scheme = spec.codeScheme?.trim().orEmpty()
+        if (scheme != "PINYIN_FULL" && scheme != "PINYIN_T9") return emptyList()
+
+        val key = normalizePinyinKey(rawKey)
+        if (key.isBlank()) return emptyList()
+
+        val assetPath = spec.assetPath?.trim().orEmpty()
+        if (assetPath.isBlank()) return emptyList()
+
+        val dict = try {
+            dictCache.getOrPut(assetPath) {
+                MLog.d(logTag, "Loading MyBoardDictionary from assetPath=$assetPath (lookup-only)")
+                MyBoardDictionary.fromAsset(context, assetPath)
+            }
+        } catch (t: Throwable) {
+            MLog.e(logTag, "Failed to load MyBoardDictionary assetPath=$assetPath (lookup-only)", t)
+            return emptyList()
+        }
+
+        return dict.candidatesByPrefix(key, limit)
+    }
+
     fun create(spec: DictionarySpec?): Decoder {
         if (spec == null) return PassthroughDecoder
         if (!spec.enabled) return PassthroughDecoder

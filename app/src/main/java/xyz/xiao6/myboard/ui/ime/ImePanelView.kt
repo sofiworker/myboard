@@ -7,6 +7,7 @@ import android.view.View
 import android.widget.FrameLayout
 import xyz.xiao6.myboard.R
 import xyz.xiao6.myboard.model.KeyboardLayout
+import xyz.xiao6.myboard.util.KeyboardSizeConstraints
 import kotlin.math.roundToInt
 
 /**
@@ -36,11 +37,15 @@ class ImePanelView @JvmOverloads constructor(
 
         val targetKeyboardHeightPx =
             (screenHeightPx * layout.totalHeightRatio + (layout.totalHeightDpOffset * density)).roundToInt()
-                .coerceAtLeast((density * 160f).roundToInt())
+                .coerceAtLeast(KeyboardSizeConstraints.minKeyboardHeightPx(density))
+                .coerceAtMost(
+                    KeyboardSizeConstraints.maxKeyboardHeightPx(screenHeightPx, density)
+                        .coerceAtLeast(KeyboardSizeConstraints.minKeyboardHeightPx(density)),
+                )
 
         val targetKeyboardWidthPx =
             (screenWidthPx * layout.totalWidthRatio + (layout.totalWidthDpOffset * density)).roundToInt()
-                .coerceIn((density * 240f).roundToInt(), screenWidthPx)
+                .coerceIn(KeyboardSizeConstraints.minKeyboardWidthPx(density), screenWidthPx)
 
         val slot = contentSlot ?: return
         val slotLp = slot.layoutParams ?: return

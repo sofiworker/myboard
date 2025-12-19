@@ -39,7 +39,10 @@ import xyz.xiao6.myboard.ui.toolbar.ToolbarView
 import xyz.xiao6.myboard.ui.candidate.CandidatePageView
 import xyz.xiao6.myboard.ui.layout.LayoutPickerView
 import xyz.xiao6.myboard.ui.symbols.SymbolsLayoutView
+import xyz.xiao6.myboard.ui.emoji.EmojiLayoutView
+import xyz.xiao6.myboard.ui.ime.KeyboardResizeOverlayView
 import xyz.xiao6.myboard.util.MLog
+import xyz.xiao6.myboard.util.KeyboardSizeConstraints
 import java.util.Locale
 import android.content.Intent
 import xyz.xiao6.myboard.ui.SettingsActivity
@@ -61,6 +64,8 @@ class MyBoardImeService : InputMethodService() {
     private var lastCandidates: List<String> = emptyList()
     private var lastComposing: String = ""
     private var lastComposingOptions: List<String> = emptyList()
+    private var candidatePageSelectedPinyinIndex: Int = 0
+    private var candidatePagePreviewCandidates: List<String>? = null
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
@@ -77,6 +82,10 @@ class MyBoardImeService : InputMethodService() {
     private var composingPopup: FloatingComposingPopup? = null
     private var wordPreviewPopup: FloatingTextPreviewPopup? = null
     private var symbolsView: SymbolsLayoutView? = null
+    private var emojiView: EmojiLayoutView? = null
+    private var resizeOverlay: KeyboardResizeOverlayView? = null
+    private var resizeBaselineWidthDpOffset: Float? = null
+    private var resizeBaselineHeightDpOffset: Float? = null
     private var topBarSlotView: View? = null
     private var popupMarginPx: Int = 0
     private var currentEditorInfo: EditorInfo? = null
@@ -113,6 +122,8 @@ class MyBoardImeService : InputMethodService() {
         val candidatePageView = view.findViewById<CandidatePageView>(R.id.candidatePageView)
         val layoutPickerView = view.findViewById<LayoutPickerView>(R.id.layoutPickerView)
         val symbolsView = view.findViewById<SymbolsLayoutView>(R.id.symbolsView)
+        val emojiView = view.findViewById<EmojiLayoutView>(R.id.emojiView)
+        val resizeOverlay = view.findViewById<KeyboardResizeOverlayView>(R.id.resizeOverlay)
         val popupHost = view.findViewById<FrameLayout>(R.id.popupHost)
         val popupView = PopupView(popupHost).apply { applyTheme(themeSpec) }
         keyboardView.setPopupView(popupView)
@@ -122,6 +133,11 @@ class MyBoardImeService : InputMethodService() {
         layoutPickerView.applyTheme(themeSpec)
         symbolsView.applyTheme(themeSpec)
         this.symbolsView = symbolsView
+        emojiView.applyTheme(themeSpec)
+        this.emojiView = emojiView
+        resizeOverlay.target = imePanel
+        resizeOverlay.visibility = GONE
+        this.resizeOverlay = resizeOverlay
 
         val marginPx = (resources.displayMetrics.density * 8f).toInt()
         popupMarginPx = marginPx
@@ -137,6 +153,8 @@ class MyBoardImeService : InputMethodService() {
             isCandidatePageExpanded = false
             candidatePageView.visibility = GONE
             layoutPickerView.visibility = GONE
+            emojiView.visibility = GONE
+            resizeOverlay.visibility = GONE
             toolbarView.clearCandidates()
             wordPreviewPopup.dismiss()
         }
@@ -164,11 +182,119 @@ class MyBoardImeService : InputMethodService() {
             )
         }
 
+        fun showEmoji() {
+            hideOverlays()
+            composingPopup.dismiss()
+            toolbarView.visibility = View.INVISIBLE
+            keyboardView.visibility = View.INVISIBLE
+            symbolsView.visibility = GONE
+            emojiView.visibility = VISIBLE
+        }
+
+        fun hideEmoji() {
+            if (emojiView.visibility != VISIBLE) return
+            emojiView.visibility = GONE
+            toolbarView.visibility = VISIBLE
+            keyboardView.visibility = VISIBLE
+            renderCandidatesUi(
+                candidates = lastCandidates,
+                composing = lastComposing,
+                composingOptions = lastComposingOptions,
+                toolbarView = toolbarView,
+                keyboardView = keyboardView,
+                candidatePageView = candidatePageView,
+            )
+        }
+
+        fun showResize() {
+            // Only applies to the main keyboard panel; close other overlays.
+            symbolsView.visibility = GONE
+            emojiView.visibility = GONE
+            isCandidatePageExpanded = false
+            candidatePageView.visibility = GONE
+            layoutPickerView.visibility = GONE
+            toolbarView.clearCandidates()
+            wordPreviewPopup.dismiss()
+
+            // Snapshot baseline so "Reset" returns to the state before this resize session.
+            val p = prefs
+            val layout = controller?.currentLayout?.value
+            if (p != null && layout != null) {
+                // Ensure global ratio baseline is set once and stays consistent across toolbar/settings.
+                if (p.globalKeyboardWidthRatio == null) p.globalKeyboardWidthRatio = layout.totalWidthRatio
+                if (p.globalKeyboardHeightRatio == null) p.globalKeyboardHeightRatio = layout.totalHeightRatio
+                resizeBaselineWidthDpOffset = p.globalKeyboardWidthDpOffset ?: layout.totalWidthDpOffset
+                resizeBaselineHeightDpOffset = p.globalKeyboardHeightDpOffset ?: layout.totalHeightDpOffset
+            }
+
+            resizeOverlay.visibility = VISIBLE
+            showImeHint("拖动手柄可同时调整宽高（横向=宽度，纵向=高度）")
+        }
+
+        fun hideResize() {
+            if (resizeOverlay.visibility != VISIBLE) return
+            resizeOverlay.visibility = GONE
+        }
+
+        resizeOverlay.onDismiss = { hideResize() }
+        resizeOverlay.onReset = fun() {
+            val p = prefs ?: return
+            val layout = controller?.currentLayout?.value ?: return
+            val w = resizeBaselineWidthDpOffset ?: (p.globalKeyboardWidthDpOffset ?: layout.totalWidthDpOffset)
+            val h = resizeBaselineHeightDpOffset ?: (p.globalKeyboardHeightDpOffset ?: layout.totalHeightDpOffset)
+            p.globalKeyboardWidthDpOffset = w
+            p.globalKeyboardHeightDpOffset = h
+            val sized = applyGlobalKeyboardSize(layout)
+            imePanel.applyKeyboardLayoutSize(sized)
+        }
+        resizeOverlay.onConfirm = fun() {
+            hideResize()
+        }
+        resizeOverlay.onResizeDeltaPx = fun(deltaWidthPx: Int, deltaHeightPx: Int) {
+            val p = prefs ?: return
+            val layout = controller?.currentLayout?.value ?: return
+            val density = resources.displayMetrics.density.coerceAtLeast(0.5f)
+            val screenWidthPx = resources.displayMetrics.widthPixels.coerceAtLeast(1)
+            val screenHeightPx = resources.displayMetrics.heightPixels.coerceAtLeast(1)
+            val minWidthPx = KeyboardSizeConstraints.minKeyboardWidthPx(density)
+            val minHeightPx = KeyboardSizeConstraints.minKeyboardHeightPx(density)
+            val maxHeightPx = KeyboardSizeConstraints.maxKeyboardHeightPx(screenHeightPx, density).coerceAtLeast(minHeightPx)
+
+            if (p.globalKeyboardWidthRatio == null) p.globalKeyboardWidthRatio = layout.totalWidthRatio
+            if (p.globalKeyboardHeightRatio == null) p.globalKeyboardHeightRatio = layout.totalHeightRatio
+
+            if (deltaWidthPx != 0) {
+                val ratio = p.globalKeyboardWidthRatio ?: layout.totalWidthRatio
+                val curOffDp = p.globalKeyboardWidthDpOffset ?: layout.totalWidthDpOffset
+                val curPx = (screenWidthPx * ratio + curOffDp * density).toInt()
+                val targetPx = (curPx + deltaWidthPx).coerceIn(minWidthPx, screenWidthPx)
+                val nextOffDp = (targetPx - screenWidthPx * ratio) / density
+                p.globalKeyboardWidthDpOffset = nextOffDp
+            }
+            if (deltaHeightPx != 0) {
+                val ratio = p.globalKeyboardHeightRatio ?: layout.totalHeightRatio
+                val curOffDp = p.globalKeyboardHeightDpOffset ?: layout.totalHeightDpOffset
+                val curPx = (screenHeightPx * ratio + curOffDp * density).toInt()
+                val targetPx = (curPx + deltaHeightPx).coerceIn(minHeightPx, maxHeightPx)
+                val nextOffDp = (targetPx - screenHeightPx * ratio) / density
+                p.globalKeyboardHeightDpOffset = nextOffDp
+            }
+
+            val sized = applyGlobalKeyboardSize(layout)
+            imePanel.applyKeyboardLayoutSize(sized)
+        }
+
         symbolsView.onBack = { hideSymbols() }
         symbolsView.onCommitSymbol = { symbol ->
             playKeyFeedback(keyboardView)
             commitTextToEditor(symbol)
             if (!symbolsView.isLocked()) hideSymbols()
+        }
+
+        emojiView.onBack = { hideEmoji() }
+        emojiView.onCommit = { text ->
+            playKeyFeedback(keyboardView)
+            commitTextToEditor(text)
         }
 
         // Ensure toolbar is visible and has actions.
@@ -184,6 +310,12 @@ class MyBoardImeService : InputMethodService() {
                         layoutPickerView = layoutPickerView,
                     )
                 }
+                "emoji" -> {
+                    showEmoji()
+                }
+                "kb_resize" -> {
+                    showResize()
+                }
                 "settings" -> {
                     val intent = Intent(this, SettingsActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     startActivity(intent)
@@ -198,6 +330,8 @@ class MyBoardImeService : InputMethodService() {
             // 3) Otherwise -> collapse/hide the IME.
             when {
                 symbolsView.visibility == VISIBLE -> hideSymbols()
+                emojiView.visibility == VISIBLE -> hideEmoji()
+                resizeOverlay.visibility == VISIBLE -> hideResize()
                 lastCandidates.isNotEmpty() -> {
                     isCandidatePageExpanded = !isCandidatePageExpanded
                     renderCandidatesUi(
@@ -230,6 +364,22 @@ class MyBoardImeService : InputMethodService() {
             candidatePageView.visibility = GONE
             keyboardView.visibility = VISIBLE
             wordPreviewPopup.dismiss()
+        }
+        candidatePageView.onPinyinSelected = { index ->
+            candidatePageSelectedPinyinIndex = index
+            val spec = runtimeDicts?.active?.value
+            val factory = decoderFactory
+            val left = lastComposingOptions.takeIf { it.isNotEmpty() } ?: splitPinyinSegments(lastComposing)
+            val seg = left.getOrNull(index).orEmpty()
+            val key = xyz.xiao6.myboard.decoder.normalizePinyinKey(seg)
+            candidatePagePreviewCandidates =
+                if (spec == null || factory == null || key.isBlank()) null
+                else factory.candidatesByPrefix(spec, key, limit = 200)
+
+            if (candidatePageView.visibility == VISIBLE) {
+                candidatePageView.submitPinyinSegments(left, selectedIndex = candidatePageSelectedPinyinIndex)
+                candidatePageView.submitCandidates(candidatePagePreviewCandidates ?: lastCandidates)
+            }
         }
         candidatePageView.onCandidateLongPress = { anchor, text ->
             wordPreviewPopup.showAbove(anchor, text, marginPx = marginPx)
@@ -309,6 +459,10 @@ class MyBoardImeService : InputMethodService() {
                 if (composing.isBlank()) {
                     isCandidatePageExpanded = false
                 }
+                if (composing != lastComposing) {
+                    candidatePageSelectedPinyinIndex = 0
+                    candidatePagePreviewCandidates = null
+                }
                 lastComposing = composing
                 if (composing.isBlank()) {
                     lastCandidates = emptyList()
@@ -333,6 +487,8 @@ class MyBoardImeService : InputMethodService() {
         c.composingOptions
             .onEach { options ->
                 lastComposingOptions = options
+                candidatePageSelectedPinyinIndex = 0
+                candidatePagePreviewCandidates = null
                 if (isCandidatePageExpanded && lastCandidates.isNotEmpty()) {
                     renderCandidatesUi(
                         candidates = lastCandidates,
@@ -370,20 +526,11 @@ class MyBoardImeService : InputMethodService() {
     private fun applyGlobalKeyboardSize(layout: xyz.xiao6.myboard.model.KeyboardLayout): xyz.xiao6.myboard.model.KeyboardLayout {
         val p = prefs ?: return layout
 
-        // If user never set a global size, the first used layout becomes the global baseline.
-        if (p.globalKeyboardWidthRatio == null) {
-            p.globalKeyboardWidthRatio = layout.totalWidthRatio
-            p.globalKeyboardWidthDpOffset = layout.totalWidthDpOffset
-        }
-        if (p.globalKeyboardHeightRatio == null) {
-            p.globalKeyboardHeightRatio = layout.totalHeightRatio
-            p.globalKeyboardHeightDpOffset = layout.totalHeightDpOffset
-        }
-
-        val wRatio = p.globalKeyboardWidthRatio ?: layout.totalWidthRatio
-        val hRatio = p.globalKeyboardHeightRatio ?: layout.totalHeightRatio
-        val wOff = p.globalKeyboardWidthDpOffset ?: layout.totalWidthDpOffset
-        val hOff = p.globalKeyboardHeightDpOffset ?: layout.totalHeightDpOffset
+        // Ensure the global size is fully initialized (ratio + offset) without overwriting any existing value.
+        val wRatio = p.globalKeyboardWidthRatio ?: layout.totalWidthRatio.also { p.globalKeyboardWidthRatio = it }
+        val hRatio = p.globalKeyboardHeightRatio ?: layout.totalHeightRatio.also { p.globalKeyboardHeightRatio = it }
+        val wOff = p.globalKeyboardWidthDpOffset ?: layout.totalWidthDpOffset.also { p.globalKeyboardWidthDpOffset = it }
+        val hOff = p.globalKeyboardHeightDpOffset ?: layout.totalHeightDpOffset.also { p.globalKeyboardHeightDpOffset = it }
 
         return layout.copy(
             totalWidthRatio = wRatio,
@@ -490,6 +637,7 @@ class MyBoardImeService : InputMethodService() {
                 ToolbarView.Item("layout", R.drawable.ic_toolbar_layout, "Layout"),
                 ToolbarView.Item("voice", R.drawable.ic_toolbar_voice, "Voice"),
                 ToolbarView.Item("emoji", R.drawable.ic_toolbar_emoji, "Emoji"),
+                ToolbarView.Item("kb_resize", android.R.drawable.ic_menu_crop, "Resize"),
                 ToolbarView.Item("settings", R.drawable.ic_toolbar_settings, "Settings"),
             )
         }
@@ -499,6 +647,7 @@ class MyBoardImeService : InputMethodService() {
                 "layout" -> R.drawable.ic_toolbar_layout
                 "voice" -> R.drawable.ic_toolbar_voice
                 "emoji" -> R.drawable.ic_toolbar_emoji
+                "kb_resize" -> android.R.drawable.ic_menu_crop
                 "settings" -> R.drawable.ic_toolbar_settings
                 else -> R.drawable.ic_toolbar_settings
             }
@@ -601,6 +750,7 @@ class MyBoardImeService : InputMethodService() {
     override fun onStartInputView(info: EditorInfo?, restarting: Boolean) {
         super.onStartInputView(info, restarting)
         currentEditorInfo = info
+        resetImeWindowState()
 
         val systemLocale = resources.configuration.locales[0] ?: Locale.getDefault()
         val enabledTags = prefs?.getEnabledLocaleTags().orEmpty()
@@ -861,8 +1011,46 @@ class MyBoardImeService : InputMethodService() {
 
     override fun onFinishInputView(finishingInput: Boolean) {
         super.onFinishInputView(finishingInput)
+        resetImeWindowState()
+    }
+
+    override fun onWindowHidden() {
+        super.onWindowHidden()
+        resetImeWindowState()
+    }
+
+    private fun resetImeWindowState() {
+        isCandidatePageExpanded = false
+        lastCandidates = emptyList()
+        lastComposing = ""
+        lastComposingOptions = emptyList()
+        candidatePageSelectedPinyinIndex = 0
+        candidatePagePreviewCandidates = null
+
         composingPopup?.dismiss()
         wordPreviewPopup?.dismiss()
+
+        controller?.resetComposing()
+        controller?.resetLayoutStateToDefault()
+
+        symbolsView?.visibility = GONE
+        emojiView?.visibility = GONE
+        resizeOverlay?.visibility = GONE
+
+        rootView?.findViewById<xyz.xiao6.myboard.ui.toolbar.ToolbarView>(R.id.toolbarView)?.let { toolbar ->
+            toolbar.visibility = VISIBLE
+            toolbar.clearCandidates()
+        }
+        rootView?.findViewById<xyz.xiao6.myboard.ui.candidate.CandidatePageView>(R.id.candidatePageView)?.visibility = GONE
+        rootView?.findViewById<xyz.xiao6.myboard.ui.layout.LayoutPickerView>(R.id.layoutPickerView)?.visibility = GONE
+        rootView?.findViewById<xyz.xiao6.myboard.ui.keyboard.KeyboardSurfaceView>(R.id.keyboardView)?.visibility = VISIBLE
+
+        // Re-apply global keyboard size (e.g. returning from Settings without switching layouts).
+        val layout = controller?.currentLayout?.value
+        if (layout != null) {
+            rootView?.findViewById<xyz.xiao6.myboard.ui.ime.ImePanelView>(R.id.imePanel)
+                ?.applyKeyboardLayoutSize(applyGlobalKeyboardSize(layout))
+        }
     }
 
     private fun renderCandidatesUi(
@@ -873,11 +1061,20 @@ class MyBoardImeService : InputMethodService() {
         keyboardView: KeyboardSurfaceView,
         candidatePageView: CandidatePageView,
     ) {
-        if (symbolsView?.visibility == VISIBLE) {
+        if (symbolsView?.visibility == VISIBLE || emojiView?.visibility == VISIBLE) {
             toolbarView.clearCandidates()
             candidatePageView.visibility = GONE
             toolbarView.visibility = View.INVISIBLE
             keyboardView.visibility = View.INVISIBLE
+            return
+        }
+        if (resizeOverlay?.visibility == VISIBLE) {
+            // Resizing mode: keep keyboard visible and avoid showing candidates/expanded page.
+            toolbarView.clearCandidates()
+            toolbarView.visibility = VISIBLE
+            toolbarView.setItemsVisible(true)
+            candidatePageView.visibility = GONE
+            keyboardView.visibility = VISIBLE
             return
         }
 
@@ -902,9 +1099,11 @@ class MyBoardImeService : InputMethodService() {
             keyboardView.visibility = View.INVISIBLE
             candidatePageView.visibility = VISIBLE
             toolbarView.clearCandidates()
-            candidatePageView.submitCandidates(candidates)
             val left = composingOptions.takeIf { it.isNotEmpty() } ?: splitPinyinSegments(composing)
-            candidatePageView.submitPinyinSegments(left)
+            candidatePageSelectedPinyinIndex =
+                candidatePageSelectedPinyinIndex.coerceIn(0, (left.size - 1).coerceAtLeast(0))
+            candidatePageView.submitPinyinSegments(left, selectedIndex = candidatePageSelectedPinyinIndex)
+            candidatePageView.submitCandidates(candidatePagePreviewCandidates ?: candidates)
         } else {
             candidatePageView.visibility = GONE
             keyboardView.visibility = VISIBLE

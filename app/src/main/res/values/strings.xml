@@ -47,6 +47,13 @@
     <string name="settings_section_input_method">Input method</string>
     <string name="settings_section_input">Input</string>
     <string name="settings_section_advanced">Advanced</string>
+    <string name="settings_keyboard_size">Keyboard size</string>
+    <string name="settings_keyboard_size_desc">Adjust keyboard width/height (takes effect next time the keyboard shows).</string>
+    <string name="settings_keyboard_width_ratio">Width ratio</string>
+    <string name="settings_keyboard_width_offset">Width offset</string>
+    <string name="settings_keyboard_height_ratio">Height ratio</string>
+    <string name="settings_keyboard_height_offset">Height offset</string>
+    <string name="settings_keyboard_size_reset_default">Reset to default</string>
 
     <string name="settings_status_ime_enabled_selected">Enabled: %1$s · Selected: %2$s</string>
     <string name="settings_show_ime_picker_desc">Switch current input method to MyBoard</string>

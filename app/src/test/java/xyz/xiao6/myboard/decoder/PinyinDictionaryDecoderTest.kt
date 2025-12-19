@@ -14,7 +14,7 @@ class PinyinDictionaryDecoderTest {
             }
             all.take(limit)
         }
-        val decoder = PinyinDictionaryDecoder(lookup, candidateLimit = 10)
+        val decoder = TokenPinyinDecoder(lookup, candidateLimit = 10)
 
         val u1 = decoder.onText("n")
         assertEquals(emptyList<String>(), u1.commitTexts)
@@ -32,7 +32,7 @@ class PinyinDictionaryDecoderTest {
     @Test
     fun backspace_deletes_composing_then_emits_raw_backspace() {
         val lookup = DictionaryLookup { _, _ -> emptyList() }
-        val decoder = PinyinDictionaryDecoder(lookup)
+        val decoder = TokenPinyinDecoder(lookup)
 
         decoder.onText("a")
         assertEquals(emptyList<String>(), decoder.onText("\b").commitTexts)

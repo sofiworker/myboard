@@ -15,6 +15,7 @@ class TokenPinyinDecoder(
     private val candidateLimit: Int = 50,
 ) : Decoder, TokenDecoder {
     private val slots: MutableList<List<String>> = ArrayList()
+    private var fixedPrefix: String = ""
 
     private var bestGuessLetters: String = ""
     private var lastCandidates: List<String> = emptyList()
@@ -39,17 +40,20 @@ class TokenPinyinDecoder(
                 recompute()
                 return currentUpdate()
             }
+            if (fixedPrefix.isNotEmpty()) {
+                fixedPrefix = dropLastCodePoint(fixedPrefix)
+                return currentUpdate()
+            }
             return DecodeUpdate(commitTexts = listOf("\b"), composingText = "")
         }
 
         if (text == " ") {
-            return if (slots.isNotEmpty()) {
-                val commit = lastCandidates.firstOrNull() ?: bestGuessLetters
-                clear()
-                DecodeUpdate(commitTexts = listOf(commit), composingText = "")
-            } else {
-                DecodeUpdate(commitTexts = listOf(" "), composingText = "")
+            if (slots.isEmpty() && fixedPrefix.isEmpty()) {
+                return DecodeUpdate(commitTexts = listOf(" "), composingText = "")
             }
+            val commit = buildCommitText()
+            clearAll()
+            return DecodeUpdate(commitTexts = listOf(commit), composingText = "")
         }
 
         // Treat single-letter text as token input; everything else flushes composing first.
@@ -57,9 +61,9 @@ class TokenPinyinDecoder(
             return onToken(Token.Literal(text))
         }
 
-        if (slots.isNotEmpty()) {
-            val commit = lastCandidates.firstOrNull() ?: bestGuessLetters
-            clear()
+        if (slots.isNotEmpty() || fixedPrefix.isNotEmpty()) {
+            val commit = buildCommitText()
+            clearAll()
             return DecodeUpdate(commitTexts = listOf(commit, text), composingText = "")
         }
 
@@ -67,12 +71,13 @@ class TokenPinyinDecoder(
     }
 
     override fun onCandidateSelected(text: String): DecodeUpdate {
-        clear()
-        return DecodeUpdate(commitTexts = listOf(text), composingText = "")
+        val commit = fixedPrefix + text
+        clearAll()
+        return DecodeUpdate(commitTexts = listOf(commit), composingText = "")
     }
 
     override fun reset(): DecodeUpdate {
-        clear()
+        clearAll()
         return DecodeUpdate(composingText = "")
     }
 
@@ -98,14 +103,36 @@ class TokenPinyinDecoder(
             val cp = iter.nextInt()
             val ch = String(Character.toChars(cp))
             val c = ch.singleOrNull()
-            if (c != null && c.isLetter()) {
+            if (c != null && c.isLetter() && c.isLowerCase()) {
                 slots.add(listOf(c.lowercaseChar().toString()))
                 continue
             }
 
-            if (slots.isNotEmpty()) {
-                val commit = lastCandidates.firstOrNull() ?: bestGuessLetters
-                clear()
+            // Uppercase letters are treated as a "segment boundary" in pinyin mode:
+            // - freeze current segment into a fixed prefix (use top candidate/best guess)
+            // - append the uppercase letter into the prefix
+            // - keep composing for the next segment (no editor commit here)
+            if (c != null && c.isLetter() && c.isUpperCase()) {
+                if (slots.isNotEmpty()) {
+                    val commit = lastCandidates.firstOrNull()?.takeIf(String::isNotBlank) ?: bestGuessLetters
+                    if (commit.isNotBlank()) fixedPrefix += commit
+                    clearSegment()
+                }
+
+                if (fixedPrefix.isNotEmpty()) {
+                    fixedPrefix += ch
+                    continue
+                }
+
+                // No composing and no prefix: behave like direct input.
+                if (pendingCommit == null) pendingCommit = ArrayList()
+                pendingCommit!!.add(ch)
+                continue
+            }
+
+            if (slots.isNotEmpty() || fixedPrefix.isNotEmpty()) {
+                val commit = buildCommitText()
+                clearAll()
                 if (commit.isNotBlank()) {
                     if (pendingCommit == null) pendingCommit = ArrayList()
                     pendingCommit!!.add(commit)
@@ -194,16 +221,34 @@ class TokenPinyinDecoder(
     private fun currentUpdate(): DecodeUpdate {
         return DecodeUpdate(
             candidates = lastCandidates,
-            composingText = bestGuessLetters,
+            composingText = fixedPrefix + bestGuessLetters,
             composingOptions = lastOptions,
         )
     }
 
-    private fun clear() {
+    private fun buildCommitText(): String {
+        if (slots.isEmpty()) return fixedPrefix
+        val seg = lastCandidates.firstOrNull()?.takeIf(String::isNotBlank) ?: bestGuessLetters
+        return fixedPrefix + seg
+    }
+
+    private fun clearAll() {
+        fixedPrefix = ""
+        clearSegment()
+    }
+
+    private fun clearSegment() {
         slots.clear()
         bestGuessLetters = ""
         lastCandidates = emptyList()
         lastOptions = emptyList()
     }
-}
 
+    private fun dropLastCodePoint(s: String): String {
+        if (s.isEmpty()) return s
+        val last = s.lastIndex
+        val drop =
+            if (last > 0 && Character.isLowSurrogate(s[last]) && Character.isHighSurrogate(s[last - 1])) 2 else 1
+        return s.dropLast(drop)
+    }
+}

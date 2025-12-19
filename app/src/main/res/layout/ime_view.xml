@@ -59,8 +59,20 @@
 
         </LinearLayout>
 
+        <xyz.xiao6.myboard.ui.ime.KeyboardResizeOverlayView
+            android:id="@+id/resizeOverlay"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="gone" />
+
         <xyz.xiao6.myboard.ui.symbols.SymbolsLayoutView
             android:id="@+id/symbolsView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="gone" />
+
+        <xyz.xiao6.myboard.ui.emoji.EmojiLayoutView
+            android:id="@+id/emojiView"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:visibility="gone" />
