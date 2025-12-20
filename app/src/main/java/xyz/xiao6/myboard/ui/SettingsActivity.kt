@@ -13,6 +13,7 @@ import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -61,9 +62,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -72,22 +75,25 @@ import xyz.xiao6.myboard.R
 import xyz.xiao6.myboard.ime.MyBoardImeService
 import xyz.xiao6.myboard.manager.LayoutManager
 import xyz.xiao6.myboard.manager.SubtypeManager
+import xyz.xiao6.myboard.manager.ToolbarManager
 import xyz.xiao6.myboard.model.LocaleLayoutProfile
-import xyz.xiao6.myboard.store.MyBoardPrefs
+import xyz.xiao6.myboard.store.SettingsStore
 import xyz.xiao6.myboard.util.KeyboardSizeConstraints
 import java.util.Locale
 
 /** 应用主入口：设置页（若未完成引导会自动跳转到 SetupActivity）。 */
 class SettingsActivity : AppCompatActivity() {
-    private lateinit var prefs: MyBoardPrefs
+    private lateinit var prefs: SettingsStore
     private lateinit var subtypeManager: SubtypeManager
     private lateinit var layoutManager: LayoutManager
+    private lateinit var toolbarManager: ToolbarManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        prefs = MyBoardPrefs(this)
+        prefs = SettingsStore(this)
         subtypeManager = SubtypeManager(this).loadAll()
         layoutManager = LayoutManager(this).loadAllFromAssets()
+        toolbarManager = ToolbarManager(this).loadAllFromAssets()
 
         if (!prefs.onboardingCompleted) {
             startActivity(Intent(this, SetupActivity::class.java))
@@ -101,6 +107,7 @@ class SettingsActivity : AppCompatActivity() {
                     prefs = prefs,
                     subtypeManager = subtypeManager,
                     layoutManager = layoutManager,
+                    toolbarManager = toolbarManager,
                     imeEnabled = { isMyBoardEnabled() },
                     imeSelected = { isMyBoardSelectedAsDefault() },
                     onOpenImeSettings = { openImeSettings() },
@@ -162,6 +169,8 @@ private sealed interface SettingsRoute {
     data object Main : SettingsRoute
     data object LanguageLayout : SettingsRoute
     data object Feedback : SettingsRoute
+    data object InputBehavior : SettingsRoute
+    data object Toolbar : SettingsRoute
     data object Dictionaries : SettingsRoute
     data object Appearance : SettingsRoute
     data object KeyboardSize : SettingsRoute
@@ -178,9 +187,10 @@ private enum class KeyboardSizeHandle {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SettingsScreen(
-    prefs: MyBoardPrefs,
+    prefs: SettingsStore,
     subtypeManager: SubtypeManager,
     layoutManager: LayoutManager,
+    toolbarManager: ToolbarManager,
     imeEnabled: () -> Boolean,
     imeSelected: () -> Boolean,
     onOpenImeSettings: () -> Unit,
@@ -216,6 +226,8 @@ private fun SettingsScreen(
         SettingsRoute.Main -> R.string.settings_title
         SettingsRoute.LanguageLayout -> R.string.settings_language_layout
         SettingsRoute.Feedback -> R.string.settings_feedback
+        SettingsRoute.InputBehavior -> R.string.settings_input_behavior
+        SettingsRoute.Toolbar -> R.string.settings_toolbar
         SettingsRoute.Dictionaries -> R.string.settings_dictionaries
         SettingsRoute.Appearance -> R.string.settings_appearance
         SettingsRoute.KeyboardSize -> R.string.settings_keyboard_size
@@ -246,6 +258,8 @@ private fun SettingsScreen(
                 onShowImePicker = onShowImePicker,
                 onOpenLanguageLayout = { route = SettingsRoute.LanguageLayout },
                 onOpenFeedback = { route = SettingsRoute.Feedback },
+                onOpenInputBehavior = { route = SettingsRoute.InputBehavior },
+                onOpenToolbar = { route = SettingsRoute.Toolbar },
                 onOpenAppearance = { route = SettingsRoute.Appearance },
                 onOpenDictionaries = { route = SettingsRoute.Dictionaries },
                 onOpenKeyboardSize = { route = SettingsRoute.KeyboardSize },
@@ -262,6 +276,17 @@ private fun SettingsScreen(
             SettingsRoute.Feedback -> FeedbackSettings(
                 modifier = Modifier.fillMaxSize().padding(padding),
                 prefs = prefs,
+            )
+
+            SettingsRoute.InputBehavior -> InputBehaviorSettings(
+                modifier = Modifier.fillMaxSize().padding(padding),
+                prefs = prefs,
+            )
+
+            SettingsRoute.Toolbar -> ToolbarSettings(
+                modifier = Modifier.fillMaxSize().padding(padding),
+                prefs = prefs,
+                toolbarManager = toolbarManager,
             )
 
             SettingsRoute.Dictionaries -> PlaceholderSettingsPage(
@@ -286,13 +311,15 @@ private fun SettingsScreen(
 @Composable
 private fun SettingsMainList(
     modifier: Modifier,
-    prefs: MyBoardPrefs,
+    prefs: SettingsStore,
     imeEnabled: Boolean,
     imeSelected: Boolean,
     onOpenImeSettings: () -> Unit,
     onShowImePicker: () -> Unit,
     onOpenLanguageLayout: () -> Unit,
     onOpenFeedback: () -> Unit,
+    onOpenInputBehavior: () -> Unit,
+    onOpenToolbar: () -> Unit,
     onOpenAppearance: () -> Unit,
     onOpenDictionaries: () -> Unit,
     onOpenKeyboardSize: () -> Unit,
@@ -347,6 +374,33 @@ private fun SettingsMainList(
                     else "${prefs.vibrationStrengthPercent}%",
                 ),
                 onClick = onOpenFeedback,
+            )
+        }
+        item {
+            val summary =
+                if (prefs.clearInputAfterTokenClear) {
+                    stringResource(
+                        R.string.settings_input_behavior_summary_enabled,
+                        prefs.clearInputAfterTokenClearDelayMs,
+                    )
+                } else {
+                    stringResource(R.string.settings_input_behavior_summary_disabled)
+                }
+            SettingItem(
+                titleRes = R.string.settings_input_behavior,
+                summary = summary,
+                onClick = onOpenInputBehavior,
+            )
+        }
+        item {
+            val maxCount = prefs.toolbarMaxVisibleCount
+            val countLabel =
+                if (maxCount <= 0) stringResource(R.string.settings_toolbar_limit_unlimited)
+                else stringResource(R.string.settings_toolbar_limit_fixed, maxCount)
+            SettingItem(
+                titleRes = R.string.settings_toolbar,
+                summary = stringResource(R.string.settings_toolbar_summary, countLabel),
+                onClick = onOpenToolbar,
             )
         }
         item {
@@ -426,7 +480,7 @@ private fun PlaceholderSettingsPage(
 @Composable
 private fun KeyboardSizeSettings(
     modifier: Modifier,
-    prefs: MyBoardPrefs,
+    prefs: SettingsStore,
     layoutManager: LayoutManager,
 ) {
     val defaultLayout = remember { layoutManager.getDefaultLayout(Locale.getDefault()) }
@@ -708,7 +762,7 @@ private fun KeyboardSizePreview(
 @Composable
 private fun LanguageLayoutSettings(
     modifier: Modifier,
-    prefs: MyBoardPrefs,
+    prefs: SettingsStore,
     subtypeManager: SubtypeManager,
     layoutManager: LayoutManager,
 ) {
@@ -890,7 +944,7 @@ private fun LanguageLayoutSettings(
 @Composable
 private fun FeedbackSettings(
     modifier: Modifier,
-    prefs: MyBoardPrefs,
+    prefs: SettingsStore,
 ) {
     var clickVolume by remember { mutableStateOf(prefs.clickSoundVolumePercent.toFloat()) }
     var vibrationFollowSystem by remember { mutableStateOf(prefs.vibrationFollowSystem) }
@@ -955,6 +1009,188 @@ private fun FeedbackSettings(
             }
         }
     }
+}
+
+@Composable
+private fun InputBehaviorSettings(
+    modifier: Modifier,
+    prefs: SettingsStore,
+) {
+    var clearAfterToken by remember { mutableStateOf(prefs.clearInputAfterTokenClear) }
+    var clearDelayMs by remember { mutableStateOf(prefs.clearInputAfterTokenClearDelayMs.toFloat()) }
+
+    LazyColumn(modifier = modifier, contentPadding = WindowInsets.systemBars.asPaddingValues()) {
+        item { SectionHeader(textRes = R.string.settings_section_input) }
+        item {
+            ListItem(
+                headlineContent = { Text(stringResource(R.string.settings_clear_input_after_token_clear)) },
+                supportingContent = { Text(stringResource(R.string.settings_clear_input_after_token_clear_desc)) },
+                trailingContent = {
+                    Switch(
+                        checked = clearAfterToken,
+                        onCheckedChange = {
+                            clearAfterToken = it
+                            prefs.clearInputAfterTokenClear = it
+                        },
+                    )
+                },
+            )
+        }
+        item {
+            ListItem(
+                headlineContent = { Text(stringResource(R.string.settings_clear_input_delay)) },
+                supportingContent = {
+                    Text(stringResource(R.string.settings_clear_input_delay_desc, clearDelayMs.toInt()))
+                },
+            )
+        }
+        item {
+            Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+                Slider(
+                    value = clearDelayMs,
+                    onValueChange = { clearDelayMs = it },
+                    enabled = clearAfterToken,
+                    valueRange = 120f..1500f,
+                    onValueChangeFinished = {
+                        prefs.clearInputAfterTokenClearDelayMs = clearDelayMs.toInt()
+                    },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ToolbarSettings(
+    modifier: Modifier,
+    prefs: SettingsStore,
+    toolbarManager: ToolbarManager,
+) {
+    val toolbarSpec = remember(toolbarManager) { toolbarManager.getDefaultToolbar() }
+    val defaultItems = remember(toolbarSpec) { buildToolbarSettingItems(toolbarSpec) }
+    val orderedDefault = remember(defaultItems, prefs.toolbarItemOrder) {
+        applyToolbarOrderForSettings(defaultItems, prefs.toolbarItemOrder)
+    }
+    var items by remember { mutableStateOf(orderedDefault) }
+    var maxCount by remember { mutableStateOf(prefs.toolbarMaxVisibleCount.toFloat()) }
+    var draggingItemId by remember { mutableStateOf<String?>(null) }
+    var dragOffsetPx by remember { mutableStateOf(0f) }
+    var itemHeightPx by remember { mutableStateOf(0) }
+    val latestItems by rememberUpdatedState(items)
+
+    LazyColumn(modifier = modifier, contentPadding = WindowInsets.systemBars.asPaddingValues()) {
+        item { SectionHeader(textRes = R.string.settings_toolbar) }
+        item {
+            ListItem(
+                headlineContent = { Text(stringResource(R.string.settings_toolbar_limit)) },
+                supportingContent = {
+                    val label =
+                        if (maxCount.toInt() <= 0) {
+                            stringResource(R.string.settings_toolbar_limit_unlimited)
+                        } else {
+                            stringResource(R.string.settings_toolbar_limit_fixed, maxCount.toInt())
+                        }
+                    Text(stringResource(R.string.settings_toolbar_limit_desc, label))
+                },
+            )
+        }
+        item {
+            Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+                Slider(
+                    value = maxCount,
+                    onValueChange = {
+                        maxCount = it
+                        prefs.toolbarMaxVisibleCount = it.toInt()
+                    },
+                    valueRange = 0f..12f,
+                )
+            }
+        }
+        item { HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp)) }
+        item { SectionHeader(textRes = R.string.settings_toolbar_sort) }
+        items(items, key = { it.itemId }) { item ->
+            val isDragging = draggingItemId == item.itemId
+            ListItem(
+                headlineContent = { Text(item.name) },
+                supportingContent = { Text(item.itemId) },
+                modifier = Modifier
+                    .onSizeChanged { size ->
+                        if (size.height > 0) itemHeightPx = size.height
+                    }
+                    .offset { IntOffset(0, if (isDragging) dragOffsetPx.toInt() else 0) }
+                    .pointerInput(item.itemId, itemHeightPx) {
+                        detectDragGesturesAfterLongPress(
+                            onDragStart = {
+                                draggingItemId = item.itemId
+                                dragOffsetPx = 0f
+                            },
+                            onDragCancel = {
+                                draggingItemId = null
+                                dragOffsetPx = 0f
+                            },
+                            onDragEnd = {
+                                draggingItemId = null
+                                dragOffsetPx = 0f
+                                prefs.toolbarItemOrder = items.map { it.itemId }
+                            },
+                            onDrag = { change, dragAmount ->
+                                if (draggingItemId != item.itemId || itemHeightPx <= 0) return@detectDragGesturesAfterLongPress
+                                dragOffsetPx += dragAmount.y
+                                val move = (dragOffsetPx / itemHeightPx).toInt()
+                                if (move != 0) {
+                                    val from = latestItems.indexOfFirst { it.itemId == item.itemId }
+                                    val to = (from + move).coerceIn(0, latestItems.lastIndex)
+                                    if (from >= 0 && to != from) {
+                                        val next = latestItems.toMutableList()
+                                        val moving = next.removeAt(from)
+                                        next.add(to, moving)
+                                        items = next
+                                        dragOffsetPx -= move * itemHeightPx
+                                        prefs.toolbarItemOrder = next.map { it.itemId }
+                                    }
+                                }
+                                change.consume()
+                            },
+                        )
+                    },
+            )
+            HorizontalDivider()
+        }
+    }
+}
+
+private data class ToolbarSettingItem(
+    val itemId: String,
+    val name: String,
+)
+
+private fun buildToolbarSettingItems(toolbarSpec: xyz.xiao6.myboard.model.ToolbarSpec?): List<ToolbarSettingItem> {
+    val items = toolbarSpec?.items.orEmpty().filter { it.enabled }
+    if (items.isNotEmpty()) {
+        return items
+            .sortedWith(compareByDescending<xyz.xiao6.myboard.model.ToolbarItemSpec> { it.priority }.thenBy { it.itemId })
+            .map { ToolbarSettingItem(it.itemId, it.name) }
+    }
+    return listOf(
+        ToolbarSettingItem("layout", "Layout"),
+        ToolbarSettingItem("voice", "Voice"),
+        ToolbarSettingItem("emoji", "Emoji"),
+        ToolbarSettingItem("clipboard", "Clipboard"),
+        ToolbarSettingItem("kb_resize", "Resize"),
+        ToolbarSettingItem("settings", "Settings"),
+    )
+}
+
+private fun applyToolbarOrderForSettings(
+    items: List<ToolbarSettingItem>,
+    order: List<String>,
+): List<ToolbarSettingItem> {
+    if (order.isEmpty()) return items
+    val byId = items.associateBy { it.itemId }
+    val ordered = order.mapNotNull { byId[it] }
+    val orderSet = order.toSet()
+    val remaining = items.filterNot { it.itemId in orderSet }
+    return ordered + remaining
 }
 
 private fun formatLocaleLabel(localeTag: String): String {

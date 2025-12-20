@@ -74,6 +74,20 @@
 
     <string name="settings_feedback">Sound &amp; vibration</string>
     <string name="settings_feedback_summary">Click: %1$d%% · Vibration: %2$s</string>
+    <string name="settings_input_behavior">Delete key behavior</string>
+    <string name="settings_input_behavior_summary_enabled">Clear editor after token clear · %1$d ms</string>
+    <string name="settings_input_behavior_summary_disabled">Only clear composing tokens</string>
+    <string name="settings_clear_input_after_token_clear">Clear editor after token clear</string>
+    <string name="settings_clear_input_after_token_clear_desc">After clearing all composing tokens, optionally clear the editor contents.</string>
+    <string name="settings_clear_input_delay">Clear delay</string>
+    <string name="settings_clear_input_delay_desc">Delay before clearing editor: %1$d ms</string>
+    <string name="settings_toolbar">Toolbar</string>
+    <string name="settings_toolbar_summary">Buttons: %1$s</string>
+    <string name="settings_toolbar_limit">Button limit</string>
+    <string name="settings_toolbar_limit_desc">Visible buttons: %1$s</string>
+    <string name="settings_toolbar_limit_unlimited">Unlimited (scroll)</string>
+    <string name="settings_toolbar_limit_fixed">Fixed %1$d</string>
+    <string name="settings_toolbar_sort">Button order</string>
     <string name="settings_vibration_follow_system_short">System</string>
 
     <string name="settings_section_sound">Sound</string>

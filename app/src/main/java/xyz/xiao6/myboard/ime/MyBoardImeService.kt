@@ -3,6 +3,8 @@ package xyz.xiao6.myboard.ime
 import android.inputmethodservice.InputMethodService
 import android.media.AudioManager
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
@@ -10,6 +12,7 @@ import android.view.LayoutInflater
 import android.view.HapticFeedbackConstants
 import android.view.View
 import android.view.inputmethod.EditorInfo
+import android.view.inputmethod.ExtractedTextRequest
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -45,17 +48,23 @@ import xyz.xiao6.myboard.util.MLog
 import xyz.xiao6.myboard.util.KeyboardSizeConstraints
 import java.util.Locale
 import android.content.Intent
+import android.content.ClipboardManager
 import xyz.xiao6.myboard.ui.SettingsActivity
 import android.widget.Toast
 import android.view.View.GONE
 import android.view.View.VISIBLE
 import android.widget.FrameLayout
 import android.view.KeyEvent
-import xyz.xiao6.myboard.store.MyBoardPrefs
+import xyz.xiao6.myboard.store.SettingsStore
 import xyz.xiao6.myboard.model.DictionarySpec
+import android.graphics.Color
+import xyz.xiao6.myboard.ui.theme.ThemeRuntime
+import xyz.xiao6.myboard.model.GestureType
+import xyz.xiao6.myboard.model.KeyIds
 import kotlin.math.roundToInt
 import java.util.Locale.ROOT
 import xyz.xiao6.myboard.util.PinyinSyllableSegmenter
+import xyz.xiao6.myboard.ui.clipboard.ClipboardLayoutView
 
 class MyBoardImeService : InputMethodService() {
     private val logTag = "ImeService"
@@ -74,8 +83,13 @@ class MyBoardImeService : InputMethodService() {
     private var runtimeDicts: RuntimeDictionaryManager? = null
     private var decoderFactory: DecoderFactory? = null
     private var subtypeManager: SubtypeManager? = null
-    private var prefs: MyBoardPrefs? = null
+    private var prefs: SettingsStore? = null
     private var themeSpec: ThemeSpec? = null
+    private val mainHandler = Handler(Looper.getMainLooper())
+    private var pendingClearInputRunnable: Runnable? = null
+    private var pendingClearInputSeq: Long = 0L
+    private var toolbarView: ToolbarView? = null
+    private var prefsListener: SettingsStore.ChangeListener? = null
     private var toolbarSpec: ToolbarSpec? = null
     private var activeLocaleTag: String? = null
     private var decoderBuildJob: Job? = null
@@ -83,27 +97,37 @@ class MyBoardImeService : InputMethodService() {
     private var wordPreviewPopup: FloatingTextPreviewPopup? = null
     private var symbolsView: SymbolsLayoutView? = null
     private var emojiView: EmojiLayoutView? = null
+    private var clipboardView: ClipboardLayoutView? = null
     private var resizeOverlay: KeyboardResizeOverlayView? = null
     private var resizeBaselineWidthDpOffset: Float? = null
     private var resizeBaselineHeightDpOffset: Float? = null
     private var topBarSlotView: View? = null
     private var popupMarginPx: Int = 0
     private var currentEditorInfo: EditorInfo? = null
+    private var clipboardManager: ClipboardManager? = null
+    private var clipboardListener: ClipboardManager.OnPrimaryClipChangedListener? = null
+    private val clipboardEntries: ArrayDeque<ClipboardLayoutView.ClipboardEntry> = ArrayDeque()
+    private var clipboardEntryIdSeed: Long = 0
 
     override fun onCreate() {
         super.onCreate()
         MLog.d(logTag, "onCreate")
         decoderFactory = DecoderFactory(this)
         subtypeManager = SubtypeManager(this).loadAll()
-        prefs = MyBoardPrefs(this)
+        prefs = SettingsStore(this)
         themeSpec = ThemeManager(this).loadAllFromAssets().getDefaultTheme()
         toolbarSpec = ToolbarManager(this).loadAllFromAssets().getDefaultToolbar()
+        clipboardManager = getSystemService(ClipboardManager::class.java)
+        registerClipboardListener()
     }
 
     override fun onDestroy() {
+        prefsListener?.let { listener -> prefs?.removeOnChangeListener(listener) }
+        prefsListener = null
         super.onDestroy()
         composingPopup?.dismiss()
         wordPreviewPopup?.dismiss()
+        unregisterClipboardListener()
         scope.cancel()
     }
 
@@ -117,24 +141,31 @@ class MyBoardImeService : InputMethodService() {
         val imePanel = view.findViewById<ImePanelView>(R.id.imePanel)
         val topBarSlot = view.findViewById<View>(R.id.topBarSlot)
         topBarSlotView = topBarSlot
+        val toolbarDivider = view.findViewById<View>(R.id.toolbarDivider)
         val toolbarView = view.findViewById<ToolbarView>(R.id.toolbarView)
+        this.toolbarView = toolbarView
         val keyboardView = view.findViewById<KeyboardSurfaceView>(R.id.keyboardView)
         val candidatePageView = view.findViewById<CandidatePageView>(R.id.candidatePageView)
         val layoutPickerView = view.findViewById<LayoutPickerView>(R.id.layoutPickerView)
         val symbolsView = view.findViewById<SymbolsLayoutView>(R.id.symbolsView)
         val emojiView = view.findViewById<EmojiLayoutView>(R.id.emojiView)
+        val clipboardView = view.findViewById<ClipboardLayoutView>(R.id.clipboardView)
         val resizeOverlay = view.findViewById<KeyboardResizeOverlayView>(R.id.resizeOverlay)
         val popupHost = view.findViewById<FrameLayout>(R.id.popupHost)
         val popupView = PopupView(popupHost).apply { applyTheme(themeSpec) }
         keyboardView.setPopupView(popupView)
         keyboardView.setTheme(themeSpec)
         toolbarView.applyTheme(themeSpec)
+        applyImePanelTheme(imePanel, themeSpec)
+        applyToolbarDividerTheme(toolbarDivider, themeSpec)
         candidatePageView.applyTheme(themeSpec)
         layoutPickerView.applyTheme(themeSpec)
         symbolsView.applyTheme(themeSpec)
         this.symbolsView = symbolsView
         emojiView.applyTheme(themeSpec)
         this.emojiView = emojiView
+        clipboardView.applyTheme(themeSpec)
+        this.clipboardView = clipboardView
         resizeOverlay.target = imePanel
         resizeOverlay.visibility = GONE
         this.resizeOverlay = resizeOverlay
@@ -154,6 +185,8 @@ class MyBoardImeService : InputMethodService() {
             candidatePageView.visibility = GONE
             layoutPickerView.visibility = GONE
             emojiView.visibility = GONE
+            clipboardView.visibility = GONE
+            clipboardView.clearSelection()
             resizeOverlay.visibility = GONE
             toolbarView.clearCandidates()
             wordPreviewPopup.dismiss()
@@ -206,10 +239,39 @@ class MyBoardImeService : InputMethodService() {
             )
         }
 
+        fun showClipboard(selectionMode: Boolean) {
+            hideOverlays()
+            composingPopup.dismiss()
+            toolbarView.visibility = View.INVISIBLE
+            keyboardView.visibility = View.INVISIBLE
+            symbolsView.visibility = GONE
+            emojiView.visibility = GONE
+            clipboardView.visibility = VISIBLE
+            clipboardView.submitItems(clipboardEntries.toList())
+            clipboardView.setSelectionMode(selectionMode)
+        }
+
+        fun hideClipboard() {
+            if (clipboardView.visibility != VISIBLE) return
+            clipboardView.visibility = GONE
+            clipboardView.clearSelection()
+            toolbarView.visibility = VISIBLE
+            keyboardView.visibility = VISIBLE
+            renderCandidatesUi(
+                candidates = lastCandidates,
+                composing = lastComposing,
+                composingOptions = lastComposingOptions,
+                toolbarView = toolbarView,
+                keyboardView = keyboardView,
+                candidatePageView = candidatePageView,
+            )
+        }
+
         fun showResize() {
             // Only applies to the main keyboard panel; close other overlays.
             symbolsView.visibility = GONE
             emojiView.visibility = GONE
+            clipboardView.visibility = GONE
             isCandidatePageExpanded = false
             candidatePageView.visibility = GONE
             layoutPickerView.visibility = GONE
@@ -297,8 +359,28 @@ class MyBoardImeService : InputMethodService() {
             commitTextToEditor(text)
         }
 
+        clipboardView.onBack = { hideClipboard() }
+        clipboardView.onCommit = { entry ->
+            playKeyFeedback(keyboardView)
+            commitTextToEditor(entry.text)
+        }
+        clipboardView.onClearAll = {
+            clipboardEntries.clear()
+            clipboardView.submitItems(emptyList())
+            clipboardView.setSelectionMode(false)
+        }
+        clipboardView.onDeleteSelected = onDeleteSelected@{ selectedIds ->
+            if (selectedIds.isEmpty()) return@onDeleteSelected
+            val remaining = clipboardEntries.filterNot { it.id in selectedIds }
+            clipboardEntries.clear()
+            clipboardEntries.addAll(remaining)
+            clipboardView.submitItems(clipboardEntries.toList())
+            clipboardView.clearSelection()
+        }
+
         // Ensure toolbar is visible and has actions.
-        toolbarView.submitItems(buildToolbarItems(toolbarSpec))
+        registerPrefsListener()
+        updateToolbarFromPrefs()
         toolbarView.onItemClick = { item ->
             when (item.itemId) {
                 "layout" -> {
@@ -313,6 +395,9 @@ class MyBoardImeService : InputMethodService() {
                 "emoji" -> {
                     showEmoji()
                 }
+                "clipboard" -> {
+                    showClipboard(selectionMode = false)
+                }
                 "kb_resize" -> {
                     showResize()
                 }
@@ -323,6 +408,13 @@ class MyBoardImeService : InputMethodService() {
                 else -> Toast.makeText(this, "toolbar: ${item.itemId}", Toast.LENGTH_SHORT).show()
             }
         }
+        toolbarView.onItemLongClick = { item ->
+            when (item.itemId) {
+                "clipboard" -> {
+                    showClipboard(selectionMode = true)
+                }
+            }
+        }
         toolbarView.onOverflowClick = {
             // Priority:
             // 1) If symbols panel is open -> close it.
@@ -331,6 +423,7 @@ class MyBoardImeService : InputMethodService() {
             when {
                 symbolsView.visibility == VISIBLE -> hideSymbols()
                 emojiView.visibility == VISIBLE -> hideEmoji()
+                clipboardView.visibility == VISIBLE -> hideClipboard()
                 resizeOverlay.visibility == VISIBLE -> hideResize()
                 lastCandidates.isNotEmpty() -> {
                     isCandidatePageExpanded = !isCandidatePageExpanded
@@ -422,11 +515,19 @@ class MyBoardImeService : InputMethodService() {
         }
         controller = c
         c.attach(keyboardView)
-        keyboardView.onTrigger = { keyId, trigger ->
+        keyboardView.onTrigger = onTrigger@{ keyId, trigger ->
+            if (!(keyId == KeyIds.BACKSPACE && trigger == GestureType.LONG_PRESS)) {
+                cancelPendingClearInput()
+            }
             playKeyFeedback(keyboardView)
+            if (keyId == KeyIds.BACKSPACE && trigger == GestureType.LONG_PRESS) {
+                handleBackspaceLongPress()
+                return@onTrigger
+            }
             c.onKeyTriggered(keyId, trigger)
         }
         keyboardView.onAction = { action ->
+            cancelPendingClearInput()
             playKeyFeedback(keyboardView)
             c.onAction(action)
         }
@@ -573,15 +674,49 @@ class MyBoardImeService : InputMethodService() {
     }
 
     private fun showImeHint(text: String) {
-        val popup = wordPreviewPopup ?: return
+        val popup = wordPreviewPopup
         val anchor =
             topBarSlotView
                 ?: rootView?.findViewById(R.id.topBarSlot)
-                ?: return
+        if (popup == null || anchor == null) {
+            Toast.makeText(applicationContext, text, Toast.LENGTH_SHORT).show()
+            return
+        }
         val margin = popupMarginPx.takeIf { it > 0 } ?: (resources.displayMetrics.density * 8f).toInt()
         popup.showAbove(anchor, text, marginPx = margin)
         anchor.removeCallbacks(dismissImeHintRunnable)
         anchor.postDelayed(dismissImeHintRunnable, 1600L)
+    }
+
+    private fun applyToolbarDividerTheme(divider: View?, theme: ThemeSpec?) {
+        if (divider == null) return
+        val extend = theme?.layout?.extendToToolbar == true
+        if (extend) {
+            divider.visibility = GONE
+            return
+        }
+        val runtime = theme?.let { ThemeRuntime(it) }
+        val fallback = Color.parseColor("#14000000")
+        val color =
+            runtime?.resolveColor(theme?.candidates?.divider?.color ?: theme?.toolbar?.surface?.stroke?.color, fallback)
+                ?: fallback
+        divider.setBackgroundColor(color)
+        divider.visibility = VISIBLE
+    }
+
+    private fun applyImePanelTheme(panel: View?, theme: ThemeSpec?) {
+        if (panel == null) return
+        val extend = theme?.layout?.extendToToolbar == true
+        if (!extend) {
+            panel.setBackgroundColor(Color.TRANSPARENT)
+            return
+        }
+        val runtime = theme?.let { ThemeRuntime(it) }
+        val fallback = Color.parseColor("#F2F2F7")
+        val color =
+            runtime?.resolveColor(theme?.layout?.background?.color ?: theme?.colors?.get("background"), fallback)
+                ?: fallback
+        panel.setBackgroundColor(color)
     }
 
     private val dismissImeHintRunnable = Runnable {
@@ -597,6 +732,8 @@ class MyBoardImeService : InputMethodService() {
     ) {
         // Close any overlays which conflict with the picker.
         symbolsView?.visibility = GONE
+        emojiView?.visibility = GONE
+        clipboardView?.visibility = GONE
         isCandidatePageExpanded = false
         candidatePageView.visibility = GONE
         toolbarView.clearCandidates()
@@ -637,6 +774,7 @@ class MyBoardImeService : InputMethodService() {
                 ToolbarView.Item("layout", R.drawable.ic_toolbar_layout, "Layout"),
                 ToolbarView.Item("voice", R.drawable.ic_toolbar_voice, "Voice"),
                 ToolbarView.Item("emoji", R.drawable.ic_toolbar_emoji, "Emoji"),
+                ToolbarView.Item("clipboard", R.drawable.ic_toolbar_clipboard, "Clipboard"),
                 ToolbarView.Item("kb_resize", android.R.drawable.ic_menu_crop, "Resize"),
                 ToolbarView.Item("settings", R.drawable.ic_toolbar_settings, "Settings"),
             )
@@ -647,13 +785,29 @@ class MyBoardImeService : InputMethodService() {
                 "layout" -> R.drawable.ic_toolbar_layout
                 "voice" -> R.drawable.ic_toolbar_voice
                 "emoji" -> R.drawable.ic_toolbar_emoji
+                "clipboard" -> R.drawable.ic_toolbar_clipboard
                 "kb_resize" -> android.R.drawable.ic_menu_crop
                 "settings" -> R.drawable.ic_toolbar_settings
                 else -> R.drawable.ic_toolbar_settings
             }
         }
 
-        return items.map { ToolbarView.Item(it.itemId, iconResId(it.icon), it.name) }
+        val ordered = applyToolbarOrder(items, prefs?.toolbarItemOrder.orEmpty())
+        return ordered.map { ToolbarView.Item(it.itemId, iconResId(it.icon), it.name) }
+    }
+
+    private fun applyToolbarOrder(
+        items: List<xyz.xiao6.myboard.model.ToolbarItemSpec>,
+        order: List<String>,
+    ): List<xyz.xiao6.myboard.model.ToolbarItemSpec> {
+        if (order.isEmpty()) return items
+        val byId = items.associateBy { it.itemId }
+        val ordered = order.mapNotNull { byId[it] }
+        val orderSet = order.toSet()
+        val remaining =
+            items.filterNot { it.itemId in orderSet }
+                .sortedWith(compareByDescending<xyz.xiao6.myboard.model.ToolbarItemSpec> { it.priority }.thenBy { it.itemId })
+        return ordered + remaining
     }
 
     private fun enabledLayoutsFor(profile: xyz.xiao6.myboard.model.LocaleLayoutProfile): List<String> {
@@ -735,6 +889,8 @@ class MyBoardImeService : InputMethodService() {
         if (controller?.currentLayout?.value?.layoutId != targetLayoutId) {
             controller?.loadLayout(targetLayoutId)
         }
+        MLog.d(logTag, "IME loadLayout onLocaleAndLayoutSelected layoutId=$targetLayoutId locale=$normalized")
+        applyLocaleSymbolOverrides(normalized)
     }
 
     private fun switchToNextEnabledLayout(profile: xyz.xiao6.myboard.model.LocaleLayoutProfile) {
@@ -745,6 +901,8 @@ class MyBoardImeService : InputMethodService() {
         val next = if (idx < 0) list.first() else list[(idx + 1) % list.size]
         prefs?.setPreferredLayoutId(profile.localeTag, next)
         controller?.loadLayout(next)
+        MLog.d(logTag, "IME loadLayout switchToNextEnabledLayout layoutId=$next locale=${profile.localeTag}")
+        applyLocaleSymbolOverrides(profile.localeTag)
     }
 
     override fun onStartInputView(info: EditorInfo?, restarting: Boolean) {
@@ -785,6 +943,7 @@ class MyBoardImeService : InputMethodService() {
         runtimeDicts?.setLayoutId(layoutId)
 
         controller?.loadLayout(layoutId)
+        MLog.d(logTag, "IME loadLayout onStartInputView layoutId=$layoutId locale=${activeLocaleTag ?: locale.toLanguageTag()}")
         swapDecoderAsync(controller, runtimeDicts?.active?.value)
         applyLocaleSymbolOverrides(activeLocaleTag ?: locale.toLanguageTag())
     }
@@ -803,6 +962,7 @@ class MyBoardImeService : InputMethodService() {
     }
 
     private fun commitTextToEditor(text: String) {
+        cancelPendingClearInput()
         val ic = currentInputConnection ?: return
         if (text == "\b") {
             ic.deleteSurroundingText(1, 0)
@@ -832,6 +992,60 @@ class MyBoardImeService : InputMethodService() {
             return
         }
         ic.commitText(text, 1)
+    }
+
+    private fun handleBackspaceLongPress() {
+        val composing = lastComposing
+        if (composing.isBlank()) return
+        controller?.resetComposing()
+        scheduleClearInputAfterTokenClear()
+    }
+
+    private fun scheduleClearInputAfterTokenClear() {
+        val p = prefs ?: return
+        if (!p.clearInputAfterTokenClear) return
+        val delayMs = p.clearInputAfterTokenClearDelayMs.toLong().coerceAtLeast(0L)
+        val seq = ++pendingClearInputSeq
+        pendingClearInputRunnable?.let { mainHandler.removeCallbacks(it) }
+        val runnable = Runnable {
+            if (seq != pendingClearInputSeq) return@Runnable
+            clearEditorTextSafely()
+        }
+        pendingClearInputRunnable = runnable
+        mainHandler.postDelayed(runnable, delayMs)
+    }
+
+    private fun cancelPendingClearInput() {
+        pendingClearInputSeq++
+        pendingClearInputRunnable?.let { mainHandler.removeCallbacks(it) }
+        pendingClearInputRunnable = null
+    }
+
+    private fun clearEditorTextSafely() {
+        val ic = currentInputConnection ?: return
+        ic.beginBatchEdit()
+        try {
+            ic.finishComposingText()
+            val extracted = ic.getExtractedText(ExtractedTextRequest(), 0)
+            val text = extracted?.text
+            if (text != null) {
+                val total = text.length
+                if (total > 0) {
+                    val selectionOk = ic.setSelection(0, total)
+                    if (selectionOk) {
+                        ic.commitText("", 1)
+                    } else {
+                        val before = extracted.selectionStart.coerceAtLeast(0)
+                        val after = (total - extracted.selectionEnd).coerceAtLeast(0)
+                        ic.deleteSurroundingText(before, after)
+                    }
+                }
+            } else {
+                ic.deleteSurroundingText(1000, 1000)
+            }
+        } finally {
+            ic.endBatchEdit()
+        }
     }
 
     private fun playKeyFeedback(view: View) {
@@ -919,6 +1133,7 @@ class MyBoardImeService : InputMethodService() {
         if (controller?.currentLayout?.value?.layoutId != targetLayoutId) {
             controller?.loadLayout(targetLayoutId)
         }
+        MLog.d(logTag, "IME loadLayout switchLocaleWithLayoutPolicy layoutId=$targetLayoutId locale=$normalized")
         applyLocaleSymbolOverrides(normalized)
     }
 
@@ -939,45 +1154,89 @@ class MyBoardImeService : InputMethodService() {
         for (key in keys) {
             if (key.keyId != "key_lang_toggle") continue
             labelOverrides[key.keyId] = currentLabel
-            if (!nextLabel.isNullOrBlank()) {
-                hintOverrides[key.keyId] = mapOf("BOTTOM_RIGHT" to "/$nextLabel")
-            }
-        }
-
-        // Basic punctuation replacement when keeping the same layout across locales:
-        // - Try to find common punctuation keys by keyId or by their current label.
-        // - If layout is fully custom, this is best-effort and won't override unrelated keys.
-        val wantsChinesePunct = currentNormalized.startsWith("zh", ignoreCase = true)
-        val commaOut = if (wantsChinesePunct) "，" else ","
-        val periodOut = if (wantsChinesePunct) "。" else "."
-        val openQuoteOut = if (wantsChinesePunct) "“" else "\""
-        val closeQuoteOut = if (wantsChinesePunct) "”" else "\""
-
-        for (key in keys) {
-            val label = (key.ui.label ?: key.label).orEmpty().trim()
-            when {
-                key.keyId == "key_comma" || label == "," || label == "，" || key.primaryCode == 44 -> {
-                    labelOverrides[key.keyId] = commaOut
+            hintOverrides[key.keyId] =
+                if (!nextLabel.isNullOrBlank()) {
+                    mapOf("BOTTOM_RIGHT" to "/$nextLabel")
+                } else {
+                    mapOf("BOTTOM_RIGHT" to "")
                 }
-                key.keyId == "key_period" || label == "." || label == "。" || key.primaryCode == 46 || key.primaryCode == 12290 -> {
-                    labelOverrides[key.keyId] = periodOut
-                }
-            }
         }
 
-        // QWERTY locale-specific symbols on flick-up keys (keep same layout; override hints + enable WhenCondition.locale).
-        for (key in keys) {
-            when (key.keyId) {
-                "key_h" -> hintOverrides[key.keyId] = mapOf("BOTTOM_CENTER" to openQuoteOut)
-                "key_j" -> hintOverrides[key.keyId] = mapOf("BOTTOM_CENTER" to closeQuoteOut)
-            }
-        }
+        applyLocaleCaseLabels(
+            keys = keys,
+            localeTag = currentNormalized,
+            labelOverrides = labelOverrides,
+        )
+        applyLocaleCaseHints(
+            keys = keys,
+            localeTag = currentNormalized,
+            hintOverrides = hintOverrides,
+        )
 
         val invalidateIds = (labelOverrides.keys + hintOverrides.keys).toSet()
         c.updateState(
             reducer = { s -> s.copy(localeTag = currentNormalized, labelOverrides = labelOverrides, hintOverrides = hintOverrides) },
             invalidateKeyIds = invalidateIds,
         )
+    }
+
+    private fun applyLocaleCaseHints(
+        keys: List<xyz.xiao6.myboard.model.Key>,
+        localeTag: String,
+        hintOverrides: MutableMap<String, Map<String, String>>,
+    ) {
+        val normalized = normalizeLocaleTag(localeTag)
+        for (key in keys) {
+            if (key.hints.isEmpty()) continue
+            val action = key.actions[GestureType.FLICK_UP] ?: continue
+            if (action.actionType != xyz.xiao6.myboard.model.ActionType.COMMIT_TEXT) continue
+            val hint =
+                resolveLocaleCommitText(action, normalized)
+                    ?: resolveDefaultCommitText(action)
+            if (hint.isNullOrBlank()) continue
+            hintOverrides[key.keyId] = mapOf("BOTTOM_CENTER" to hint)
+        }
+    }
+
+    private fun applyLocaleCaseLabels(
+        keys: List<xyz.xiao6.myboard.model.Key>,
+        localeTag: String,
+        labelOverrides: MutableMap<String, String>,
+    ) {
+        val normalized = normalizeLocaleTag(localeTag)
+        for (key in keys) {
+            val action = key.actions[GestureType.TAP] ?: continue
+            if (action.actionType != xyz.xiao6.myboard.model.ActionType.COMMIT_TEXT) continue
+            val label =
+                resolveLocaleCommitText(action, normalized)
+                    ?: resolveDefaultCommitText(action)
+            if (label.isNullOrBlank()) continue
+            labelOverrides[key.keyId] = label
+        }
+    }
+
+    private fun resolveLocaleCommitText(
+        action: xyz.xiao6.myboard.model.KeyAction,
+        localeTag: String,
+    ): String? {
+        val matched = action.cases.firstOrNull { case ->
+            val required = case.whenCondition?.locale?.trim().orEmpty()
+            if (required.isBlank()) return@firstOrNull false
+            val reqNorm = normalizeLocaleTag(required)
+            if (reqNorm.isBlank()) return@firstOrNull false
+            if (reqNorm.contains('-')) {
+                reqNorm.equals(localeTag, ignoreCase = true)
+            } else {
+                localeTag.startsWith(reqNorm, ignoreCase = true)
+            }
+        } ?: return null
+        val commit = matched.doActions.firstOrNull() as? xyz.xiao6.myboard.model.Action.CommitText ?: return null
+        return commit.text
+    }
+
+    private fun resolveDefaultCommitText(action: xyz.xiao6.myboard.model.KeyAction): String? {
+        val commit = action.defaultActions.firstOrNull() as? xyz.xiao6.myboard.model.Action.CommitText ?: return null
+        return commit.text
     }
 
     private fun computeNextLocaleTagForToggle(currentNormalized: String): String? {
@@ -1020,6 +1279,7 @@ class MyBoardImeService : InputMethodService() {
     }
 
     private fun resetImeWindowState() {
+        cancelPendingClearInput()
         isCandidatePageExpanded = false
         lastCandidates = emptyList()
         lastComposing = ""
@@ -1035,6 +1295,8 @@ class MyBoardImeService : InputMethodService() {
 
         symbolsView?.visibility = GONE
         emojiView?.visibility = GONE
+        clipboardView?.visibility = GONE
+        clipboardView?.clearSelection()
         resizeOverlay?.visibility = GONE
 
         rootView?.findViewById<xyz.xiao6.myboard.ui.toolbar.ToolbarView>(R.id.toolbarView)?.let { toolbar ->
@@ -1053,6 +1315,20 @@ class MyBoardImeService : InputMethodService() {
         }
     }
 
+    private fun updateToolbarFromPrefs() {
+        val p = prefs ?: return
+        val toolbar = toolbarView ?: return
+        toolbar.setMaxVisibleCount(p.toolbarMaxVisibleCount)
+        toolbar.submitItems(buildToolbarItems(toolbarSpec))
+    }
+
+    private fun registerPrefsListener() {
+        val p = prefs ?: return
+        prefsListener?.let { p.removeOnChangeListener(it) }
+        val listener = p.addOnChangeListener { updateToolbarFromPrefs() }
+        prefsListener = listener
+    }
+
     private fun renderCandidatesUi(
         candidates: List<String>,
         composing: String,
@@ -1061,7 +1337,7 @@ class MyBoardImeService : InputMethodService() {
         keyboardView: KeyboardSurfaceView,
         candidatePageView: CandidatePageView,
     ) {
-        if (symbolsView?.visibility == VISIBLE || emojiView?.visibility == VISIBLE) {
+        if (symbolsView?.visibility == VISIBLE || emojiView?.visibility == VISIBLE || clipboardView?.visibility == VISIBLE) {
             toolbarView.clearCandidates()
             candidatePageView.visibility = GONE
             toolbarView.visibility = View.INVISIBLE
@@ -1088,6 +1364,7 @@ class MyBoardImeService : InputMethodService() {
         toolbarView.setOverflowContentDescription(
             when {
                 symbolsView?.visibility == VISIBLE -> "Close"
+                clipboardView?.visibility == VISIBLE -> "Close"
                 showCandidates -> if (expandPage) "Collapse candidates" else "Expand candidates"
                 else -> "Hide keyboard"
             },
@@ -1118,5 +1395,54 @@ class MyBoardImeService : InputMethodService() {
 
     private fun splitPinyinSegments(composing: String): List<String> {
         return PinyinSyllableSegmenter.segmentToList(composing)
+    }
+
+    private fun registerClipboardListener() {
+        val manager = clipboardManager ?: return
+        if (clipboardListener != null) return
+        val listener = ClipboardManager.OnPrimaryClipChangedListener { readPrimaryClip() }
+        clipboardListener = listener
+        manager.addPrimaryClipChangedListener(listener)
+        readPrimaryClip()
+    }
+
+    private fun unregisterClipboardListener() {
+        val manager = clipboardManager ?: return
+        val listener = clipboardListener ?: return
+        manager.removePrimaryClipChangedListener(listener)
+        clipboardListener = null
+    }
+
+    private fun readPrimaryClip() {
+        val manager = clipboardManager ?: return
+        val clip = manager.primaryClip ?: return
+        if (clip.itemCount <= 0) return
+        for (i in 0 until clip.itemCount) {
+            val item = clip.getItemAt(i)
+            val text = item.coerceToText(this)?.toString().orEmpty()
+            addClipboardEntry(text)
+        }
+    }
+
+    private fun addClipboardEntry(text: String) {
+        val trimmed = text.trim()
+        if (trimmed.isBlank()) return
+        clipboardEntries.removeAll { it.text == trimmed }
+        val entry = ClipboardLayoutView.ClipboardEntry(
+            id = ++clipboardEntryIdSeed,
+            text = trimmed,
+            timestamp = System.currentTimeMillis(),
+        )
+        clipboardEntries.addFirst(entry)
+        while (clipboardEntries.size > MAX_CLIPBOARD_ENTRIES) {
+            clipboardEntries.removeLast()
+        }
+        if (clipboardView?.visibility == VISIBLE) {
+            clipboardView?.submitItems(clipboardEntries.toList())
+        }
+    }
+
+    private companion object {
+        private const val MAX_CLIPBOARD_ENTRIES = 50
     }
 }

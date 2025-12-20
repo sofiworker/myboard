@@ -8,7 +8,6 @@ import android.graphics.drawable.GradientDrawable
 import android.text.Editable
 import android.text.TextWatcher
 import android.util.AttributeSet
-import android.util.TypedValue
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
@@ -37,28 +36,11 @@ class EmojiLayoutView @JvmOverloads constructor(
     defStyleAttr: Int = 0,
 ) : FrameLayout(context, attrs, defStyleAttr) {
 
-    enum class Menu {
-        EMOJI,
-        KAOMOJI,
-    }
-
-    data class Category(
-        val categoryId: String,
-        val name: String,
-        val items: List<String>,
-    )
-
     var onBack: (() -> Unit)? = null
     var onCommit: ((String) -> Unit)? = null
 
-    // Initialize to a different value so the first selectMenu(Menu.EMOJI) actually runs.
-    private var currentMenu: Menu = Menu.KAOMOJI
-    private var selectedCategoryIndex: Int = 0
-    private var isSearching: Boolean = false
-    private var searchQuery: String = ""
-
-    private val emojiCategories: List<Category> = builtInEmojiCategories()
-    private val kaomojiCategories: List<Category> = builtInKaomojiCategories()
+    private val controller = EmojiController(AssetEmojiCatalogProvider(context))
+    private var isUpdatingSearch: Boolean = false
 
     private val btnBack: ImageButton
     private val btnSearch: ImageButton
@@ -75,7 +57,6 @@ class EmojiLayoutView @JvmOverloads constructor(
     private var iconTint: ColorStateList = ColorStateList.valueOf(Color.WHITE)
     private var surfaceColor: Int = Color.parseColor("#F2F2F7")
     private var pillColor: Int = Color.parseColor("#1F000000")
-    private var accentColor: Int = Color.parseColor("#007AFF")
 
     init {
         background = GradientDrawable().apply {
@@ -141,8 +122,8 @@ class EmojiLayoutView @JvmOverloads constructor(
             }
         }
 
-        tabEmoji = tab("Emoji").apply { setOnClickListener { selectMenu(Menu.EMOJI) } }
-        tabKaomoji = tab("颜文字").apply { setOnClickListener { selectMenu(Menu.KAOMOJI) } }
+        tabEmoji = tab("Emoji").apply { setOnClickListener { controller.selectMenu(EmojiMenu.EMOJI) } }
+        tabKaomoji = tab("颜文字").apply { setOnClickListener { controller.selectMenu(EmojiMenu.KAOMOJI) } }
         tabsContainer.addView(tabEmoji)
         tabsContainer.addView(tabKaomoji)
 
@@ -169,8 +150,8 @@ class EmojiLayoutView @JvmOverloads constructor(
                         override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
                         override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) = Unit
                         override fun afterTextChanged(s: Editable?) {
-                            searchQuery = s?.toString().orEmpty()
-                            refreshPages(keepPage = false)
+                            if (isUpdatingSearch) return
+                            controller.updateQuery(s?.toString().orEmpty())
                         }
                     },
                 )
@@ -200,7 +181,7 @@ class EmojiLayoutView @JvmOverloads constructor(
                 layoutManager = LinearLayoutManager(context, LinearLayoutManager.HORIZONTAL, false)
             }
 
-        categoryAdapter = CategoryAdapter(onClick = { idx -> selectCategory(idx) })
+        categoryAdapter = CategoryAdapter(onClick = { idx -> controller.selectCategory(idx) })
         categoryList.adapter = categoryAdapter
 
         root.addView(topBar)
@@ -208,14 +189,13 @@ class EmojiLayoutView @JvmOverloads constructor(
         root.addView(categoryList)
         addView(root)
 
-        selectMenu(Menu.EMOJI)
+        controller.attach { ui, keepPage -> renderUi(ui, keepPage) }
     }
 
     fun applyTheme(theme: ThemeSpec?) {
         val runtime = theme?.let { ThemeRuntime(it) }
         surfaceColor = runtime?.resolveColor(theme?.layout?.background?.color, Color.parseColor("#F2F2F7"))
             ?: Color.parseColor("#F2F2F7")
-        accentColor = runtime?.resolveColor("colors.accent", Color.parseColor("#007AFF")) ?: Color.parseColor("#007AFF")
         pillColor = runtime?.resolveColor(theme?.toolbar?.surface?.background?.color, Color.parseColor("#1F000000"))
             ?: Color.parseColor("#1F000000")
         iconTint = ColorStateList.valueOf(runtime?.resolveColor(theme?.toolbar?.itemIcon?.tint, Color.WHITE) ?: Color.WHITE)
@@ -225,103 +205,53 @@ class EmojiLayoutView @JvmOverloads constructor(
         btnSearch.imageTintList = iconTint
         (tabsContainer.background as? GradientDrawable)?.setColor(pillColor)
         categoryAdapter.setTheme(runtime, theme)
-        applyMenuUi()
-        refreshPages(keepPage = true)
+        controller.refresh(keepPage = true)
     }
 
     private fun toggleSearch() {
-        isSearching = !isSearching
-        if (!isSearching) {
-            searchQuery = ""
-            searchField.setText("")
-        }
-        tabsContainer.visibility = if (isSearching) View.GONE else View.VISIBLE
-        searchField.visibility = if (isSearching) View.VISIBLE else View.GONE
-        refreshPages(keepPage = false)
+        controller.toggleSearch()
     }
 
-    private fun selectMenu(menu: Menu) {
-        if (currentMenu == menu) return
-        currentMenu = menu
-        selectedCategoryIndex = 0
-        isSearching = false
-        searchQuery = ""
-        searchField.setText("")
-        tabsContainer.visibility = View.VISIBLE
-        searchField.visibility = View.GONE
-        applyMenuUi()
-        refreshCategories()
-        refreshPages(keepPage = false)
-    }
-
-    private fun selectCategory(index: Int) {
-        selectedCategoryIndex = index.coerceIn(0, currentCategories().lastIndex.coerceAtLeast(0))
-        categoryAdapter.setSelected(selectedCategoryIndex)
-        refreshPages(keepPage = false)
-    }
-
-    private fun currentCategories(): List<Category> {
-        return when (currentMenu) {
-            Menu.EMOJI -> emojiCategories
-            Menu.KAOMOJI -> kaomojiCategories
-        }
-    }
-
-    private fun refreshCategories() {
-        val list = currentCategories()
-        categoryAdapter.submit(list.map { it.name })
-        categoryAdapter.setSelected(selectedCategoryIndex)
-    }
-
-    private fun applyMenuUi() {
+    private fun renderUi(state: EmojiUiState, keepPage: Boolean) {
         val selectedTextColor = Color.WHITE
         val normalTextColor = Color.parseColor("#E5FFFFFF")
-        when (currentMenu) {
-            Menu.EMOJI -> {
+        when (state.menu) {
+            EmojiMenu.EMOJI -> {
                 tabEmoji.setTextColor(selectedTextColor)
                 tabKaomoji.setTextColor(normalTextColor)
             }
-            Menu.KAOMOJI -> {
+            EmojiMenu.KAOMOJI -> {
                 tabEmoji.setTextColor(normalTextColor)
                 tabKaomoji.setTextColor(selectedTextColor)
             }
         }
-        refreshCategories()
-    }
 
-    private fun refreshPages(keepPage: Boolean) {
-        val list = currentCategories()
-        val cat = list.getOrNull(selectedCategoryIndex)
-        val raw = cat?.items.orEmpty()
-        val q = searchQuery.trim()
-        val items =
-            if (q.isBlank()) raw
-            else raw.filter { it.contains(q, ignoreCase = true) }
+        tabsContainer.visibility = if (state.isSearching) View.GONE else View.VISIBLE
+        searchField.visibility = if (state.isSearching) View.VISIBLE else View.GONE
+        if (searchField.visibility == View.VISIBLE) {
+            if (searchField.text?.toString().orEmpty() != state.query) {
+                isUpdatingSearch = true
+                searchField.setText(state.query)
+                searchField.setSelection(state.query.length)
+                isUpdatingSearch = false
+            }
+        }
+
+        categoryAdapter.submit(state.categories.map { it.name })
+        categoryAdapter.setSelected(state.selectedCategoryIndex)
 
         val oldPage = pager.currentItem
-        val cfg =
-            when (currentMenu) {
-                Menu.EMOJI -> GridConfig(columns = 8, rows = 4, textSizeSp = 22f, cellHeightDp = 48f)
-                Menu.KAOMOJI -> GridConfig(columns = 2, rows = 6, textSizeSp = 18f, cellHeightDp = 52f)
-            }
-        pagerAdapter.submit(items, cfg)
+        pagerAdapter.submit(state.items, state.gridConfig)
         pager.setCurrentItem(if (keepPage) oldPage.coerceIn(0, (pagerAdapter.itemCount - 1).coerceAtLeast(0)) else 0, false)
     }
-
-    private data class GridConfig(
-        val columns: Int,
-        val rows: Int,
-        val textSizeSp: Float,
-        val cellHeightDp: Float,
-    )
 
     private class PagesAdapter(
         private val onClick: (String) -> Unit,
     ) : RecyclerView.Adapter<PageVH>() {
         private var pages: List<List<String>> = emptyList()
-        private var cfg: GridConfig = GridConfig(columns = 8, rows = 4, textSizeSp = 22f, cellHeightDp = 48f)
+        private var cfg: EmojiGridConfig = EmojiGridConfig(columns = 8, rows = 4, textSizeSp = 22f, cellHeightDp = 48f)
 
-        fun submit(items: List<String>, cfg: GridConfig) {
+        fun submit(items: List<String>, cfg: EmojiGridConfig) {
             this.cfg = cfg
             val pageSize = (cfg.columns * cfg.rows).coerceAtLeast(1)
             pages = items.filter { it.isNotBlank() }.chunked(pageSize)
@@ -353,7 +283,7 @@ class EmojiLayoutView @JvmOverloads constructor(
             recyclerView.adapter = adapter
         }
 
-        fun bind(items: List<String>, cfg: GridConfig) {
+        fun bind(items: List<String>, cfg: EmojiGridConfig) {
             recyclerView.layoutManager = GridLayoutManager(recyclerView.context, cfg.columns.coerceAtLeast(1))
             adapter.setConfig(cfg)
             adapter.submit(items)
@@ -364,9 +294,9 @@ class EmojiLayoutView @JvmOverloads constructor(
         private val onClick: (String) -> Unit,
     ) : RecyclerView.Adapter<CellVH>() {
         private var items: List<String> = emptyList()
-        private var cfg: GridConfig = GridConfig(columns = 8, rows = 4, textSizeSp = 22f, cellHeightDp = 48f)
+        private var cfg: EmojiGridConfig = EmojiGridConfig(columns = 8, rows = 4, textSizeSp = 22f, cellHeightDp = 48f)
 
-        fun setConfig(cfg: GridConfig) {
+        fun setConfig(cfg: EmojiGridConfig) {
             this.cfg = cfg
         }
 
@@ -491,34 +421,4 @@ class EmojiLayoutView @JvmOverloads constructor(
     }
 
     private fun dp(value: Float): Float = value * resources.displayMetrics.density
-
-    @Suppress("unused")
-    private fun sp(value: Float): Float =
-        TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, value, resources.displayMetrics)
-
-    private fun builtInEmojiCategories(): List<Category> {
-        val recent = listOf("😀", "😂", "🥹", "😭", "❤️", "👍", "🔥", "🙏", "🎉", "🤔", "😅", "😡")
-        val smileys = listOf("😀", "😁", "😂", "🤣", "😅", "😊", "😍", "😘", "😎", "🤔", "😴", "😭", "😡", "🥹", "🥲", "😇")
-        val gestures = listOf("👍", "👎", "👌", "✌️", "🤞", "🤟", "👏", "🙏", "💪", "🫶", "🫰", "🤝")
-        val objects = listOf("❤️", "💔", "🔥", "⭐", "🌙", "☀️", "⚡", "🎉", "🎁", "📌", "🔔", "✅", "❌")
-        return listOf(
-            Category("recent", "常用", recent),
-            Category("smileys", "表情", smileys),
-            Category("gestures", "手势", gestures),
-            Category("objects", "符号", objects),
-        )
-    }
-
-    private fun builtInKaomojiCategories(): List<Category> {
-        val happy = listOf("(＾▽＾)", "(≧▽≦)", "ヾ(•ω•`)o", "(•‿•)", "(๑•̀ㅂ•́)و✧", "(*^_^*)", "(｡♥‿♥｡)")
-        val sad = listOf("(；′⌒`)", "(╥﹏╥)", "(ಥ﹏ಥ)", "（；´д｀）ゞ", "(｡•́︿•̀｡)")
-        val angry = listOf("(＃`Д´)", "(╬▔皿▔)╯", "(╯°□°）╯︵ ┻━┻", "ಠ_ಠ", "(눈_눈)")
-        val action = listOf("m(_ _)m", "（づ￣3￣）づ", "ヽ(•̀ω•́ )ゝ", "(*´∀`)~♥", "٩(ˊᗜˋ*)و")
-        return listOf(
-            Category("happy", "开心", happy),
-            Category("sad", "难过", sad),
-            Category("angry", "生气", angry),
-            Category("action", "动作", action),
-        )
-    }
 }

@@ -439,9 +439,8 @@ class KeyboardSurfaceView @JvmOverloads constructor(
 
     private fun resolveLabel(key: Key): String {
         val label = layoutState.labelOverrides[key.keyId] ?: (key.ui.label ?: key.label).orEmpty()
-        if (label.length != 1) return label
-        val c = label[0]
-        if (!c.isLetter()) return label
+        if (label.isBlank()) return label
+        if (label.any { !it.isLetter() }) return label
         return when (layoutState.shift) {
             ShiftState.OFF -> label.lowercase()
             ShiftState.ON, ShiftState.CAPS_LOCK -> label.uppercase()

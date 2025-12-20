@@ -67,6 +67,20 @@
 
     <string name="settings_feedback">声音与振动</string>
     <string name="settings_feedback_summary">点击音：%1$d%% · 振动：%2$s</string>
+    <string name="settings_input_behavior">删除键行为</string>
+    <string name="settings_input_behavior_summary_enabled">清空 token 后清空输入框 · %1$d ms</string>
+    <string name="settings_input_behavior_summary_disabled">仅清空正在输入的 token</string>
+    <string name="settings_clear_input_after_token_clear">清空 token 后清空输入框</string>
+    <string name="settings_clear_input_after_token_clear_desc">清空所有正在输入的 token 后，可选清空输入框内容。</string>
+    <string name="settings_clear_input_delay">清空延迟</string>
+    <string name="settings_clear_input_delay_desc">清空输入框前延迟：%1$d ms</string>
+    <string name="settings_toolbar">工具栏</string>
+    <string name="settings_toolbar_summary">按钮数量：%1$s</string>
+    <string name="settings_toolbar_limit">按钮数量限制</string>
+    <string name="settings_toolbar_limit_desc">显示按钮数量：%1$s</string>
+    <string name="settings_toolbar_limit_unlimited">无限（超出可滚动）</string>
+    <string name="settings_toolbar_limit_fixed">固定 %1$d 个</string>
+    <string name="settings_toolbar_sort">按钮排序</string>
     <string name="settings_vibration_follow_system_short">跟随系统</string>
 
     <string name="settings_section_sound">声音</string>

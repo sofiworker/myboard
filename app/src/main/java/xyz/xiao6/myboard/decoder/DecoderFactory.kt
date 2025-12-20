@@ -82,14 +82,14 @@ class DecoderFactory(
             }
 
             runCatching {
-                MLog.d(logTag, "[$buildStamp] smoke test begin scheme=$scheme")
-                val keys = listOf("a", "ao", "ni", "nihao", "ni hao", "zhong", "zhongguo", "wo", "women")
-                for (k in keys) {
-                    val outPrefix = dict.candidatesByPrefix(k, 5)
-                    val outExact = dict.candidates(k, 5)
-                    MLog.d(logTag, "smoke key='$k' exact=${outExact.take(5)} prefix=${outPrefix.take(5)}")
-                }
-                MLog.d(logTag, "[$buildStamp] smoke test end")
+//                MLog.d(logTag, "[$buildStamp] smoke test begin scheme=$scheme")
+//                val keys = listOf("a", "ao", "ni", "nihao", "ni hao", "zhong", "zhongguo", "wo", "women")
+//                for (k in keys) {
+//                    val outPrefix = dict.candidatesByPrefix(k, 5)
+//                    val outExact = dict.candidates(k, 5)
+//                    MLog.d(logTag, "smoke key='$k' exact=${outExact.take(5)} prefix=${outPrefix.take(5)}")
+//                }
+//                MLog.d(logTag, "[$buildStamp] smoke test end")
             }.onFailure { t ->
                 MLog.w(logTag, "smoke test failed", t)
             }

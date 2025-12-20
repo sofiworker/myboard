@@ -34,17 +34,11 @@ class SymbolsLayoutView @JvmOverloads constructor(
     defStyleAttr: Int = 0,
 ) : FrameLayout(context, attrs, defStyleAttr) {
 
-    data class Category(
-        val categoryId: String,
-        val name: String,
-        val symbols: List<String>,
-    )
-
     var onBack: (() -> Unit)? = null
     var onCommitSymbol: ((String) -> Unit)? = null
     var onLockChanged: ((Boolean) -> Unit)? = null
 
-    private val categories: List<Category> = builtInCategories()
+    private val categories: List<SymbolCategory> = AssetSymbolCatalogProvider(context).load()
     private var selectedCategoryIndex: Int = 0
     private var locked: Boolean = false
 
@@ -417,56 +411,4 @@ class SymbolsLayoutView @JvmOverloads constructor(
         }
     }
 
-    private fun builtInCategories(): List<Category> {
-        val common =
-            listOf(
-                "，", "。", "？", "！", "、", "；", "：", "“", "”", "‘", "’", "（", "）", "《", "》", "【", "】", "—", "…", "·",
-                "～", "￥", "％", "@", "#", "&", "*", "+", "=", "/", "\\",
-                "😀", "😂", "🥹", "😭", "❤️", "👍",
-            )
-        val zh =
-            listOf(
-                "，", "。", "？", "！", "、", "；", "：", "“", "”", "‘", "’", "（", "）", "《", "》", "【", "】", "「", "」", "『", "』",
-                "—", "…", "·", "～",
-            )
-        val en =
-            listOf(
-                ",", ".", "?", "!", ";", ":", "\"", "'", "(", ")", "[", "]", "{", "}", "<", ">", "-", "—", "_", "…",
-            )
-        val math =
-            listOf(
-                "+", "−", "×", "÷", "=", "≠", "≈", "≤", "≥", "±", "∞", "√", "∑", "∏", "∫", "π", "°", "‰", "‱",
-                "∠", "⊥", "∥", "∈", "∉", "⊂", "⊃", "∩", "∪",
-            )
-        val net =
-            listOf(
-                "@", "#", "$", "%", "&", "*", "_", "-", "+", "=", "/", "\\", "|", "~", "^", ":", ";", "?", "!", ".", ",",
-                "…", "—", "→", "←", "↑", "↓",
-            )
-        val corner =
-            listOf(
-                "⁰", "¹", "²", "³", "⁴", "⁵", "⁶", "⁷", "⁸", "⁹",
-                "₀", "₁", "₂", "₃", "₄", "₅", "₆", "₇", "₈", "₉",
-                "ᵃ", "ᵇ", "ᶜ", "ᵈ", "ᵉ", "ᶠ", "ᵍ", "ʰ", "ᶦ", "ʲ", "ᵏ", "ˡ", "ᵐ", "ⁿ", "ᵒ", "ᵖ", "ʳ", "ˢ", "ᵗ", "ᵘ", "ᵛ", "ʷ", "ˣ", "ʸ", "ᶻ",
-            )
-        val pinyin =
-            listOf(
-                "ā", "á", "ǎ", "à",
-                "ē", "é", "ě", "è",
-                "ī", "í", "ǐ", "ì",
-                "ō", "ó", "ǒ", "ò",
-                "ū", "ú", "ǔ", "ù",
-                "ǖ", "ǘ", "ǚ", "ǜ",
-                "ü", "ê",
-            )
-        return listOf(
-            Category("common", "常用", common),
-            Category("zh", "中文", zh),
-            Category("en", "英文", en),
-            Category("math", "数学", math),
-            Category("net", "网络", net),
-            Category("corner", "角标", corner),
-            Category("pinyin", "拼音", pinyin),
-        )
-    }
 }

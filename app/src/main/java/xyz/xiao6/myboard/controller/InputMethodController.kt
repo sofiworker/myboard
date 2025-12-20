@@ -314,8 +314,20 @@ class InputMethodController(
                             val layout = _currentLayout.value
                             val invalidateIds =
                                 layout?.rows?.flatMapTo(LinkedHashSet()) { row -> row.keys.map { it.keyId } }.orEmpty()
+                            val current = _layoutState.value
+                            val nextShift = if (current.shift == ShiftState.OFF) ShiftState.ON else ShiftState.OFF
+                            val nextHighlighted = current.highlightedKeyIds.toMutableSet().apply {
+                                if (nextShift == ShiftState.OFF) remove("key_shift") else add("key_shift")
+                            }
+                            val nextHints = current.hintOverrides.toMutableMap().apply {
+                                if (nextShift == ShiftState.OFF) {
+                                    remove("key_shift")
+                                } else {
+                                    put("key_shift", mapOf("BOTTOM_RIGHT" to "*"))
+                                }
+                            }
                             updateState(
-                                reducer = { it.copy(shift = if (it.shift == ShiftState.OFF) ShiftState.ON else ShiftState.OFF) },
+                                reducer = { it.copy(shift = nextShift, highlightedKeyIds = nextHighlighted, hintOverrides = nextHints) },
                                 invalidateKeyIds = invalidateIds,
                             )
                         }
@@ -323,8 +335,20 @@ class InputMethodController(
                             val layout = _currentLayout.value
                             val invalidateIds =
                                 layout?.rows?.flatMapTo(LinkedHashSet()) { row -> row.keys.map { it.keyId } }.orEmpty()
+                            val current = _layoutState.value
+                            val nextShift = if (current.shift == ShiftState.CAPS_LOCK) ShiftState.OFF else ShiftState.CAPS_LOCK
+                            val nextHighlighted = current.highlightedKeyIds.toMutableSet().apply {
+                                if (nextShift == ShiftState.OFF) remove("key_shift") else add("key_shift")
+                            }
+                            val nextHints = current.hintOverrides.toMutableMap().apply {
+                                if (nextShift == ShiftState.OFF) {
+                                    remove("key_shift")
+                                } else {
+                                    put("key_shift", mapOf("BOTTOM_RIGHT" to "C"))
+                                }
+                            }
                             updateState(
-                                reducer = { it.copy(shift = if (it.shift == ShiftState.CAPS_LOCK) ShiftState.OFF else ShiftState.CAPS_LOCK) },
+                                reducer = { it.copy(shift = nextShift, highlightedKeyIds = nextHighlighted, hintOverrides = nextHints) },
                                 invalidateKeyIds = invalidateIds,
                             )
                         }
@@ -383,13 +407,27 @@ class InputMethodController(
         decodeRequests.trySend(DecodeRequest.Reset)
         _currentLayout.value = layout
         val keys = layout.rows.flatMap { it.keys }
+        val prevState = _layoutState.value
+        val nextState =
+            LayoutState(
+                shift = ShiftState.OFF,
+                layer = KeyboardLayer.ALPHA,
+                localeTag = prevState.localeTag,
+                engine = prevState.engine,
+                hiddenKeyIds = emptySet(),
+                highlightedKeyIds = emptySet(),
+                labelOverrides = emptyMap(),
+                hintOverrides = emptyMap(),
+            )
+        _layoutState.value = nextState
         model = model.copy(
             currentLayoutId = layout.layoutId,
+            state = nextState,
             keys = keys,
         )
 
         keyboardView?.setLayout(layout)
-        keyboardView?.setLayoutState(_layoutState.value, invalidateKeyIds = emptySet())
+        keyboardView?.setLayoutState(nextState, invalidateKeyIds = emptySet())
     }
 
     private fun clearDecodeUiState() {

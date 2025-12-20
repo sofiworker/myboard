@@ -21,6 +21,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.layout.Box
@@ -62,19 +64,19 @@ import xyz.xiao6.myboard.ime.MyBoardImeService
 import xyz.xiao6.myboard.manager.LayoutManager
 import xyz.xiao6.myboard.manager.SubtypeManager
 import xyz.xiao6.myboard.model.LocaleLayoutProfile
-import xyz.xiao6.myboard.store.MyBoardPrefs
+import xyz.xiao6.myboard.store.SettingsStore
 import java.util.Locale
 
 /** 首次安装引导（Setup Wizard Activity）。 */
 class SetupActivity : AppCompatActivity() {
-    private lateinit var prefs: MyBoardPrefs
+    private lateinit var prefs: SettingsStore
     private lateinit var subtypeManager: SubtypeManager
     private lateinit var layoutManager: LayoutManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        prefs = MyBoardPrefs(this)
+        prefs = SettingsStore(this)
         subtypeManager = SubtypeManager(this).loadAll()
         layoutManager = LayoutManager(this).loadAllFromAssets()
 
@@ -159,7 +161,7 @@ private enum class WizardStep {
 @OptIn(ExperimentalPagerApi::class, ExperimentalMaterial3Api::class)
 @Composable
 private fun OnboardingWizard(
-    prefs: MyBoardPrefs,
+    prefs: SettingsStore,
     subtypeManager: SubtypeManager,
     layoutManager: LayoutManager,
     isImeEnabled: () -> Boolean,
@@ -524,13 +526,16 @@ private fun StepSelectLocale(
             DropdownMenu(
                 expanded = expanded,
                 onDismissRequest = { expanded = false },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(max = 320.dp),
+                modifier = Modifier.fillMaxWidth(),
             ) {
                 val sorted = profiles.sortedBy { it.localeTag }
-                LazyColumn(modifier = Modifier.heightIn(max = 320.dp)) {
-                    items(sorted, key = { it.localeTag }) { p ->
+                val scrollState = rememberScrollState()
+                Column(
+                    modifier = Modifier
+                        .heightIn(max = 320.dp)
+                        .verticalScroll(scrollState),
+                ) {
+                    sorted.forEach { p ->
                         val tag = p.localeTag
                         DropdownMenuItem(
                             text = { Text(formatLocaleLabelComposable(tag)) },

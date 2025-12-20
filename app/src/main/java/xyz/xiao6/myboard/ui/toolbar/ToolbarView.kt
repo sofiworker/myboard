@@ -41,8 +41,10 @@ class ToolbarView @JvmOverloads constructor(
     private val recyclerView: RecyclerView
     private val adapter: ToolbarAdapter
     private val candidateView: CandidateView
+    private val layoutManager: LinearLayoutManager
 
     var onItemClick: ((Item) -> Unit)? = null
+    var onItemLongClick: ((Item) -> Unit)? = null
     var onOverflowClick: (() -> Unit)? = null
     var onOverflowLongClick: (() -> Unit)? = null
     var onCandidateClick: ((String) -> Unit)? = null
@@ -52,6 +54,7 @@ class ToolbarView @JvmOverloads constructor(
     private val overflowButton: ImageButton
     private var itemsVisible: Boolean = true
     private var showingCandidates: Boolean = false
+    private var maxVisibleCount: Int = 0
 
     init {
         background = GradientDrawable().apply {
@@ -67,11 +70,17 @@ class ToolbarView @JvmOverloads constructor(
                 Gravity.CENTER_VERTICAL,
             )
             overScrollMode = OVER_SCROLL_NEVER
-            layoutManager = LinearLayoutManager(context, LinearLayoutManager.HORIZONTAL, false)
             setPadding(paddingLeft, paddingTop, overflowButtonWidthPx, paddingBottom)
             clipToPadding = false
         }
-        adapter = ToolbarAdapter { item -> onItemClick?.invoke(item) }
+        layoutManager = object : LinearLayoutManager(context, LinearLayoutManager.HORIZONTAL, false) {
+            override fun canScrollHorizontally(): Boolean = maxVisibleCount <= 0
+        }
+        recyclerView.layoutManager = layoutManager
+        adapter = ToolbarAdapter(
+            onClick = { item -> onItemClick?.invoke(item) },
+            onLongClick = { item -> onItemLongClick?.invoke(item) },
+        )
         adapter.setTintProvider { iconTint }
         recyclerView.adapter = adapter
         addView(recyclerView)
@@ -108,12 +117,23 @@ class ToolbarView @JvmOverloads constructor(
     fun applyTheme(theme: ThemeSpec?) {
         val runtime = theme?.let { ThemeRuntime(it) }
         val bg = background as? GradientDrawable
-        val surfaceBg = runtime?.resolveColor(theme?.toolbar?.surface?.background?.color, Color.parseColor("#EE1F1F1F"))
-            ?: Color.parseColor("#EE1F1F1F")
-        val strokeColor = runtime?.resolveColor(theme?.toolbar?.surface?.stroke?.color, Color.parseColor("#55FFFFFF"))
-            ?: Color.parseColor("#55FFFFFF")
-        val strokeWidth = dp(context, theme?.toolbar?.surface?.stroke?.widthDp ?: 1f).toInt()
-        val corner = dp(context, theme?.toolbar?.surface?.cornerRadiusDp ?: 12f)
+        val extend = theme?.layout?.extendToToolbar == true
+        val fallbackSurface = Color.parseColor("#EE1F1F1F")
+        val fallbackStroke = Color.parseColor("#55FFFFFF")
+        val surfaceBg =
+            if (extend) {
+                Color.TRANSPARENT
+            } else {
+                runtime?.resolveColor(theme?.toolbar?.surface?.background?.color, fallbackSurface) ?: fallbackSurface
+            }
+        val strokeColor =
+            if (extend) {
+                Color.TRANSPARENT
+            } else {
+                runtime?.resolveColor(theme?.toolbar?.surface?.stroke?.color, fallbackStroke) ?: fallbackStroke
+            }
+        val strokeWidth = if (extend) 0 else dp(context, theme?.toolbar?.surface?.stroke?.widthDp ?: 1f).toInt()
+        val corner = if (extend) 0f else dp(context, theme?.toolbar?.surface?.cornerRadiusDp ?: 12f)
         bg?.apply {
             cornerRadius = corner
             setColor(surfaceBg)
@@ -128,7 +148,17 @@ class ToolbarView @JvmOverloads constructor(
     }
 
     fun submitItems(items: List<Item>) {
-        adapter.submit(items)
+        val maxCount = maxVisibleCount.takeIf { it > 0 }
+        val next = if (maxCount != null) items.take(maxCount) else items
+        adapter.submit(next)
+        updateItemWidthIfNeeded()
+    }
+
+    fun setMaxVisibleCount(count: Int) {
+        maxVisibleCount = count.coerceAtLeast(0)
+        updateItemWidthIfNeeded()
+        adapter.notifyDataSetChanged()
+        recyclerView.requestLayout()
     }
 
     fun setItemsVisible(visible: Boolean) {
@@ -169,15 +199,39 @@ class ToolbarView @JvmOverloads constructor(
         overflowButton.contentDescription = desc
     }
 
+    override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
+        super.onSizeChanged(w, h, oldw, oldh)
+        updateItemWidthIfNeeded()
+    }
+
+    private fun updateItemWidthIfNeeded() {
+        if (maxVisibleCount <= 0) {
+            adapter.setItemWidthPx(null)
+            return
+        }
+        val available = recyclerView.width - recyclerView.paddingLeft - recyclerView.paddingRight
+        if (available <= 0) return
+        val width = (available / maxVisibleCount).coerceAtLeast(1)
+        adapter.setItemWidthPx(width)
+    }
+
     private class ToolbarAdapter(
         private val onClick: (Item) -> Unit,
+        private val onLongClick: (Item) -> Unit,
     ) : RecyclerView.Adapter<ToolbarViewHolder>() {
 
         private var items: List<Item> = emptyList()
         private var tintProvider: (() -> ColorStateList)? = null
+        private var itemWidthPx: Int? = null
 
         fun setTintProvider(provider: () -> ColorStateList) {
             tintProvider = provider
+        }
+
+        fun setItemWidthPx(widthPx: Int?) {
+            if (itemWidthPx == widthPx) return
+            itemWidthPx = widthPx
+            notifyDataSetChanged()
         }
 
         fun submit(list: List<Item>) {
@@ -187,19 +241,25 @@ class ToolbarView @JvmOverloads constructor(
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ToolbarViewHolder {
             val button = ImageButton(parent.context).apply {
-                layoutParams = RecyclerView.LayoutParams(
-                    dp(parent.context, 48f).toInt(),
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                )
+                val width = itemWidthPx ?: dp(parent.context, 48f).toInt()
+                layoutParams = RecyclerView.LayoutParams(width, ViewGroup.LayoutParams.MATCH_PARENT)
                 setBackgroundResource(android.R.color.transparent)
                 scaleType = ImageView.ScaleType.CENTER
                 adjustViewBounds = true
                 imageTintList = tintProvider?.invoke() ?: ColorStateList.valueOf(Color.WHITE)
             }
-            return ToolbarViewHolder(button, onClick)
+            return ToolbarViewHolder(button, onClick, onLongClick)
         }
 
         override fun onBindViewHolder(holder: ToolbarViewHolder, position: Int) {
+            val width = itemWidthPx
+            if (width != null) {
+                val params = holder.itemView.layoutParams
+                if (params.width != width) {
+                    params.width = width
+                    holder.itemView.layoutParams = params
+                }
+            }
             holder.bind(items[position], tintProvider?.invoke() ?: ColorStateList.valueOf(Color.WHITE))
         }
 
@@ -211,6 +271,7 @@ class ToolbarView @JvmOverloads constructor(
     private class ToolbarViewHolder(
         private val button: ImageButton,
         private val onClick: (Item) -> Unit,
+        private val onLongClick: (Item) -> Unit,
     ) : RecyclerView.ViewHolder(button) {
 
         fun bind(item: Item, tint: ColorStateList) {
@@ -218,6 +279,10 @@ class ToolbarView @JvmOverloads constructor(
             button.imageTintList = tint
             button.contentDescription = item.contentDescription
             button.setOnClickListener { onClick(item) }
+            button.setOnLongClickListener {
+                onLongClick(item)
+                true
+            }
         }
     }
 

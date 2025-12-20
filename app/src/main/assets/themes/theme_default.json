@@ -21,7 +21,8 @@
   "layout": {
     "background": {
       "color": "colors.background"
-    }
+    },
+    "extendToToolbar": true
   },
   "toolbar": {
     "surface": {

@@ -1058,7 +1058,30 @@
             "icons": [],
             "accessibilityLabel": null
           },
-          "actions": {}
+          "actions": {
+            "TAP": {
+              "actionType": "COMMIT_TEXT",
+              "cases": [
+                {
+                  "whenCondition": {
+                    "locale": "zh"
+                  },
+                  "doActions": [
+                    {
+                      "type": "COMMIT_TEXT",
+                      "text": "，"
+                    }
+                  ]
+                }
+              ],
+              "default": [
+                {
+                  "type": "COMMIT_TEXT",
+                  "text": ","
+                }
+              ]
+            }
+          }
         },
         {
           "keyId": "key_space",
@@ -1089,7 +1112,7 @@
         },
         {
           "keyId": "key_period",
-          "label": "。",
+          "label": ".",
           "primaryCode": 12290,
           "ui": {
             "styleId": "style_function_key",
@@ -1101,7 +1124,30 @@
             "icons": [],
             "accessibilityLabel": null
           },
-          "actions": {}
+          "actions": {
+            "TAP": {
+              "actionType": "COMMIT_TEXT",
+              "cases": [
+                {
+                  "whenCondition": {
+                    "locale": "zh"
+                  },
+                  "doActions": [
+                    {
+                      "type": "COMMIT_TEXT",
+                      "text": "。"
+                    }
+                  ]
+                }
+              ],
+              "default": [
+                {
+                  "type": "COMMIT_TEXT",
+                  "text": "."
+                }
+              ]
+            }
+          }
         },
         {
           "keyId": "key_lang_toggle",

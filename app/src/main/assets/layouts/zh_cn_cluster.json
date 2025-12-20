@@ -1,0 +1,738 @@
+{
+  "layoutId": "zh_cn_cluster",
+  "name": "CN Cluster",
+  "locale": [
+    "zh_CN"
+  ],
+  "totalWidthRatio": 1.0,
+  "totalWidthDpOffset": 0,
+  "totalHeightRatio": 0.3,
+  "totalHeightDpOffset": 0,
+  "defaults": {
+    "horizontalGapDp": 6,
+    "verticalGapDp": 6,
+    "padding": {
+      "topDp": 6,
+      "bottomDp": 6,
+      "leftDp": 6,
+      "rightDp": 6
+    }
+  },
+  "rows": [
+    {
+      "rowId": "row_1_alpha",
+      "heightRatio": 0.25,
+      "alignment": "JUSTIFY",
+      "keys": [
+        {
+          "keyId": "key_q",
+          "label": "Q",
+          "primaryCode": 113,
+          "ui": {
+            "styleId": "style_alpha_key",
+            "gridPosition": {
+              "startCol": 0,
+              "startRow": 0,
+              "spanCols": 1
+            },
+            "icons": [],
+            "accessibilityLabel": null
+          },
+          "actions": {
+            "TAP": {
+              "actionType": "PUSH_TOKEN",
+              "default": [
+                {
+                  "type": "PUSH_TOKEN",
+                  "token": [
+                    "q",
+                    "w",
+                    "e"
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "keyId": "key_we",
+          "label": "WE",
+          "primaryCode": 113,
+          "ui": {
+            "styleId": "style_alpha_key",
+            "gridPosition": {
+              "startCol": 0,
+              "startRow": 0,
+              "spanCols": 1
+            },
+            "icons": [],
+            "accessibilityLabel": null
+          },
+          "actions": {
+            "TAP": {
+              "actionType": "PUSH_TOKEN",
+              "default": [
+                {
+                  "type": "PUSH_TOKEN",
+                  "token": [
+                    "w",
+                    "e"
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "keyId": "key_rt",
+          "label": "RT",
+          "primaryCode": 114,
+          "ui": {
+            "styleId": "style_alpha_key",
+            "gridPosition": {
+              "startCol": 1,
+              "startRow": 0,
+              "spanCols": 1
+            },
+            "icons": [],
+            "accessibilityLabel": null
+          },
+          "actions": {
+            "TAP": {
+              "actionType": "PUSH_TOKEN",
+              "default": [
+                {
+                  "type": "PUSH_TOKEN",
+                  "token": [
+                    "r",
+                    "t"
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "keyId": "key_y",
+          "label": "Y",
+          "primaryCode": 121,
+          "ui": {
+            "styleId": "style_alpha_key",
+            "gridPosition": {
+              "startCol": 2,
+              "startRow": 0,
+              "spanCols": 1
+            },
+            "icons": [],
+            "accessibilityLabel": null
+          },
+          "actions": {
+            "TAP": {
+              "actionType": "PUSH_TOKEN",
+              "default": [
+                {
+                  "type": "PUSH_TOKEN",
+                  "token": "y"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "keyId": "key_u",
+          "label": "U",
+          "primaryCode": 117,
+          "ui": {
+            "styleId": "style_alpha_key",
+            "gridPosition": {
+              "startCol": 3,
+              "startRow": 0,
+              "spanCols": 1
+            },
+            "icons": [],
+            "accessibilityLabel": null
+          },
+          "actions": {
+            "TAP": {
+              "actionType": "PUSH_TOKEN",
+              "default": [
+                {
+                  "type": "PUSH_TOKEN",
+                  "token": "u"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "keyId": "key_io",
+          "label": "IO",
+          "primaryCode": 105,
+          "ui": {
+            "styleId": "style_alpha_key",
+            "gridPosition": {
+              "startCol": 4,
+              "startRow": 0,
+              "spanCols": 1
+            },
+            "icons": [],
+            "accessibilityLabel": null
+          },
+          "actions": {
+            "TAP": {
+              "actionType": "PUSH_TOKEN",
+              "default": [
+                {
+                  "type": "PUSH_TOKEN",
+                  "token": [
+                    "i",
+                    "o"
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "keyId": "key_p",
+          "label": "P",
+          "primaryCode": 112,
+          "ui": {
+            "styleId": "style_alpha_key",
+            "gridPosition": {
+              "startCol": 5,
+              "startRow": 0,
+              "spanCols": 1
+            },
+            "icons": [],
+            "accessibilityLabel": null
+          },
+          "actions": {
+            "TAP": {
+              "actionType": "PUSH_TOKEN",
+              "default": [
+                {
+                  "type": "PUSH_TOKEN",
+                  "token": "p"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "rowId": "row_2_alpha",
+      "heightRatio": 0.25,
+      "alignment": "JUSTIFY",
+      "keys": [
+        {
+          "keyId": "key_a",
+          "label": "A",
+          "primaryCode": 97,
+          "ui": {
+            "styleId": "style_alpha_key",
+            "gridPosition": {
+              "startCol": 0,
+              "startRow": 1,
+              "spanCols": 1
+            },
+            "icons": [],
+            "accessibilityLabel": null
+          },
+          "actions": {
+            "TAP": {
+              "actionType": "PUSH_TOKEN",
+              "default": [
+                {
+                  "type": "PUSH_TOKEN",
+                  "token": "a"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "keyId": "key_sd",
+          "label": "SD",
+          "primaryCode": 115,
+          "ui": {
+            "styleId": "style_alpha_key",
+            "gridPosition": {
+              "startCol": 1,
+              "startRow": 1,
+              "spanCols": 1
+            },
+            "icons": [],
+            "accessibilityLabel": null
+          },
+          "actions": {
+            "TAP": {
+              "actionType": "PUSH_TOKEN",
+              "default": [
+                {
+                  "type": "PUSH_TOKEN",
+                  "token": [
+                    "s",
+                    "d"
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "keyId": "key_fg",
+          "label": "FG",
+          "primaryCode": 102,
+          "ui": {
+            "styleId": "style_alpha_key",
+            "gridPosition": {
+              "startCol": 2,
+              "startRow": 1,
+              "spanCols": 1
+            },
+            "icons": [],
+            "accessibilityLabel": null
+          },
+          "actions": {
+            "TAP": {
+              "actionType": "PUSH_TOKEN",
+              "default": [
+                {
+                  "type": "PUSH_TOKEN",
+                  "token": [
+                    "f",
+                    "g"
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "keyId": "key_h",
+          "label": "H",
+          "primaryCode": 104,
+          "ui": {
+            "styleId": "style_alpha_key",
+            "gridPosition": {
+              "startCol": 3,
+              "startRow": 1,
+              "spanCols": 1
+            },
+            "icons": [],
+            "accessibilityLabel": null
+          },
+          "actions": {
+            "TAP": {
+              "actionType": "PUSH_TOKEN",
+              "default": [
+                {
+                  "type": "PUSH_TOKEN",
+                  "token": "h"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "keyId": "key_jk",
+          "label": "JK",
+          "primaryCode": 106,
+          "ui": {
+            "styleId": "style_alpha_key",
+            "gridPosition": {
+              "startCol": 4,
+              "startRow": 1,
+              "spanCols": 1
+            },
+            "icons": [],
+            "accessibilityLabel": null
+          },
+          "actions": {
+            "TAP": {
+              "actionType": "PUSH_TOKEN",
+              "default": [
+                {
+                  "type": "PUSH_TOKEN",
+                  "token": [
+                    "j",
+                    "k"
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "keyId": "key_l",
+          "label": "L",
+          "primaryCode": 108,
+          "ui": {
+            "styleId": "style_alpha_key",
+            "gridPosition": {
+              "startCol": 5,
+              "startRow": 1,
+              "spanCols": 1
+            },
+            "icons": [],
+            "accessibilityLabel": null
+          },
+          "actions": {
+            "TAP": {
+              "actionType": "PUSH_TOKEN",
+              "default": [
+                {
+                  "type": "PUSH_TOKEN",
+                  "token": "l"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "rowId": "row_3_alpha",
+      "heightRatio": 0.25,
+      "alignment": "JUSTIFY",
+      "keys": [
+        {
+          "keyId": "key_shift",
+          "label": "↑",
+          "primaryCode": -1,
+          "ui": {
+            "styleId": "style_function_key",
+            "gridPosition": {
+              "startCol": 0,
+              "startRow": 2,
+              "spanCols": 1
+            },
+            "icons": [],
+            "accessibilityLabel": null
+          },
+          "actions": {
+            "TAP": {
+              "actionType": "TOGGLE_MODIFIER",
+              "cases": [
+                {
+                  "whenCondition": {},
+                  "doActions": [
+                    {
+                      "type": "TOGGLE_MODIFIER",
+                      "modifier": "SHIFT"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "keyId": "key_z",
+          "label": "Z",
+          "primaryCode": 122,
+          "ui": {
+            "styleId": "style_alpha_key",
+            "gridPosition": {
+              "startCol": 1,
+              "startRow": 2,
+              "spanCols": 1
+            },
+            "icons": [],
+            "accessibilityLabel": null
+          },
+          "actions": {
+            "TAP": {
+              "actionType": "PUSH_TOKEN",
+              "default": [
+                {
+                  "type": "PUSH_TOKEN",
+                  "token": "z"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "keyId": "key_xc",
+          "label": "XC",
+          "primaryCode": 120,
+          "ui": {
+            "styleId": "style_alpha_key",
+            "gridPosition": {
+              "startCol": 2,
+              "startRow": 2,
+              "spanCols": 1
+            },
+            "icons": [],
+            "accessibilityLabel": null
+          },
+          "actions": {
+            "TAP": {
+              "actionType": "PUSH_TOKEN",
+              "default": [
+                {
+                  "type": "PUSH_TOKEN",
+                  "token": [
+                    "x",
+                    "c"
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "keyId": "key_v",
+          "label": "V",
+          "primaryCode": 118,
+          "ui": {
+            "styleId": "style_alpha_key",
+            "gridPosition": {
+              "startCol": 3,
+              "startRow": 2,
+              "spanCols": 1
+            },
+            "icons": [],
+            "accessibilityLabel": null
+          },
+          "actions": {
+            "TAP": {
+              "actionType": "PUSH_TOKEN",
+              "default": [
+                {
+                  "type": "PUSH_TOKEN",
+                  "token": "v"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "keyId": "key_bn",
+          "label": "BN",
+          "primaryCode": 98,
+          "ui": {
+            "styleId": "style_alpha_key",
+            "gridPosition": {
+              "startCol": 4,
+              "startRow": 2,
+              "spanCols": 1
+            },
+            "icons": [],
+            "accessibilityLabel": null
+          },
+          "actions": {
+            "TAP": {
+              "actionType": "PUSH_TOKEN",
+              "default": [
+                {
+                  "type": "PUSH_TOKEN",
+                  "token": [
+                    "b",
+                    "n"
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "keyId": "key_m",
+          "label": "M",
+          "primaryCode": 109,
+          "ui": {
+            "styleId": "style_alpha_key",
+            "gridPosition": {
+              "startCol": 5,
+              "startRow": 2,
+              "spanCols": 1
+            },
+            "icons": [],
+            "accessibilityLabel": null
+          },
+          "actions": {
+            "TAP": {
+              "actionType": "PUSH_TOKEN",
+              "default": [
+                {
+                  "type": "PUSH_TOKEN",
+                  "token": "m"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "keyId": "key_backspace",
+          "label": "⌫",
+          "primaryCode": -5,
+          "ui": {
+            "styleId": "style_function_key",
+            "gridPosition": {
+              "startCol": 6,
+              "startRow": 2,
+              "spanCols": 1
+            },
+            "icons": [],
+            "accessibilityLabel": null
+          },
+          "actions": {
+            "TAP": {
+              "actionType": "COMMAND",
+              "cases": [
+                {
+                  "whenCondition": {},
+                  "doActions": [
+                    {
+                      "type": "COMMAND",
+                      "commandType": "BACKSPACE"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "rowId": "row_4_function",
+      "heightRatio": 0.25,
+      "alignment": "JUSTIFY",
+      "keys": [
+        {
+          "keyId": "key_mode_switch",
+          "label": "123",
+          "primaryCode": -2,
+          "ui": {
+            "styleId": "style_function_key_important",
+            "gridPosition": {
+              "startCol": 0,
+              "startRow": 3,
+              "spanCols": 1
+            },
+            "icons": [],
+            "accessibilityLabel": null
+          },
+          "actions": {
+            "TAP": {
+              "actionType": "SWITCH_LAYOUT",
+              "default": [
+                {
+                  "type": "SWITCH_LAYOUT",
+                  "layoutId": "numeric"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "keyId": "key_symbols",
+          "label": "符",
+          "primaryCode": -100,
+          "ui": {
+            "styleId": "style_function_key_important",
+            "gridPosition": {
+              "startCol": 1,
+              "startRow": 3,
+              "spanCols": 1
+            },
+            "icons": [],
+            "accessibilityLabel": null
+          },
+          "actions": {
+            "TAP": {
+              "actionType": "SWITCH_LAYOUT",
+              "default": [
+                {
+                  "type": "SWITCH_LAYOUT",
+                  "layoutId": "symbols"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "keyId": "key_space",
+          "label": "space",
+          "primaryCode": 32,
+          "ui": {
+            "styleId": "style_function_key_important",
+            "gridPosition": {
+              "startCol": 2,
+              "startRow": 3,
+              "spanCols": 1
+            },
+            "icons": [],
+            "accessibilityLabel": null,
+            "widthWeight": 2.5
+          },
+          "actions": {
+            "TAP": {
+              "actionType": "COMMAND",
+              "default": [
+                {
+                  "type": "COMMAND",
+                  "commandType": "SPACE"
+                }
+              ]
+            },
+            "LONG_PRESS": {
+              "actionType": "TOGGLE_LOCALE",
+              "default": [
+                {
+                  "type": "TOGGLE_LOCALE"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "keyId": "key_semicolon",
+          "label": ";",
+          "primaryCode": 59,
+          "ui": {
+            "styleId": "style_function_key",
+            "gridPosition": {
+              "startCol": 3,
+              "startRow": 3,
+              "spanCols": 1
+            },
+            "icons": [],
+            "accessibilityLabel": null
+          },
+          "actions": {}
+        },
+        {
+          "keyId": "key_enter",
+          "label": "ENTER",
+          "primaryCode": 10,
+          "ui": {
+            "styleId": "style_function_key_important",
+            "gridPosition": {
+              "startCol": 4,
+              "startRow": 3,
+              "spanCols": 1
+            },
+            "icons": [],
+            "accessibilityLabel": null
+          },
+          "actions": {
+            "TAP": {
+              "actionType": "COMMAND",
+              "default": [
+                {
+                  "type": "COMMAND",
+                  "commandType": "ENTER"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
