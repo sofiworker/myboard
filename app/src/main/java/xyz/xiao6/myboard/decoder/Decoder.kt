@@ -9,6 +9,10 @@ interface Decoder {
     fun reset(): DecodeUpdate = DecodeUpdate(composingText = "")
 }
 
+interface ReplaceComposingDecoder {
+    fun replaceComposing(text: String): DecodeUpdate
+}
+
 data class DecodeUpdate(
     val commitTexts: List<String> = emptyList(),
     val candidates: List<String> = emptyList(),

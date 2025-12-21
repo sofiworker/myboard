@@ -174,6 +174,32 @@ class SettingsStore(context: Context) {
         writeString(key, value)
     }
 
+    fun getEnabledDictionaryIds(localeTag: String): List<String>? {
+        val key = KEY_ENABLED_DICTIONARIES_PREFIX + normalizeLocaleTag(localeTag)
+        val raw = readString(key) ?: return null
+        if (raw == DICTIONARY_EMPTY_TOKEN) return emptyList()
+        if (raw.isBlank()) return emptyList()
+        return raw.split(',')
+            .map { it.trim() }
+            .filter { it.isNotBlank() }
+            .distinct()
+    }
+
+    fun setEnabledDictionaryIds(localeTag: String, dictionaryIds: List<String>) {
+        val key = KEY_ENABLED_DICTIONARIES_PREFIX + normalizeLocaleTag(localeTag)
+        val normalized = dictionaryIds.map { it.trim() }.filter { it.isNotBlank() }.distinct()
+        if (normalized.isEmpty()) {
+            writeString(key, DICTIONARY_EMPTY_TOKEN)
+        } else {
+            writeString(key, normalized.joinToString(","))
+        }
+    }
+
+    fun clearEnabledDictionaryIds(localeTag: String) {
+        val key = KEY_ENABLED_DICTIONARIES_PREFIX + normalizeLocaleTag(localeTag)
+        writeString(key, null)
+    }
+
     fun clearAll() {
         cache.clear()
         scope.launch {
@@ -207,6 +233,8 @@ class SettingsStore(context: Context) {
         private const val KEY_ENABLED_LOCALES = "enabled_locale_tags"
         private const val KEY_ENABLED_LAYOUTS_PREFIX = "enabled_layout_ids:"
         private const val KEY_PREFERRED_LAYOUT_PREFIX = "preferred_layout_id:"
+        private const val KEY_ENABLED_DICTIONARIES_PREFIX = "enabled_dictionary_ids:"
+        private const val DICTIONARY_EMPTY_TOKEN = "__empty__"
         private const val KEY_CLICK_SOUND_VOLUME_PERCENT = "click_sound_volume_percent"
         private const val KEY_VIBRATION_FOLLOW_SYSTEM = "vibration_follow_system"
         private const val KEY_VIBRATION_STRENGTH_PERCENT = "vibration_strength_percent"

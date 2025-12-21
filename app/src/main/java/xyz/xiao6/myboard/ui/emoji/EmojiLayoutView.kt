@@ -57,6 +57,8 @@ class EmojiLayoutView @JvmOverloads constructor(
     private var iconTint: ColorStateList = ColorStateList.valueOf(Color.WHITE)
     private var surfaceColor: Int = Color.parseColor("#F2F2F7")
     private var pillColor: Int = Color.parseColor("#1F000000")
+    private var gridDividerColor: Int = Color.parseColor("#22000000")
+    private var gridDividerWidthPx: Float = dp(1f)
 
     init {
         background = GradientDrawable().apply {
@@ -204,6 +206,10 @@ class EmojiLayoutView @JvmOverloads constructor(
         btnBack.imageTintList = iconTint
         btnSearch.imageTintList = iconTint
         (tabsContainer.background as? GradientDrawable)?.setColor(pillColor)
+        val divider = theme?.candidates?.divider
+        gridDividerColor = runtime?.resolveColor(divider?.color, gridDividerColor) ?: gridDividerColor
+        gridDividerWidthPx = dp(divider?.widthDp ?: 1f)
+        pagerAdapter.setDivider(gridDividerColor, gridDividerWidthPx)
         categoryAdapter.setTheme(runtime, theme)
         controller.refresh(keepPage = true)
     }
@@ -249,7 +255,9 @@ class EmojiLayoutView @JvmOverloads constructor(
         private val onClick: (String) -> Unit,
     ) : RecyclerView.Adapter<PageVH>() {
         private var pages: List<List<String>> = emptyList()
-        private var cfg: EmojiGridConfig = EmojiGridConfig(columns = 8, rows = 4, textSizeSp = 22f, cellHeightDp = 48f)
+        private var cfg: EmojiGridConfig = EmojiGridConfig(columns = 8, rows = 4, textSizeSp = 24f, cellHeightDp = 60f)
+        private var dividerColor: Int = Color.parseColor("#22000000")
+        private var dividerWidthPx: Float = 1f
 
         fun submit(items: List<String>, cfg: EmojiGridConfig) {
             this.cfg = cfg
@@ -258,16 +266,23 @@ class EmojiLayoutView @JvmOverloads constructor(
             notifyDataSetChanged()
         }
 
+        fun setDivider(color: Int, widthPx: Float) {
+            dividerColor = color
+            dividerWidthPx = widthPx
+            notifyDataSetChanged()
+        }
+
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): PageVH {
             val rv = RecyclerView(parent.context).apply {
                 layoutParams = RecyclerView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
                 overScrollMode = View.OVER_SCROLL_NEVER
             }
-            return PageVH(rv, onClick)
+            return PageVH(rv, onClick, dividerColor, dividerWidthPx)
         }
 
         override fun onBindViewHolder(holder: PageVH, position: Int) {
             holder.bind(pages.getOrNull(position).orEmpty(), cfg)
+            holder.updateDivider(dividerColor, dividerWidthPx)
         }
 
         override fun getItemCount(): Int = pages.size
@@ -276,11 +291,15 @@ class EmojiLayoutView @JvmOverloads constructor(
     private class PageVH(
         private val recyclerView: RecyclerView,
         private val onClick: (String) -> Unit,
+        dividerColor: Int,
+        dividerWidthPx: Float,
     ) : RecyclerView.ViewHolder(recyclerView) {
         private val adapter = GridAdapter(onClick)
+        private val decoration = GridDecoration(dividerColor, dividerWidthPx)
 
         init {
             recyclerView.adapter = adapter
+            recyclerView.addItemDecoration(decoration)
         }
 
         fun bind(items: List<String>, cfg: EmojiGridConfig) {
@@ -288,13 +307,18 @@ class EmojiLayoutView @JvmOverloads constructor(
             adapter.setConfig(cfg)
             adapter.submit(items)
         }
+
+        fun updateDivider(color: Int, widthPx: Float) {
+            decoration.updateStyle(color, widthPx)
+            recyclerView.invalidateItemDecorations()
+        }
     }
 
     private class GridAdapter(
         private val onClick: (String) -> Unit,
     ) : RecyclerView.Adapter<CellVH>() {
         private var items: List<String> = emptyList()
-        private var cfg: EmojiGridConfig = EmojiGridConfig(columns = 8, rows = 4, textSizeSp = 22f, cellHeightDp = 48f)
+        private var cfg: EmojiGridConfig = EmojiGridConfig(columns = 8, rows = 4, textSizeSp = 24f, cellHeightDp = 60f)
 
         fun setConfig(cfg: EmojiGridConfig) {
             this.cfg = cfg
@@ -311,12 +335,7 @@ class EmojiLayoutView @JvmOverloads constructor(
                 gravity = Gravity.CENTER
                 textSize = cfg.textSizeSp
                 setTextColor(Color.BLACK)
-                background = GradientDrawable().apply {
-                    shape = GradientDrawable.RECTANGLE
-                    cornerRadius = dp(parent.context, 10f)
-                    setColor(Color.parseColor("#FFFFFFFF"))
-                    setStroke(dp(parent.context, 1f).toInt(), Color.parseColor("#22000000"))
-                }
+                setBackgroundColor(Color.WHITE)
             }
             return CellVH(tv, onClick)
         }
@@ -421,4 +440,49 @@ class EmojiLayoutView @JvmOverloads constructor(
     }
 
     private fun dp(value: Float): Float = value * resources.displayMetrics.density
+
+    private class GridDecoration(
+        dividerColor: Int,
+        dividerWidthPx: Float,
+    ) : RecyclerView.ItemDecoration() {
+        private val paint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+            style = android.graphics.Paint.Style.FILL
+            color = dividerColor
+        }
+        private var w = dividerWidthPx
+
+        fun updateStyle(color: Int, widthPx: Float) {
+            paint.color = color
+            w = widthPx
+        }
+
+        override fun onDrawOver(c: android.graphics.Canvas, parent: RecyclerView, state: RecyclerView.State) {
+            val lm = parent.layoutManager as? GridLayoutManager ?: return
+            val spanCount = lm.spanCount.coerceAtLeast(1)
+            for (i in 0 until parent.childCount) {
+                val child = parent.getChildAt(i)
+                val params = child.layoutParams as? RecyclerView.LayoutParams ?: continue
+                val position = parent.getChildAdapterPosition(child)
+                if (position == RecyclerView.NO_POSITION) continue
+
+                val spanSize = lm.spanSizeLookup.getSpanSize(position).coerceAtLeast(1)
+                val spanIndex = lm.spanSizeLookup.getSpanIndex(position, spanCount)
+                val groupIndex = lm.spanSizeLookup.getSpanGroupIndex(position, spanCount)
+
+                val left = (child.left - params.leftMargin).toFloat()
+                val right = (child.right + params.rightMargin).toFloat()
+                val top = (child.top - params.topMargin).toFloat()
+                val bottom = (child.bottom + params.bottomMargin).toFloat()
+
+                if (spanIndex == 0) {
+                    c.drawRect(left, top, left + w, bottom, paint)
+                }
+                if (groupIndex == 0) {
+                    c.drawRect(left, top, right, top + w, paint)
+                }
+                c.drawRect(right, top, right + w, bottom, paint)
+                c.drawRect(left, bottom, right, bottom + w, paint)
+            }
+        }
+    }
 }

@@ -21,83 +21,114 @@ class DecoderFactory(
     private val dictCache = ConcurrentHashMap<String, MyBoardDictionary>()
 
     fun candidatesByPrefix(
-        spec: DictionarySpec?,
+        specs: List<DictionarySpec>,
         rawKey: String,
         limit: Int = 50,
     ): List<String> {
-        if (spec == null) return emptyList()
-        if (!spec.enabled) return emptyList()
+        if (specs.isEmpty()) return emptyList()
         if (limit <= 0) return emptyList()
-
-        val scheme = spec.codeScheme?.trim().orEmpty()
-        if (scheme != "PINYIN_FULL" && scheme != "PINYIN_T9") return emptyList()
+        val supported = filterSupportedSpecs(specs)
+        if (supported.isEmpty()) return emptyList()
 
         val key = normalizePinyinKey(rawKey)
         if (key.isBlank()) return emptyList()
 
-        val assetPath = spec.assetPath?.trim().orEmpty()
-        if (assetPath.isBlank()) return emptyList()
+        return mergeCandidates(
+            specs = supported,
+            limit = limit,
+        ) { dict, max -> dict.candidatesByPrefix(key, max) }
+    }
 
-        val dict = try {
-            dictCache.getOrPut(assetPath) {
-                MLog.d(logTag, "Loading MyBoardDictionary from assetPath=$assetPath (lookup-only)")
-                MyBoardDictionary.fromAsset(context, assetPath)
-            }
-        } catch (t: Throwable) {
-            MLog.e(logTag, "Failed to load MyBoardDictionary assetPath=$assetPath (lookup-only)", t)
-            return emptyList()
+    fun candidatesByPrefix(
+        spec: DictionarySpec?,
+        rawKey: String,
+        limit: Int = 50,
+    ): List<String> {
+        return if (spec == null) emptyList() else candidatesByPrefix(listOf(spec), rawKey, limit)
+    }
+
+    fun create(specs: List<DictionarySpec>): Decoder {
+        val supported = filterSupportedSpecs(specs)
+        if (supported.isEmpty()) return PassthroughDecoder
+
+        val dicts = supported.mapNotNull { spec -> loadDictionary(spec) }
+        if (dicts.isEmpty()) return PassthroughDecoder
+
+        val lookup = DictionaryLookup { searchKey, limit ->
+            mergeCandidates(
+                specs = supported,
+                limit = limit,
+            ) { dict, max -> dict.candidatesByPrefix(searchKey, max) }
         }
 
-        return dict.candidatesByPrefix(key, limit)
+        return TokenPinyinDecoder(lookup)
     }
 
     fun create(spec: DictionarySpec?): Decoder {
-        if (spec == null) return PassthroughDecoder
-        if (!spec.enabled) return PassthroughDecoder
+        return create(listOfNotNull(spec))
+    }
 
-        val scheme = spec.codeScheme?.trim().orEmpty()
+    private fun filterSupportedSpecs(specs: List<DictionarySpec>): List<DictionarySpec> {
+        val enabled = specs.filter { it.enabled }
+        val supported = enabled.filter { isSupportedScheme(it.codeScheme) }
+        if (supported.isEmpty()) return emptyList()
+        val scheme = supported.first().codeScheme
+        return supported.filter { it.codeScheme == scheme }
+    }
 
-        // Unified pinyin decoder: drive by token input (qwerty letters + T9 symbol sets).
-        if (scheme == "PINYIN_FULL" || scheme == "PINYIN_T9") {
-            val assetPath = spec.assetPath?.trim().orEmpty()
-            if (assetPath.isBlank()) {
-                MLog.w(logTag, "$scheme missing assetPath; fallback to PassthroughDecoder")
-                return PassthroughDecoder
-            }
+    private fun isSupportedScheme(scheme: String?): Boolean {
+        val s = scheme?.trim().orEmpty()
+        return s == "PINYIN_FULL" || s == "PINYIN_T9"
+    }
 
-            val dict = try {
-                dictCache.getOrPut(assetPath) {
+    private fun loadDictionary(spec: DictionarySpec): MyBoardDictionary? {
+        val assetPath = spec.assetPath?.trim().orEmpty()
+        if (assetPath.isNotBlank()) {
+            return try {
+                dictCache.getOrPut("asset:$assetPath") {
                     MLog.d(logTag, "[$buildStamp] Loading MyBoardDictionary from assetPath=$assetPath")
                     MyBoardDictionary.fromAsset(context, assetPath)
                 }
             } catch (t: Throwable) {
-                MLog.e(logTag, "Failed to load MyBoardDictionary assetPath=$assetPath; fallback to passthrough", t)
-                return PassthroughDecoder
+                MLog.e(logTag, "Failed to load MyBoardDictionary assetPath=$assetPath", t)
+                null
             }
-
-            val lookup = DictionaryLookup { searchKey, limit ->
-                val out = dict.candidatesByPrefix(searchKey, limit)
-                MLog.d(logTag, "lookup(prefix) key='$searchKey' limit=$limit -> ${out.size} candidates")
-                out
-            }
-
-            runCatching {
-//                MLog.d(logTag, "[$buildStamp] smoke test begin scheme=$scheme")
-//                val keys = listOf("a", "ao", "ni", "nihao", "ni hao", "zhong", "zhongguo", "wo", "women")
-//                for (k in keys) {
-//                    val outPrefix = dict.candidatesByPrefix(k, 5)
-//                    val outExact = dict.candidates(k, 5)
-//                    MLog.d(logTag, "smoke key='$k' exact=${outExact.take(5)} prefix=${outPrefix.take(5)}")
-//                }
-//                MLog.d(logTag, "[$buildStamp] smoke test end")
-            }.onFailure { t ->
-                MLog.w(logTag, "smoke test failed", t)
-            }
-
-            return TokenPinyinDecoder(lookup)
         }
 
-        MLog.d(logTag, "No decoder mapping for codeScheme=$scheme dictionaryId=${spec.dictionaryId}; fallback to PassthroughDecoder")
-        return PassthroughDecoder
+        val filePath = spec.filePath?.trim().orEmpty()
+        if (filePath.isNotBlank()) {
+            return try {
+                dictCache.getOrPut("file:$filePath") {
+                    MLog.d(logTag, "[$buildStamp] Loading MyBoardDictionary from filePath=$filePath")
+                    MyBoardDictionary.fromFile(java.io.File(filePath))
+                }
+            } catch (t: Throwable) {
+                MLog.e(logTag, "Failed to load MyBoardDictionary filePath=$filePath", t)
+                null
+            }
+        }
+
+        MLog.w(logTag, "Dictionary missing assetPath/filePath dictionaryId=${spec.dictionaryId}")
+        return null
+    }
+
+    private fun mergeCandidates(
+        specs: List<DictionarySpec>,
+        limit: Int,
+        fetch: (MyBoardDictionary, Int) -> List<String>,
+    ): List<String> {
+        val out = ArrayList<String>(minOf(limit, 64))
+        val seen = LinkedHashSet<String>(minOf(limit * 2, 128))
+        for (spec in specs) {
+            val dict = loadDictionary(spec) ?: continue
+            val candidates = fetch(dict, limit)
+            for (cand in candidates) {
+                if (seen.add(cand)) {
+                    out.add(cand)
+                    if (out.size >= limit) return out
+                }
+            }
+        }
+        return out
     }
 }

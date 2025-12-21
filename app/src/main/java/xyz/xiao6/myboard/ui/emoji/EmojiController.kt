@@ -76,8 +76,8 @@ class EmojiController(
             else raw.filter { it.contains(q, ignoreCase = true) }
         val gridConfig =
             when (state.menu) {
-                EmojiMenu.EMOJI -> EmojiGridConfig(columns = 8, rows = 4, textSizeSp = 22f, cellHeightDp = 48f)
-                EmojiMenu.KAOMOJI -> EmojiGridConfig(columns = 2, rows = 6, textSizeSp = 18f, cellHeightDp = 52f)
+                EmojiMenu.EMOJI -> EmojiGridConfig(columns = 8, rows = 4, textSizeSp = 24f, cellHeightDp = 60f)
+                EmojiMenu.KAOMOJI -> EmojiGridConfig(columns = 2, rows = 6, textSizeSp = 20f, cellHeightDp = 60f)
             }
         return EmojiUiState(
             menu = state.menu,

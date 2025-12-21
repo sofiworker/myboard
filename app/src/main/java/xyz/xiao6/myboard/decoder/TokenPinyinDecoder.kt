@@ -13,7 +13,7 @@ import xyz.xiao6.myboard.util.PinyinSyllableSegmenter
 class TokenPinyinDecoder(
     private val dictionary: DictionaryLookup,
     private val candidateLimit: Int = 50,
-) : Decoder, TokenDecoder {
+) : Decoder, TokenDecoder, ReplaceComposingDecoder {
     private val slots: MutableList<List<String>> = ArrayList()
     private var fixedPrefix: String = ""
 
@@ -79,6 +79,21 @@ class TokenPinyinDecoder(
     override fun reset(): DecodeUpdate {
         clearAll()
         return DecodeUpdate(composingText = "")
+    }
+
+    override fun replaceComposing(text: String): DecodeUpdate {
+        clearAll()
+        val iter = text.codePoints().iterator()
+        while (iter.hasNext()) {
+            val cp = iter.nextInt()
+            val ch = String(Character.toChars(cp))
+            val c = ch.singleOrNull()
+            if (c != null && c.isLetter()) {
+                slots.add(listOf(c.lowercaseChar().toString()))
+            }
+        }
+        recompute()
+        return currentUpdate()
     }
 
     private fun applySequence(tokens: List<Token>): DecodeUpdate {

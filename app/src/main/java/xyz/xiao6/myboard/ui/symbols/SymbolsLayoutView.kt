@@ -16,7 +16,6 @@ import android.widget.TextView
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import androidx.viewpager2.widget.ViewPager2
 import xyz.xiao6.myboard.R
 import xyz.xiao6.myboard.model.ThemeSpec
 import xyz.xiao6.myboard.ui.theme.ThemeRuntime
@@ -42,8 +41,10 @@ class SymbolsLayoutView @JvmOverloads constructor(
     private var selectedCategoryIndex: Int = 0
     private var locked: Boolean = false
 
-    private val pager: ViewPager2
-    private val pagerAdapter: SymbolsPageAdapter
+    private val symbolGrid: RecyclerView
+    private val symbolAdapter: SymbolsGridAdapter
+    private val symbolLayoutManager: GridLayoutManager
+    private val symbolGridDecoration: SymbolsGridDecoration
     private val categoryList: RecyclerView
     private val categoryAdapter: CategoryAdapter
 
@@ -54,6 +55,8 @@ class SymbolsLayoutView @JvmOverloads constructor(
 
     private var iconTint: ColorStateList = ColorStateList.valueOf(Color.WHITE)
     private var symbolTextTint: ColorStateList = ColorStateList.valueOf(Color.BLACK)
+    private var symbolGridDividerColor: Int = Color.parseColor("#22000000")
+    private var symbolGridDividerWidthPx: Float = dp(1f)
 
     init {
         background = GradientDrawable().apply {
@@ -75,16 +78,21 @@ class SymbolsLayoutView @JvmOverloads constructor(
             orientation = LinearLayout.HORIZONTAL
         }
 
-        pager = ViewPager2(context).apply {
+        symbolLayoutManager = GridLayoutManager(context, 8)
+        symbolGridDecoration = SymbolsGridDecoration(symbolGridDividerColor, symbolGridDividerWidthPx)
+        symbolGrid = RecyclerView(context).apply {
             layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1f)
-            offscreenPageLimit = 1
-            orientation = ViewPager2.ORIENTATION_VERTICAL
+            overScrollMode = View.OVER_SCROLL_NEVER
+            layoutManager = symbolLayoutManager
+            itemAnimator = null
         }
 
-        pagerAdapter = SymbolsPageAdapter(
-            onSymbolClick = { symbol -> onCommitSymbol?.invoke(symbol) },
+        symbolAdapter = SymbolsGridAdapter(
+            onClick = { symbol -> onCommitSymbol?.invoke(symbol) },
         )
-        pager.adapter = pagerAdapter
+        symbolGrid.adapter = symbolAdapter
+        symbolGrid.addItemDecoration(symbolGridDecoration)
+        symbolAdapter.attachDecoration(symbolGridDecoration)
 
         val rightBar = LinearLayout(context).apply {
             layoutParams = LinearLayout.LayoutParams(dp(56f).toInt(), LinearLayout.LayoutParams.MATCH_PARENT)
@@ -113,8 +121,8 @@ class SymbolsLayoutView @JvmOverloads constructor(
         btnLock = controlButton(R.drawable.ic_symbols_unlock, "Lock")
 
         btnBack.setOnClickListener { onBack?.invoke() }
-        btnPrev.setOnClickListener { pager.currentItem = (pager.currentItem - 1).coerceAtLeast(0) }
-        btnNext.setOnClickListener { pager.currentItem = (pager.currentItem + 1).coerceAtMost((pagerAdapter.itemCount - 1).coerceAtLeast(0)) }
+        btnPrev.setOnClickListener { pageScrollSymbols(up = true) }
+        btnNext.setOnClickListener { pageScrollSymbols(up = false) }
         btnLock.setOnClickListener { setLocked(!locked, notify = true) }
 
         rightBar.addView(btnBack)
@@ -122,7 +130,7 @@ class SymbolsLayoutView @JvmOverloads constructor(
         rightBar.addView(btnNext)
         rightBar.addView(btnLock)
 
-        top.addView(pager)
+        top.addView(symbolGrid)
         top.addView(rightBar)
 
         categoryList = RecyclerView(context).apply {
@@ -145,12 +153,12 @@ class SymbolsLayoutView @JvmOverloads constructor(
 
         categoryAdapter.submit(categories.map { it.name })
         selectCategory(0)
-        updateButtons()
+        updatePageButtons()
 
-        pager.registerOnPageChangeCallback(
-            object : ViewPager2.OnPageChangeCallback() {
-                override fun onPageSelected(position: Int) {
-                    updateButtons()
+        symbolGrid.addOnScrollListener(
+            object : RecyclerView.OnScrollListener() {
+                override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                    updatePageButtons()
                 }
             },
         )
@@ -172,7 +180,13 @@ class SymbolsLayoutView @JvmOverloads constructor(
         btnPrev.imageTintList = iconTint
         btnNext.imageTintList = iconTint
         btnLock.imageTintList = iconTint
-        pagerAdapter.setTextTint(symbolTextTint)
+        symbolAdapter.setTint(symbolTextTint)
+        val divider = theme?.candidates?.divider
+        symbolGridDividerColor =
+            runtime?.resolveColor(divider?.color, Color.parseColor("#22000000")) ?: Color.parseColor("#22000000")
+        symbolGridDividerWidthPx = dp(divider?.widthDp ?: 1f)
+        symbolAdapter.setDivider(symbolGridDividerColor, symbolGridDividerWidthPx)
+        symbolGrid.invalidateItemDecorations()
         categoryAdapter.setTheme(runtime, theme)
     }
 
@@ -192,73 +206,25 @@ class SymbolsLayoutView @JvmOverloads constructor(
         categoryAdapter.setSelected(idx)
 
         val symbols = categories[idx].symbols
-        pagerAdapter.submit(symbols)
-        pager.setCurrentItem(0, false)
-        updateButtons()
-    }
-
-    private fun updateButtons() {
-        btnPrev.isEnabled = pager.currentItem > 0
-        btnNext.isEnabled = pager.currentItem < pagerAdapter.itemCount - 1
-        btnPrev.alpha = if (btnPrev.isEnabled) 1f else 0.35f
-        btnNext.alpha = if (btnNext.isEnabled) 1f else 0.35f
+        symbolAdapter.submit(symbols)
+        symbolGrid.scrollToPosition(0)
+        updatePageButtons()
     }
 
     private fun dp(value: Float): Float = value * resources.displayMetrics.density
-
-    private class SymbolsPageAdapter(
-        private val onSymbolClick: (String) -> Unit,
-    ) : RecyclerView.Adapter<SymbolsPageViewHolder>() {
-        private var textTint: ColorStateList = ColorStateList.valueOf(Color.BLACK)
-
-        private val pageSize = 24
-        private var pages: List<List<String>> = emptyList()
-
-        fun submit(symbols: List<String>) {
-            pages = symbols
-                .filter { it.isNotBlank() }
-                .chunked(pageSize)
-            notifyDataSetChanged()
-        }
-
-        fun setTextTint(tint: ColorStateList) {
-            textTint = tint
-            notifyDataSetChanged()
-        }
-
-        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): SymbolsPageViewHolder {
-            val rv = RecyclerView(parent.context).apply {
-                layoutParams = RecyclerView.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                )
-                overScrollMode = View.OVER_SCROLL_NEVER
-                layoutManager = GridLayoutManager(parent.context, 6)
-            }
-            return SymbolsPageViewHolder(rv, onSymbolClick)
-        }
-
-        override fun onBindViewHolder(holder: SymbolsPageViewHolder, position: Int) {
-            holder.bind(pages.getOrNull(position).orEmpty(), textTint)
-        }
-
-        override fun getItemCount(): Int = pages.size
+    private fun pageScrollSymbols(up: Boolean) {
+        val distance = symbolGrid.height - symbolGrid.paddingTop - symbolGrid.paddingBottom
+        if (distance <= 0) return
+        symbolGrid.smoothScrollBy(0, if (up) -distance else distance)
     }
 
-    private class SymbolsPageViewHolder(
-        private val recyclerView: RecyclerView,
-        private val onSymbolClick: (String) -> Unit,
-    ) : RecyclerView.ViewHolder(recyclerView) {
-        private val adapter = SymbolsGridAdapter { symbol -> onSymbolClick(symbol) }
-
-        init {
-            recyclerView.adapter = adapter
-        }
-
-        fun bind(symbols: List<String>, tint: ColorStateList) {
-            adapter.setTint(tint)
-            adapter.submit(symbols)
-        }
+    private fun updatePageButtons() {
+        val canUp = symbolGrid.canScrollVertically(-1)
+        val canDown = symbolGrid.canScrollVertically(1)
+        btnPrev.isEnabled = canUp
+        btnNext.isEnabled = canDown
+        btnPrev.alpha = if (canUp) 1f else 0.35f
+        btnNext.alpha = if (canDown) 1f else 0.35f
     }
 
     private class SymbolsGridAdapter(
@@ -266,9 +232,10 @@ class SymbolsLayoutView @JvmOverloads constructor(
     ) : RecyclerView.Adapter<SymbolCellViewHolder>() {
         private var symbols: List<String> = emptyList()
         private var tint: ColorStateList = ColorStateList.valueOf(Color.BLACK)
+        private var decoration: SymbolsGridDecoration? = null
 
         fun submit(list: List<String>) {
-            symbols = list
+            symbols = list.filter { it.isNotBlank() }
             notifyDataSetChanged()
         }
 
@@ -276,27 +243,25 @@ class SymbolsLayoutView @JvmOverloads constructor(
             this.tint = tint
         }
 
+        fun setDivider(color: Int, widthPx: Float) {
+            decoration?.updateStyle(color, widthPx)
+        }
+
+        fun attachDecoration(decoration: SymbolsGridDecoration) {
+            this.decoration = decoration
+        }
+
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): SymbolCellViewHolder {
             val tv = TextView(parent.context).apply {
                 layoutParams = RecyclerView.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
-                    dp(parent.context, 44f).toInt(),
-                ).apply {
-                    leftMargin = dp(parent.context, 4f).toInt()
-                    rightMargin = dp(parent.context, 4f).toInt()
-                    topMargin = dp(parent.context, 4f).toInt()
-                    bottomMargin = dp(parent.context, 4f).toInt()
-                }
+                    dp(parent.context, 60f).toInt(),
+                )
                 gravity = Gravity.CENTER
-                textSize = 18f
+                textSize = 20f
                 typeface = Typeface.DEFAULT
                 setTextColor(tint)
-                background = GradientDrawable().apply {
-                    shape = GradientDrawable.RECTANGLE
-                    cornerRadius = dp(parent.context, 10f)
-                    setColor(Color.parseColor("#FFFFFFFF"))
-                    setStroke(dp(parent.context, 1f).toInt(), Color.parseColor("#22000000"))
-                }
+                setBackgroundColor(Color.WHITE)
             }
             return SymbolCellViewHolder(tv, onClick)
         }
@@ -409,6 +374,59 @@ class SymbolsLayoutView @JvmOverloads constructor(
                 if (pos >= 0) onClick(pos)
             }
         }
+    }
+
+    private class SymbolsGridDecoration(
+        dividerColor: Int,
+        dividerWidthPx: Float,
+    ) : RecyclerView.ItemDecoration() {
+        private val paint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+            style = android.graphics.Paint.Style.FILL
+            color = dividerColor
+        }
+        private var w = dividerWidthPx
+
+        fun updateStyle(color: Int, widthPx: Float) {
+            paint.color = color
+            w = widthPx
+        }
+
+        override fun onDrawOver(c: android.graphics.Canvas, parent: RecyclerView, state: RecyclerView.State) {
+            val lm = parent.layoutManager as? GridLayoutManager ?: return
+            val spanCount = lm.spanCount.coerceAtLeast(1)
+            for (i in 0 until parent.childCount) {
+                val child = parent.getChildAt(i)
+                val params = child.layoutParams as? RecyclerView.LayoutParams ?: continue
+                val position = parent.getChildAdapterPosition(child)
+                if (position == RecyclerView.NO_POSITION) continue
+
+                val spanSize = lm.spanSizeLookup.getSpanSize(position).coerceAtLeast(1)
+                val spanIndex = lm.spanSizeLookup.getSpanIndex(position, spanCount)
+                val groupIndex = lm.spanSizeLookup.getSpanGroupIndex(position, spanCount)
+
+                val left = (child.left - params.leftMargin).toFloat()
+                val right = (child.right + params.rightMargin).toFloat()
+                val top = (child.top - params.topMargin).toFloat()
+                val bottom = (child.bottom + params.bottomMargin).toFloat()
+
+                if (spanIndex == 0) {
+                    c.drawRect(left, top, left + w, bottom, paint)
+                }
+                if (groupIndex == 0) {
+                    c.drawRect(left, top, right, top + w, paint)
+                }
+                c.drawRect(right, top, right + w, bottom, paint)
+                c.drawRect(left, bottom, right, bottom + w, paint)
+            }
+        }
+    }
+
+    override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
+        super.onSizeChanged(w, h, oldw, oldh)
+        val targetCellPx = dp(60f)
+        val available = (w - dp(56f)).coerceAtLeast(1f)
+        val span = (available / targetCellPx).toInt().coerceIn(6, 10)
+        symbolLayoutManager.spanCount = span
     }
 
 }

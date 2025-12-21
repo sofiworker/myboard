@@ -64,6 +64,41 @@
 
     <string name="settings_placeholder_appearance">即将支持：主题选择。</string>
     <string name="settings_placeholder_dictionaries">即将支持：字典管理。</string>
+    <string name="settings_dictionaries_empty">暂无可用字典。</string>
+    <string name="settings_dictionaries_language">语言：%1$s</string>
+    <string name="settings_dictionaries_enabled_summary">已启用 %1$d/%2$d</string>
+    <string name="settings_dictionaries_enabled_list">已启用：%1$s</string>
+    <string name="settings_dictionaries_enabled_none">无</string>
+    <string name="settings_dictionaries_reset_default">恢复默认</string>
+    <string name="settings_dictionaries_none_for_language">此语言暂无可用字典。</string>
+    <string name="settings_dictionaries_item_id">ID：%1$s</string>
+    <string name="settings_dictionaries_item_layouts">布局：%1$s</string>
+    <string name="settings_dictionaries_not_available">当前布局不可用。</string>
+    <string name="settings_dictionaries_section_overview">已启用字典</string>
+    <string name="settings_dictionaries_section_manage">管理字典</string>
+    <string name="settings_dictionaries_choose_language">选择语言</string>
+    <string name="settings_dictionaries_create_title">新建自定义字典</string>
+    <string name="settings_dictionaries_import_title">导入字典</string>
+    <string name="settings_dictionaries_name">字典名称</string>
+    <string name="settings_dictionaries_id">字典 ID</string>
+    <string name="settings_dictionaries_format">格式</string>
+    <string name="settings_dictionaries_code_scheme">编码方案</string>
+    <string name="settings_dictionaries_choose_file">选择文件</string>
+    <string name="settings_dictionaries_selected_file">已选择：%1$s</string>
+    <string name="settings_dictionaries_create_action">创建</string>
+    <string name="settings_dictionaries_import_action">导入</string>
+    <string name="settings_dictionaries_cancel">取消</string>
+    <string name="settings_dictionaries_add_entry_title">新增词条</string>
+    <string name="settings_dictionaries_entry_word">词条</string>
+    <string name="settings_dictionaries_entry_code">编码</string>
+    <string name="settings_dictionaries_entry_weight">权重</string>
+    <string name="settings_dictionaries_add_entry_action">添加词条</string>
+    <string name="settings_dictionaries_delete_title">删除字典</string>
+    <string name="settings_dictionaries_delete_message">删除“%1$s”及其文件？</string>
+    <string name="settings_dictionaries_delete_action">删除</string>
+    <string name="settings_dictionaries_format_rime_yaml">Rime *.dict.yaml</string>
+    <string name="settings_dictionaries_scheme_pinyin_full">拼音（全拼）</string>
+    <string name="settings_dictionaries_scheme_pinyin_t9">拼音（T9）</string>
 
     <string name="settings_feedback">声音与振动</string>
     <string name="settings_feedback_summary">点击音：%1$d%% · 振动：%2$s</string>
@@ -95,4 +130,5 @@
     <string name="settings_vibration_strength_following_system">跟随系统设置</string>
 
     <string name="settings_reset_desc">清除引导数据并重新运行引导</string>
+
 </resources>

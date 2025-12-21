@@ -76,6 +76,7 @@ class InputMethodController(
         data class Text(val text: String) : DecodeRequest
         data class Token(val token: KeyToken) : DecodeRequest
         data class CandidateSelected(val text: String) : DecodeRequest
+        data class ReplaceComposing(val text: String) : DecodeRequest
     }
 
     init {
@@ -92,6 +93,7 @@ class InputMethodController(
                         is DecodeRequest.Text -> decoder.onText(req.text)
                         is DecodeRequest.Token -> onToken(decoder, req.token)
                         is DecodeRequest.CandidateSelected -> decoder.onCandidateSelected(req.text)
+                        is DecodeRequest.ReplaceComposing -> replaceComposing(decoder, req.text)
                     }
                 withContext(Dispatchers.Main.immediate) {
                     applyDecodeUpdate(update)
@@ -181,6 +183,10 @@ class InputMethodController(
     fun resetComposing() {
         clearDecodeUiState()
         decodeRequests.trySend(DecodeRequest.Reset)
+    }
+
+    fun replaceComposing(text: String) {
+        decodeRequests.trySend(DecodeRequest.ReplaceComposing(text))
     }
 
     fun resetLayoutStateToDefault(
@@ -441,6 +447,26 @@ class InputMethodController(
     private fun onToken(decoder: Decoder, token: KeyToken): DecodeUpdate {
         val tokenDecoder: TokenDecoder =
             (decoder as? TokenDecoder) ?: TokenDecoderAdapter(decoder)
+        return tokenDecoder.onToken(token)
+    }
+
+    private fun replaceComposing(decoder: Decoder, text: String): DecodeUpdate {
+        if (decoder is xyz.xiao6.myboard.decoder.ReplaceComposingDecoder) {
+            return decoder.replaceComposing(text)
+        }
+        if (text.isBlank()) {
+            return decoder.reset()
+        }
+        decoder.reset()
+        val tokenDecoder: TokenDecoder =
+            (decoder as? TokenDecoder) ?: TokenDecoderAdapter(decoder)
+        val tokens = ArrayList<KeyToken>(text.length)
+        val iter = text.codePoints().iterator()
+        while (iter.hasNext()) {
+            val cp = iter.nextInt()
+            tokens.add(KeyToken.Literal(String(Character.toChars(cp))))
+        }
+        val token = if (tokens.size == 1) tokens[0] else KeyToken.Sequence(tokens)
         return tokenDecoder.onToken(token)
     }
 

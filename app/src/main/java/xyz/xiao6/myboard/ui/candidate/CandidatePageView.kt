@@ -57,6 +57,8 @@ class CandidatePageView @JvmOverloads constructor(
 
     private val gridSpanCount = 12
     private val candidateTextPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { textSize = sp(26f) }
+    private val leftDividerDecoration = SimpleDividerDecoration(Color.parseColor("#14000000"), dp(1f))
+    private val gridDividerDecoration = ExcelGridDecoration(Color.parseColor("#22000000"), dp(1f))
 
     init {
         background = GradientDrawable().apply {
@@ -75,7 +77,7 @@ class CandidatePageView @JvmOverloads constructor(
             layoutManager = LinearLayoutManager(context, LinearLayoutManager.VERTICAL, false)
             adapter = pinyinAdapter
             setBackgroundColor(Color.parseColor("#FAFAFA"))
-            addItemDecoration(SimpleDividerDecoration(Color.parseColor("#14000000"), dp(1f)))
+            addItemDecoration(leftDividerDecoration)
         }
 
         centerGrid = RecyclerView(context).apply {
@@ -99,7 +101,7 @@ class CandidatePageView @JvmOverloads constructor(
                 }
             setBackgroundColor(Color.WHITE)
             itemAnimator = null
-            addItemDecoration(ExcelGridDecoration(Color.parseColor("#22000000"), dp(1f)))
+            addItemDecoration(gridDividerDecoration)
         }
 
         rightActions = LinearLayout(context).apply {
@@ -143,6 +145,18 @@ class CandidatePageView @JvmOverloads constructor(
         val runtime = theme?.let { ThemeRuntime(it) }
         val bg = runtime?.resolveColor(theme?.colors?.get("background"), Color.parseColor("#F2F2F7")) ?: Color.parseColor("#F2F2F7")
         (background as? GradientDrawable)?.setColor(bg)
+        val divider = theme?.candidates?.divider
+        val fallbackLeft = Color.parseColor("#14000000")
+        val fallbackGrid = Color.parseColor("#22000000")
+        val dividerColor = runtime?.resolveColor(divider?.color, fallbackGrid) ?: fallbackGrid
+        val dividerWidth = dp(divider?.widthDp ?: 1f)
+        leftDividerDecoration.updateStyle(
+            color = runtime?.resolveColor(divider?.color, fallbackLeft) ?: fallbackLeft,
+            heightPx = dividerWidth,
+        )
+        gridDividerDecoration.updateStyle(color = dividerColor, widthPx = dividerWidth)
+        leftList.invalidateItemDecorations()
+        centerGrid.invalidateItemDecorations()
     }
 
     private fun actionButton(text: String, onClick: () -> Unit): View {
@@ -400,7 +414,12 @@ class CandidatePageView @JvmOverloads constructor(
             style = Paint.Style.FILL
             color = dividerColor
         }
-        private val h = dividerHeightPx
+        private var h = dividerHeightPx
+
+        fun updateStyle(color: Int, heightPx: Float) {
+            paint.color = color
+            h = heightPx
+        }
 
         override fun onDraw(c: Canvas, parent: RecyclerView, state: RecyclerView.State) {
             val left = parent.paddingLeft.toFloat()
@@ -422,9 +441,14 @@ class CandidatePageView @JvmOverloads constructor(
             style = Paint.Style.FILL
             color = dividerColor
         }
-        private val w = dividerWidthPx
+        private var w = dividerWidthPx
 
-        override fun onDraw(c: Canvas, parent: RecyclerView, state: RecyclerView.State) {
+        fun updateStyle(color: Int, widthPx: Float) {
+            paint.color = color
+            w = widthPx
+        }
+
+        override fun onDrawOver(c: Canvas, parent: RecyclerView, state: RecyclerView.State) {
             val lm = parent.layoutManager as? GridLayoutManager ?: return
             val spanCount = lm.spanCount.coerceAtLeast(1)
             for (i in 0 until parent.childCount) {

@@ -106,6 +106,11 @@ class KeyboardSurfaceView @JvmOverloads constructor(
         textSize = sp(10f)
     }
 
+    fun resolveKeyLabelForInput(keyId: String): String? {
+        val key = keys.firstOrNull { it.keyId == keyId } ?: return null
+        return resolveLabel(key).takeIf { it.isNotBlank() }
+    }
+
     fun setTheme(theme: ThemeSpec?) {
         themeSpec = theme
         this.theme = theme?.let { ThemeRuntime(it) }

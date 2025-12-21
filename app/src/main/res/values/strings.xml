@@ -71,6 +71,41 @@
 
     <string name="settings_placeholder_appearance">Coming soon: theme selection.</string>
     <string name="settings_placeholder_dictionaries">Coming soon: dictionary management.</string>
+    <string name="settings_dictionaries_empty">No dictionaries available.</string>
+    <string name="settings_dictionaries_language">Language: %1$s</string>
+    <string name="settings_dictionaries_enabled_summary">Enabled %1$d/%2$d</string>
+    <string name="settings_dictionaries_enabled_list">Enabled: %1$s</string>
+    <string name="settings_dictionaries_enabled_none">None</string>
+    <string name="settings_dictionaries_reset_default">Reset to default</string>
+    <string name="settings_dictionaries_none_for_language">No dictionaries available for this language.</string>
+    <string name="settings_dictionaries_item_id">ID: %1$s</string>
+    <string name="settings_dictionaries_item_layouts">Layouts: %1$s</string>
+    <string name="settings_dictionaries_not_available">Not available for current layouts.</string>
+    <string name="settings_dictionaries_section_overview">Enabled dictionaries</string>
+    <string name="settings_dictionaries_section_manage">Manage dictionaries</string>
+    <string name="settings_dictionaries_choose_language">Choose language</string>
+    <string name="settings_dictionaries_create_title">Create custom dictionary</string>
+    <string name="settings_dictionaries_import_title">Import dictionary</string>
+    <string name="settings_dictionaries_name">Dictionary name</string>
+    <string name="settings_dictionaries_id">Dictionary ID</string>
+    <string name="settings_dictionaries_format">Format</string>
+    <string name="settings_dictionaries_code_scheme">Code scheme</string>
+    <string name="settings_dictionaries_choose_file">Select file</string>
+    <string name="settings_dictionaries_selected_file">Selected: %1$s</string>
+    <string name="settings_dictionaries_create_action">Create</string>
+    <string name="settings_dictionaries_import_action">Import</string>
+    <string name="settings_dictionaries_cancel">Cancel</string>
+    <string name="settings_dictionaries_add_entry_title">Add entry</string>
+    <string name="settings_dictionaries_entry_word">Word</string>
+    <string name="settings_dictionaries_entry_code">Code</string>
+    <string name="settings_dictionaries_entry_weight">Weight</string>
+    <string name="settings_dictionaries_add_entry_action">Add entry</string>
+    <string name="settings_dictionaries_delete_title">Delete dictionary</string>
+    <string name="settings_dictionaries_delete_message">Delete “%1$s” and its files?</string>
+    <string name="settings_dictionaries_delete_action">Delete</string>
+    <string name="settings_dictionaries_format_rime_yaml">Rime *.dict.yaml</string>
+    <string name="settings_dictionaries_scheme_pinyin_full">Pinyin (Full)</string>
+    <string name="settings_dictionaries_scheme_pinyin_t9">Pinyin (T9)</string>
 
     <string name="settings_feedback">Sound &amp; vibration</string>
     <string name="settings_feedback_summary">Click: %1$d%% · Vibration: %2$s</string>
@@ -102,4 +137,5 @@
     <string name="settings_vibration_strength_following_system">Following system settings</string>
 
     <string name="settings_reset_desc">Clear setup data and re-run the setup wizard</string>
+
 </resources>

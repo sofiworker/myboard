@@ -39,6 +39,12 @@ class DictionaryManager(
         return this
     }
 
+    fun reload(): DictionaryManager {
+        loaded = false
+        specsById.clear()
+        return loadAll()
+    }
+
     fun get(dictionaryId: String): DictionarySpec {
         ensureLoaded()
         return specsById[dictionaryId]

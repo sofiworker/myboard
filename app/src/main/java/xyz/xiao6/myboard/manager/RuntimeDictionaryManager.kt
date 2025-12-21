@@ -19,8 +19,8 @@ import java.util.Locale
  * 2) layout 二筛：若 DictionarySpec.layoutIds 非空，则必须包含当前 layoutId
  *
  * 选中规则（active）：
- * - 优先命中用户偏好 preferredDictionaryId（若在候选中）
- * - 否则取候选列表第一个（已按 priority 排序）
+ * - activeList 默认等于候选列表（支持多词库叠加）
+ * - active 仅用于兼容旧逻辑，取 activeList 中的第一个
  */
 class RuntimeDictionaryManager(
     private val dictionaryManager: DictionaryManager,
@@ -37,8 +37,14 @@ class RuntimeDictionaryManager(
     private val _preferredDictionaryId = MutableStateFlow<String?>(null)
     val preferredDictionaryId: StateFlow<String?> = _preferredDictionaryId.asStateFlow()
 
+    private val _enabledDictionaryIds = MutableStateFlow<Set<String>?>(null)
+    val enabledDictionaryIds: StateFlow<Set<String>?> = _enabledDictionaryIds.asStateFlow()
+
     private val _candidates = MutableStateFlow<List<DictionarySpec>>(emptyList())
     val candidates: StateFlow<List<DictionarySpec>> = _candidates.asStateFlow()
+
+    private val _activeList = MutableStateFlow<List<DictionarySpec>>(emptyList())
+    val activeList: StateFlow<List<DictionarySpec>> = _activeList.asStateFlow()
 
     private val _active = MutableStateFlow<DictionarySpec?>(null)
     val active: StateFlow<DictionarySpec?> = _active.asStateFlow()
@@ -63,6 +69,15 @@ class RuntimeDictionaryManager(
         refresh()
     }
 
+    fun setEnabledDictionaryIds(dictionaryIds: List<String>?) {
+        val normalized = dictionaryIds
+            ?.map { it.trim() }
+            ?.filter { it.isNotBlank() }
+            ?.distinct()
+        _enabledDictionaryIds.value = normalized?.toSet()
+        refresh()
+    }
+
     private fun refresh() {
         val currentLocale = _locale.value
         val currentLayoutId = _layoutId.value.trim()
@@ -76,23 +91,31 @@ class RuntimeDictionaryManager(
             }
         }
 
-        val sorted = layoutFiltered.sortedWith(
+        val enabledFiltered =
+            _enabledDictionaryIds.value?.let { allowed ->
+                layoutFiltered.filter { it.dictionaryId in allowed }
+            } ?: layoutFiltered
+
+        val sorted = enabledFiltered.sortedWith(
             compareByDescending<DictionarySpec> { it.priority }
                 .thenBy { it.dictionaryId },
         )
         _candidates.value = sorted
 
         val preferred = _preferredDictionaryId.value
-        val nextActive = when {
-            preferred.isNullOrBlank() -> sorted.firstOrNull()
-            else -> sorted.firstOrNull { it.dictionaryId == preferred } ?: sorted.firstOrNull()
+        val activeList = if (!preferred.isNullOrBlank()) {
+            val preferredSpec = sorted.firstOrNull { it.dictionaryId == preferred }
+            if (preferredSpec == null) sorted else listOf(preferredSpec) + sorted.filterNot { it.dictionaryId == preferred }
+        } else {
+            sorted
         }
-        _active.value = nextActive
+        _activeList.value = activeList
+        _active.value = activeList.firstOrNull()
 
         MLog.d(
             logTag,
             "refresh locale=${currentLocale.toLanguageTag()} layoutId='$currentLayoutId' " +
-                "candidates=${sorted.map { it.dictionaryId }} active=${nextActive?.dictionaryId}",
+                "candidates=${sorted.map { it.dictionaryId }} active=${activeList.map { it.dictionaryId }}",
         )
     }
 }
