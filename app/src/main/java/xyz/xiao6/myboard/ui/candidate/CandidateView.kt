@@ -5,6 +5,7 @@ import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.util.AttributeSet
 import android.view.Gravity
+import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.TextView
@@ -42,6 +43,7 @@ class CandidateView @JvmOverloads constructor(
     private val adapter: CandidateAdapter
 
     var onCandidateClick: ((String) -> Unit)? = null
+    var onCandidateLongPress: ((anchor: View, text: String) -> Unit)? = null
 
     init {
         background = surfaceDrawable
@@ -58,6 +60,7 @@ class CandidateView @JvmOverloads constructor(
         adapter = CandidateAdapter(
             resolveTextColor = { textColor },
             onClick = { text -> onCandidateClick?.invoke(text) },
+            onLongClick = { anchor, text -> onCandidateLongPress?.invoke(anchor, text) },
         )
         recyclerView.adapter = adapter
 
@@ -90,6 +93,7 @@ class CandidateView @JvmOverloads constructor(
     private class CandidateAdapter(
         private val resolveTextColor: () -> Int,
         private val onClick: (String) -> Unit,
+        private val onLongClick: (View, String) -> Unit,
     ) : ListAdapter<String, CandidateViewHolder>(DIFF) {
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): CandidateViewHolder {
@@ -107,7 +111,7 @@ class CandidateView @JvmOverloads constructor(
                     0,
                 )
             }
-            return CandidateViewHolder(textView, onClick)
+            return CandidateViewHolder(textView, onClick, onLongClick)
         }
 
         override fun onBindViewHolder(holder: CandidateViewHolder, position: Int) {
@@ -126,12 +130,17 @@ class CandidateView @JvmOverloads constructor(
     private class CandidateViewHolder(
         private val textView: TextView,
         private val onClick: (String) -> Unit,
+        private val onLongClick: (View, String) -> Unit,
     ) : RecyclerView.ViewHolder(textView) {
 
         fun bind(text: String, textColor: Int) {
             textView.text = text
             textView.setTextColor(textColor)
             textView.setOnClickListener { onClick(text) }
+            textView.setOnLongClickListener {
+                onLongClick(textView, text)
+                true
+            }
         }
     }
 

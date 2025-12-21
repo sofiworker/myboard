@@ -31,6 +31,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.lazy.LazyColumn
@@ -187,6 +188,7 @@ private sealed interface SettingsRoute {
     data object Feedback : SettingsRoute
     data object InputBehavior : SettingsRoute
     data object Toolbar : SettingsRoute
+    data object Suggestions : SettingsRoute
     data object Dictionaries : SettingsRoute
     data object Appearance : SettingsRoute
     data object KeyboardSize : SettingsRoute
@@ -245,6 +247,7 @@ private fun SettingsScreen(
         SettingsRoute.Feedback -> R.string.settings_feedback
         SettingsRoute.InputBehavior -> R.string.settings_input_behavior
         SettingsRoute.Toolbar -> R.string.settings_toolbar
+        SettingsRoute.Suggestions -> R.string.settings_suggestions
         SettingsRoute.Dictionaries -> R.string.settings_dictionaries
         SettingsRoute.Appearance -> R.string.settings_appearance
         SettingsRoute.KeyboardSize -> R.string.settings_keyboard_size
@@ -277,6 +280,7 @@ private fun SettingsScreen(
                 onOpenFeedback = { route = SettingsRoute.Feedback },
                 onOpenInputBehavior = { route = SettingsRoute.InputBehavior },
                 onOpenToolbar = { route = SettingsRoute.Toolbar },
+                onOpenSuggestions = { route = SettingsRoute.Suggestions },
                 onOpenAppearance = { route = SettingsRoute.Appearance },
                 onOpenDictionaries = { route = SettingsRoute.Dictionaries },
                 onOpenKeyboardSize = { route = SettingsRoute.KeyboardSize },
@@ -304,6 +308,11 @@ private fun SettingsScreen(
                 modifier = Modifier.fillMaxSize().padding(padding),
                 prefs = prefs,
                 toolbarManager = toolbarManager,
+            )
+
+            SettingsRoute.Suggestions -> SuggestionsSettings(
+                modifier = Modifier.fillMaxSize().padding(padding),
+                prefs = prefs,
             )
 
             SettingsRoute.Dictionaries -> DictionariesSettings(
@@ -339,6 +348,7 @@ private fun SettingsMainList(
     onOpenFeedback: () -> Unit,
     onOpenInputBehavior: () -> Unit,
     onOpenToolbar: () -> Unit,
+    onOpenSuggestions: () -> Unit,
     onOpenAppearance: () -> Unit,
     onOpenDictionaries: () -> Unit,
     onOpenKeyboardSize: () -> Unit,
@@ -427,6 +437,13 @@ private fun SettingsMainList(
                 titleRes = R.string.settings_dictionaries,
                 summaryRes = R.string.settings_dictionaries_desc,
                 onClick = onOpenDictionaries,
+            )
+        }
+        item {
+            SettingItem(
+                titleRes = R.string.settings_suggestions,
+                summaryRes = R.string.settings_suggestions_desc,
+                onClick = onOpenSuggestions,
             )
         }
         item {
@@ -1745,6 +1762,141 @@ private fun InputBehaviorSettings(
                     },
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun SuggestionsSettings(
+    modifier: Modifier,
+    prefs: SettingsStore,
+) {
+    val context = LocalContext.current
+    val suggestionManager = remember { xyz.xiao6.myboard.suggest.SuggestionManager(context, prefs) }
+    val localeTag = prefs.userLocaleTag ?: Locale.getDefault().toLanguageTag()
+    var enabled by remember { mutableStateOf(prefs.suggestionEnabled) }
+    var learningEnabled by remember { mutableStateOf(prefs.suggestionLearningEnabled) }
+    var ngramEnabled by remember { mutableStateOf(prefs.suggestionNgramEnabled) }
+    var cloudEnabled by remember { mutableStateOf(prefs.suggestionCloudEnabled) }
+    var endpoint by remember { mutableStateOf(prefs.suggestionCloudEndpoint.orEmpty()) }
+    var authType by remember { mutableStateOf(prefs.suggestionCloudAuthType) }
+    var authValue by remember { mutableStateOf(prefs.suggestionCloudAuthValue.orEmpty()) }
+    var headersJson by remember { mutableStateOf(prefs.suggestionCloudHeadersJson.orEmpty()) }
+
+    val authOptions = listOf("NONE", "API_KEY", "BEARER", "CUSTOM_HEADERS")
+
+    Column(modifier = modifier.padding(16.dp)) {
+        ListItem(
+            headlineContent = { Text(stringResource(R.string.settings_suggestions_enabled)) },
+            trailingContent = {
+                Switch(
+                    checked = enabled,
+                    onCheckedChange = {
+                        enabled = it
+                        prefs.suggestionEnabled = it
+                    },
+                )
+            },
+        )
+        ListItem(
+            headlineContent = { Text(stringResource(R.string.settings_suggestions_learning)) },
+            trailingContent = {
+                Switch(
+                    checked = learningEnabled,
+                    onCheckedChange = {
+                        learningEnabled = it
+                        prefs.suggestionLearningEnabled = it
+                    },
+                    enabled = enabled,
+                )
+            },
+        )
+        ListItem(
+            headlineContent = { Text(stringResource(R.string.settings_suggestions_ngram)) },
+            supportingContent = { Text(stringResource(R.string.settings_suggestions_ngram_desc)) },
+            trailingContent = {
+                Switch(
+                    checked = ngramEnabled,
+                    onCheckedChange = {
+                        ngramEnabled = it
+                        prefs.suggestionNgramEnabled = it
+                    },
+                    enabled = enabled && learningEnabled,
+                )
+            },
+        )
+        Row(modifier = Modifier.padding(top = 8.dp)) {
+            TextButton(onClick = { suggestionManager.clearLearning(localeTag) }) {
+                Text(text = stringResource(R.string.settings_suggestions_clear_learning))
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+            TextButton(onClick = { suggestionManager.clearBlocked(localeTag) }) {
+                Text(text = stringResource(R.string.settings_suggestions_clear_blocked))
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+        ListItem(
+            headlineContent = { Text(stringResource(R.string.settings_suggestions_cloud)) },
+            trailingContent = {
+                Switch(
+                    checked = cloudEnabled,
+                    onCheckedChange = {
+                        cloudEnabled = it
+                        prefs.suggestionCloudEnabled = it
+                    },
+                )
+            },
+        )
+        if (cloudEnabled) {
+            TextField(
+                value = endpoint,
+                onValueChange = {
+                    endpoint = it
+                    prefs.suggestionCloudEndpoint = it
+                },
+                label = { Text(stringResource(R.string.settings_suggestions_cloud_endpoint)) },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            ListItem(
+                headlineContent = { Text(stringResource(R.string.settings_suggestions_cloud_auth_type)) },
+                supportingContent = { Text(authType) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable {
+                        val idx = authOptions.indexOf(authType).coerceAtLeast(0)
+                        val next = authOptions[(idx + 1) % authOptions.size]
+                        authType = next
+                        prefs.suggestionCloudAuthType = next
+                    },
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            TextField(
+                value = authValue,
+                onValueChange = {
+                    authValue = it
+                    prefs.suggestionCloudAuthValue = it
+                },
+                label = { Text(stringResource(R.string.settings_suggestions_cloud_auth_value)) },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            TextField(
+                value = headersJson,
+                onValueChange = {
+                    headersJson = it
+                    prefs.suggestionCloudHeadersJson = it
+                },
+                label = { Text(stringResource(R.string.settings_suggestions_cloud_headers_json)) },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = stringResource(R.string.settings_suggestions_cloud_placeholder),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }

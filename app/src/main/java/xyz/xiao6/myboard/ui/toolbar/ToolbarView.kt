@@ -6,6 +6,7 @@ import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.util.AttributeSet
 import android.view.Gravity
+import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.ImageButton
@@ -48,6 +49,7 @@ class ToolbarView @JvmOverloads constructor(
     var onOverflowClick: (() -> Unit)? = null
     var onOverflowLongClick: (() -> Unit)? = null
     var onCandidateClick: ((String) -> Unit)? = null
+    var onCandidateLongPress: ((View, String) -> Unit)? = null
 
     private var iconTint: ColorStateList = ColorStateList.valueOf(Color.WHITE)
     private val overflowButtonWidthPx = dp(context, 48f).toInt()
@@ -95,6 +97,7 @@ class ToolbarView @JvmOverloads constructor(
             setPaddingRelative(paddingStart, paddingTop, overflowButtonWidthPx, paddingBottom)
             visibility = GONE
             onCandidateClick = { text -> this@ToolbarView.onCandidateClick?.invoke(text) }
+            onCandidateLongPress = { anchor, text -> this@ToolbarView.onCandidateLongPress?.invoke(anchor, text) }
         }
         addView(candidateView)
 

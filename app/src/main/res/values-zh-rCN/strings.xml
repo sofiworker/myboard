@@ -118,6 +118,24 @@
     <string name="settings_toolbar_sort">按钮排序</string>
     <string name="settings_vibration_follow_system_short">跟随系统</string>
 
+    <string name="settings_suggestions">候选与联想</string>
+    <string name="settings_suggestions_desc">预测与联想设置</string>
+    <string name="settings_suggestions_enabled">启用候选建议</string>
+    <string name="settings_suggestions_learning">个性化学习</string>
+    <string name="settings_suggestions_ngram">N-gram 扩展</string>
+    <string name="settings_suggestions_ngram_desc">将汉字词扩展为 2-3 字联想</string>
+    <string name="settings_suggestions_clear_learning">清空学习数据</string>
+    <string name="settings_suggestions_clear_blocked">清空屏蔽词</string>
+    <string name="settings_suggestions_cloud">云端建议</string>
+    <string name="settings_suggestions_cloud_endpoint">服务地址</string>
+    <string name="settings_suggestions_cloud_auth_type">鉴权方式</string>
+    <string name="settings_suggestions_cloud_auth_value">鉴权内容</string>
+    <string name="settings_suggestions_cloud_headers_json">自定义 Header(JSON)</string>
+    <string name="settings_suggestions_cloud_placeholder">云端同步与词库更新为占位。</string>
+    <string name="settings_suggestions_blocked_hint">已从建议中移除。</string>
+    <string name="suggestions_action_block">不再建议</string>
+    <string name="suggestions_action_demote">降低权重</string>
+
     <string name="settings_section_sound">声音</string>
     <string name="settings_click_sound_volume">按键点击音量</string>
     <string name="settings_click_sound_volume_desc">音量：%1$d%%（0=关闭）</string>

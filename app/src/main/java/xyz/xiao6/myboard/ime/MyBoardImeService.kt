@@ -65,6 +65,12 @@ import kotlin.math.roundToInt
 import java.util.Locale.ROOT
 import xyz.xiao6.myboard.util.PinyinSyllableSegmenter
 import xyz.xiao6.myboard.ui.clipboard.ClipboardLayoutView
+import xyz.xiao6.myboard.composer.ComposerRegistry
+import xyz.xiao6.myboard.suggest.SuggestionCandidate
+import xyz.xiao6.myboard.suggest.SuggestionContext
+import xyz.xiao6.myboard.suggest.SuggestionManager
+import xyz.xiao6.myboard.suggest.SuggestionSource
+import xyz.xiao6.myboard.ui.popup.CandidateActionPopup
 
 class MyBoardImeService : InputMethodService() {
     private val logTag = "ImeService"
@@ -111,6 +117,12 @@ class MyBoardImeService : InputMethodService() {
     private var isEditingComposing: Boolean = false
     private var composingEditBuffer: String = ""
     private var composingEditCursor: Int = 0
+    private var suggestionManager: SuggestionManager? = null
+    private var suggestionCandidates: List<SuggestionCandidate> = emptyList()
+    private var suggestionByText: Map<String, SuggestionCandidate> = emptyMap()
+    private var lastDecoderCandidates: List<String> = emptyList()
+    private var lastCommittedWord: String? = null
+    private var candidateActionPopup: CandidateActionPopup? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -118,6 +130,7 @@ class MyBoardImeService : InputMethodService() {
         decoderFactory = DecoderFactory(this)
         subtypeManager = SubtypeManager(this).loadAll()
         prefs = SettingsStore(this)
+        suggestionManager = SuggestionManager(this, prefs!!)
         themeSpec = ThemeManager(this).loadAllFromAssets().getDefaultTheme()
         toolbarSpec = ToolbarManager(this).loadAllFromAssets().getDefaultToolbar()
         clipboardManager = getSystemService(ClipboardManager::class.java)
@@ -130,6 +143,7 @@ class MyBoardImeService : InputMethodService() {
         super.onDestroy()
         composingPopup?.dismiss()
         wordPreviewPopup?.dismiss()
+        candidateActionPopup?.dismiss()
         unregisterClipboardListener()
         scope.cancel()
     }
@@ -189,6 +203,12 @@ class MyBoardImeService : InputMethodService() {
         val wordPreviewPopup = FloatingTextPreviewPopup(this).apply { applyTheme(themeSpec) }
         this.composingPopup = composingPopup
         this.wordPreviewPopup = wordPreviewPopup
+        val candidateActionPopup =
+            CandidateActionPopup(this).apply {
+                onBlock = { text -> handleSuggestionBlock(text) }
+                onDemote = { text -> handleSuggestionDemote(text) }
+            }
+        this.candidateActionPopup = candidateActionPopup
 
         val layoutManager = LayoutManager(this).loadAllFromAssets()
         val dictionaryManager = DictionaryManager(this).loadAll()
@@ -203,6 +223,7 @@ class MyBoardImeService : InputMethodService() {
             resizeOverlay.visibility = GONE
             toolbarView.clearCandidates()
             wordPreviewPopup.dismiss()
+            candidateActionPopup?.dismiss()
         }
 
         fun showSymbols() {
@@ -460,14 +481,17 @@ class MyBoardImeService : InputMethodService() {
         toolbarView.visibility = VISIBLE
         toolbarView.onCandidateClick = { text ->
             playKeyFeedback(keyboardView)
-            controller?.onCandidateSelected(text)
+            handleSuggestionCommit(text)
             isCandidatePageExpanded = false
             isEditingComposing = false
             composingEditCursor = 0
         }
+        toolbarView.onCandidateLongPress = { anchor, text ->
+            showCandidateActionPopup(anchor, text)
+        }
         candidatePageView.onCandidateClick = { text ->
             playKeyFeedback(keyboardView)
-            controller?.onCandidateSelected(text)
+            handleSuggestionCommit(text)
             isCandidatePageExpanded = false
             candidatePageView.visibility = GONE
             keyboardView.visibility = VISIBLE
@@ -513,6 +537,7 @@ class MyBoardImeService : InputMethodService() {
         }
         candidatePageView.onBackspace = {
             commitTextToEditor("\b")
+            clearSuggestionsAfterDelete(keepToolbarHidden = true)
         }
         candidatePageView.onRetype = {
             controller?.resetComposing()
@@ -543,6 +568,9 @@ class MyBoardImeService : InputMethodService() {
                 return@onTrigger
             }
             c.onKeyTriggered(keyId, trigger)
+            if (keyId == KeyIds.BACKSPACE && trigger == GestureType.TAP) {
+                clearSuggestionsAfterDelete(keepToolbarHidden = false)
+            }
         }
         keyboardView.onAction = { action ->
             cancelPendingClearInput()
@@ -552,21 +580,22 @@ class MyBoardImeService : InputMethodService() {
 
         c.candidates
             .onEach { list ->
-                lastCandidates = list
+                lastDecoderCandidates = list
                 lastComposing = c.composingText.value
                 lastComposingOptions = c.composingOptions.value
-                renderCandidatesUi(
-                    candidates = list,
+                updateSuggestions(
                     composing = lastComposing,
-                    composingOptions = lastComposingOptions,
+                    decoderCandidates = lastDecoderCandidates,
                     toolbarView = toolbarView,
                     keyboardView = keyboardView,
                     candidatePageView = candidatePageView,
                 )
 
+                val (raw, display) = buildComposingPopupText(c.composingText.value)
                 composingPopup.updateAbove(
                     anchor = topBarSlot,
-                    composing = displayComposingForPopup(c.composingText.value),
+                    composing = raw,
+                    displayText = display,
                     xMarginPx = 0,
                     yMarginPx = 0,
                     editing = isEditingComposing,
@@ -593,19 +622,27 @@ class MyBoardImeService : InputMethodService() {
                     composingEditCursor = composingEditCursor.coerceIn(0, count)
                 }
                 if (composing.isBlank()) {
-                    lastCandidates = emptyList()
-                    renderCandidatesUi(
-                        candidates = emptyList(),
+                    updateSuggestions(
                         composing = composing,
-                        composingOptions = lastComposingOptions,
+                        decoderCandidates = lastDecoderCandidates,
+                        toolbarView = toolbarView,
+                        keyboardView = keyboardView,
+                        candidatePageView = candidatePageView,
+                    )
+                } else {
+                    updateSuggestions(
+                        composing = composing,
+                        decoderCandidates = lastDecoderCandidates,
                         toolbarView = toolbarView,
                         keyboardView = keyboardView,
                         candidatePageView = candidatePageView,
                     )
                 }
+                val (raw, display) = buildComposingPopupText(composing)
                 composingPopup.updateAbove(
                     anchor = topBarSlot,
-                    composing = displayComposingForPopup(composing),
+                    composing = raw,
+                    displayText = display,
                     xMarginPx = 0,
                     yMarginPx = 0,
                     editing = isEditingComposing,
@@ -952,6 +989,7 @@ class MyBoardImeService : InputMethodService() {
 
         val profile = subtypeManager?.resolve(systemLocale, preferredLocaleTag = preferredTag)
         activeLocaleTag = profile?.localeTag ?: preferredTag ?: locale.toLanguageTag()
+        applyComposerForLocale(activeLocaleTag ?: locale.toLanguageTag())
         val preferredLayoutId = activeLocaleTag?.let { prefs?.getPreferredLayoutId(it) }
         val enabledLayoutIds = activeLocaleTag?.let { tag -> prefs?.getEnabledLayoutIds(tag) }.orEmpty()
         val enabledLayoutIdsFiltered = if (profile == null) emptyList() else enabledLayoutIds.filter { it in profile.layoutIds }
@@ -1023,6 +1061,38 @@ class MyBoardImeService : InputMethodService() {
             return
         }
         ic.commitText(text, 1)
+        recordCommittedText(text)
+    }
+
+    private fun recordCommittedText(text: String) {
+        val tag = activeLocaleTag ?: Locale.getDefault().toLanguageTag()
+        val manager = suggestionManager ?: return
+        manager.onCommittedText(tag, text, lastCommittedWord)
+        val words = extractTokens(text)
+        if (words.isNotEmpty()) {
+            lastCommittedWord = words.last()
+        }
+        if (lastComposing.isBlank()) {
+            val toolbar = toolbarView
+            val keyboard = rootView?.findViewById<KeyboardSurfaceView>(R.id.keyboardView)
+            val candidatePage = rootView?.findViewById<CandidatePageView>(R.id.candidatePageView)
+            if (toolbar != null && keyboard != null && candidatePage != null) {
+                updateSuggestions(
+                    composing = lastComposing,
+                    decoderCandidates = lastDecoderCandidates,
+                    toolbarView = toolbar,
+                    keyboardView = keyboard,
+                    candidatePageView = candidatePage,
+                )
+            }
+        }
+    }
+
+    private fun extractTokens(text: String): List<String> {
+        val trimmed = text.trim()
+        if (trimmed.isBlank()) return emptyList()
+        val regex = Regex("[\\p{IsHan}]+|[\\p{L}\\p{N}]+")
+        return regex.findAll(trimmed).map { it.value }.toList()
     }
 
     private fun handleBackspaceLongPress() {
@@ -1137,6 +1207,7 @@ class MyBoardImeService : InputMethodService() {
         if (currentLayoutId.isNotBlank() && profile.layoutIds.contains(currentLayoutId)) {
             prefs?.userLocaleTag = normalized
             activeLocaleTag = normalized
+            applyComposerForLocale(normalized)
             runtimeDicts?.setLocale(nextLocale)
             runtimeDicts?.setLayoutId(currentLayoutId)
             updateRuntimeDictionariesFromPrefs()
@@ -1158,6 +1229,7 @@ class MyBoardImeService : InputMethodService() {
 
         prefs?.userLocaleTag = normalized
         activeLocaleTag = normalized
+        applyComposerForLocale(normalized)
         runtimeDicts?.setLocale(nextLocale)
         runtimeDicts?.setLayoutId(targetLayoutId)
         updateRuntimeDictionariesFromPrefs()
@@ -1211,6 +1283,126 @@ class MyBoardImeService : InputMethodService() {
             reducer = { s -> s.copy(localeTag = currentNormalized, labelOverrides = labelOverrides, hintOverrides = hintOverrides) },
             invalidateKeyIds = invalidateIds,
         )
+    }
+
+    private fun applyComposerForLocale(localeTag: String) {
+        val language = Locale.forLanguageTag(localeTag).language.lowercase()
+        val composer =
+            when (language) {
+                "ja" -> ComposerRegistry.romajiHiragana
+                else -> ComposerRegistry.appender
+            }
+        controller?.setComposer(composer)
+    }
+
+    private fun updateSuggestions(
+        composing: String,
+        decoderCandidates: List<String>,
+        toolbarView: ToolbarView,
+        keyboardView: KeyboardSurfaceView,
+        candidatePageView: CandidatePageView,
+    ) {
+        val manager = suggestionManager
+        val tag = activeLocaleTag ?: Locale.getDefault().toLanguageTag()
+        val prefs = prefs
+        val context =
+            SuggestionContext(
+                composingText = composing,
+                decoderCandidates = decoderCandidates,
+                lastCommittedWord = lastCommittedWord,
+                localeTag = tag,
+                suggestionEnabled = prefs?.suggestionEnabled ?: true,
+                learningEnabled = prefs?.suggestionLearningEnabled ?: true,
+            )
+        suggestionCandidates =
+            if (manager == null) {
+                decoderCandidates.mapIndexed { idx, text ->
+                    SuggestionCandidate(text = text, source = SuggestionSource.DECODER, score = 1.0 - idx * 0.001)
+                }
+            } else {
+                manager.build(context, limit = 200)
+            }
+        suggestionByText = suggestionCandidates.associateBy { it.text }
+        lastCandidates = suggestionCandidates.map { it.text }
+        renderCandidatesUi(
+            candidates = lastCandidates,
+            composing = composing,
+            composingOptions = lastComposingOptions,
+            toolbarView = toolbarView,
+            keyboardView = keyboardView,
+            candidatePageView = candidatePageView,
+        )
+    }
+
+    private fun clearSuggestionsAfterDelete(keepToolbarHidden: Boolean) {
+        if (lastComposing.isNotBlank() || lastCandidates.isEmpty()) return
+        lastCommittedWord = null
+        lastCandidates = emptyList()
+        suggestionCandidates = emptyList()
+        suggestionByText = emptyMap()
+        candidatePagePreviewCandidates = null
+        isCandidatePageExpanded = false
+
+        val toolbar = toolbarView ?: return
+        val keyboard = rootView?.findViewById<KeyboardSurfaceView>(R.id.keyboardView) ?: return
+        val candidatePage = rootView?.findViewById<CandidatePageView>(R.id.candidatePageView) ?: return
+        candidatePage.visibility = GONE
+        toolbar.clearCandidates()
+        toolbar.setItemsVisible(!keepToolbarHidden)
+        keyboard.visibility = VISIBLE
+        wordPreviewPopup?.dismiss()
+    }
+
+    private fun handleSuggestionCommit(text: String) {
+        val candidate = suggestionByText[text]
+        if (candidate == null || candidate.source == SuggestionSource.DECODER) {
+            controller?.onCandidateSelected(text)
+            return
+        }
+        val commit = candidate.commitText ?: candidate.text
+        commitTextToEditor(commit)
+        controller?.resetComposing()
+    }
+
+    private fun handleSuggestionBlock(text: String) {
+        val tag = activeLocaleTag ?: Locale.getDefault().toLanguageTag()
+        suggestionManager?.blockWord(tag, text)
+        showImeHint(getString(R.string.settings_suggestions_blocked_hint))
+        val toolbar = toolbarView
+        val keyboard = rootView?.findViewById<KeyboardSurfaceView>(R.id.keyboardView)
+        val candidatePage = rootView?.findViewById<CandidatePageView>(R.id.candidatePageView)
+        if (toolbar != null && keyboard != null && candidatePage != null) {
+            updateSuggestions(
+                composing = lastComposing,
+                decoderCandidates = lastDecoderCandidates,
+                toolbarView = toolbar,
+                keyboardView = keyboard,
+                candidatePageView = candidatePage,
+            )
+        }
+    }
+
+    private fun handleSuggestionDemote(text: String) {
+        val tag = activeLocaleTag ?: Locale.getDefault().toLanguageTag()
+        suggestionManager?.demoteWord(tag, text)
+        val toolbar = toolbarView
+        val keyboard = rootView?.findViewById<KeyboardSurfaceView>(R.id.keyboardView)
+        val candidatePage = rootView?.findViewById<CandidatePageView>(R.id.candidatePageView)
+        if (toolbar != null && keyboard != null && candidatePage != null) {
+            updateSuggestions(
+                composing = lastComposing,
+                decoderCandidates = lastDecoderCandidates,
+                toolbarView = toolbar,
+                keyboardView = keyboard,
+                candidatePageView = candidatePage,
+            )
+        }
+    }
+
+    private fun showCandidateActionPopup(anchor: View, text: String) {
+        val popup = candidateActionPopup ?: return
+        val margin = popupMarginPx.takeIf { it > 0 } ?: (resources.displayMetrics.density * 8f).toInt()
+        popup.showAbove(anchor, text, marginPx = margin)
     }
 
     private fun applyLocaleCaseHints(
@@ -1458,10 +1650,11 @@ class MyBoardImeService : InputMethodService() {
     private fun updateComposingPopup() {
         val popup = composingPopup ?: return
         val anchor = topBarSlotView ?: return
-        val text = if (isEditingComposing) composingEditBuffer else displayComposingForPopup(lastComposing)
+        val (raw, display) = buildComposingPopupText(lastComposing)
         popup.updateAbove(
             anchor = anchor,
-            composing = text,
+            composing = raw,
+            displayText = display,
             xMarginPx = 0,
             yMarginPx = 0,
             editing = isEditingComposing,
@@ -1469,8 +1662,12 @@ class MyBoardImeService : InputMethodService() {
         )
     }
 
-    private fun displayComposingForPopup(composing: String): String {
-        return if (isEditingComposing) composingEditBuffer else PinyinSyllableSegmenter.segmentForDisplay(composing)
+    private fun buildComposingPopupText(composing: String): Pair<String, String> {
+        val raw = if (isEditingComposing) composingEditBuffer else composing
+        if (raw.isBlank()) return "" to ""
+        val segmented = PinyinSyllableSegmenter.segmentForDisplay(raw)
+        val display = if (segmented.isBlank()) raw.trim() else segmented
+        return raw to display
     }
 
     private fun handleComposingEditKey(

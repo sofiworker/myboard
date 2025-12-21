@@ -147,6 +147,54 @@ class SettingsStore(context: Context) {
             writeFloat(KEY_GLOBAL_KB_HEIGHT_DPOFFSET, v)
         }
 
+    var suggestionEnabled: Boolean
+        get() = readBoolean(KEY_SUGGESTION_ENABLED) ?: true
+        set(value) {
+            writeBoolean(KEY_SUGGESTION_ENABLED, value)
+        }
+
+    var suggestionLearningEnabled: Boolean
+        get() = readBoolean(KEY_SUGGESTION_LEARNING_ENABLED) ?: true
+        set(value) {
+            writeBoolean(KEY_SUGGESTION_LEARNING_ENABLED, value)
+        }
+
+    var suggestionNgramEnabled: Boolean
+        get() = readBoolean(KEY_SUGGESTION_NGRAM_ENABLED) ?: false
+        set(value) {
+            writeBoolean(KEY_SUGGESTION_NGRAM_ENABLED, value)
+        }
+
+    var suggestionCloudEnabled: Boolean
+        get() = readBoolean(KEY_SUGGESTION_CLOUD_ENABLED) ?: false
+        set(value) {
+            writeBoolean(KEY_SUGGESTION_CLOUD_ENABLED, value)
+        }
+
+    var suggestionCloudEndpoint: String?
+        get() = readString(KEY_SUGGESTION_CLOUD_ENDPOINT)
+        set(value) {
+            writeString(KEY_SUGGESTION_CLOUD_ENDPOINT, value?.trim())
+        }
+
+    var suggestionCloudAuthType: String
+        get() = readString(KEY_SUGGESTION_CLOUD_AUTH_TYPE) ?: "NONE"
+        set(value) {
+            writeString(KEY_SUGGESTION_CLOUD_AUTH_TYPE, value.trim())
+        }
+
+    var suggestionCloudAuthValue: String?
+        get() = readString(KEY_SUGGESTION_CLOUD_AUTH_VALUE)
+        set(value) {
+            writeString(KEY_SUGGESTION_CLOUD_AUTH_VALUE, value?.trim())
+        }
+
+    var suggestionCloudHeadersJson: String?
+        get() = readString(KEY_SUGGESTION_CLOUD_HEADERS_JSON)
+        set(value) {
+            writeString(KEY_SUGGESTION_CLOUD_HEADERS_JSON, value?.trim())
+        }
+
     fun getPreferredLayoutId(localeTag: String): String? {
         val key = KEY_PREFERRED_LAYOUT_PREFIX + normalizeLocaleTag(localeTag)
         return readString(key)?.trim()?.takeIf { it.isNotBlank() }
@@ -251,6 +299,15 @@ class SettingsStore(context: Context) {
         private const val KEY_GLOBAL_KB_WIDTH_DPOFFSET = "global_keyboard_width_dp_offset"
         private const val KEY_GLOBAL_KB_HEIGHT_RATIO = "global_keyboard_height_ratio"
         private const val KEY_GLOBAL_KB_HEIGHT_DPOFFSET = "global_keyboard_height_dp_offset"
+
+        private const val KEY_SUGGESTION_ENABLED = "suggestion_enabled"
+        private const val KEY_SUGGESTION_LEARNING_ENABLED = "suggestion_learning_enabled"
+        private const val KEY_SUGGESTION_NGRAM_ENABLED = "suggestion_ngram_enabled"
+        private const val KEY_SUGGESTION_CLOUD_ENABLED = "suggestion_cloud_enabled"
+        private const val KEY_SUGGESTION_CLOUD_ENDPOINT = "suggestion_cloud_endpoint"
+        private const val KEY_SUGGESTION_CLOUD_AUTH_TYPE = "suggestion_cloud_auth_type"
+        private const val KEY_SUGGESTION_CLOUD_AUTH_VALUE = "suggestion_cloud_auth_value"
+        private const val KEY_SUGGESTION_CLOUD_HEADERS_JSON = "suggestion_cloud_headers_json"
     }
 
     private fun readString(key: String): String? = cache[key]

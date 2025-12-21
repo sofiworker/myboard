@@ -1,4 +1,5 @@
 package xyz.xiao6.myboard.controller
+
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
@@ -12,6 +13,8 @@ import xyz.xiao6.myboard.decoder.Decoder
 import xyz.xiao6.myboard.decoder.PassthroughDecoder
 import xyz.xiao6.myboard.decoder.TokenDecoder
 import xyz.xiao6.myboard.decoder.TokenDecoderAdapter
+import xyz.xiao6.myboard.composer.AppenderComposer
+import xyz.xiao6.myboard.composer.Composer
 import xyz.xiao6.myboard.manager.LayoutManager
 import xyz.xiao6.myboard.model.KeyboardLayout
 import xyz.xiao6.myboard.model.Key
@@ -64,6 +67,8 @@ class InputMethodController(
         state = LayoutState(),
         keys = emptyList(),
     )
+    private var composer: Composer = AppenderComposer
+    private var composerBuffer: String = ""
 
     var onCommitText: ((String) -> Unit)? = null
     var onSwitchLocale: ((String) -> Unit)? = null
@@ -180,12 +185,21 @@ class InputMethodController(
         decodeRequests.trySend(DecodeRequest.CandidateSelected(text))
     }
 
+    fun setComposer(next: Composer) {
+        if (composer.id == next.id) return
+        composer = next
+        composerBuffer = ""
+        clearDecodeUiState()
+        decodeRequests.trySend(DecodeRequest.Reset)
+    }
+
     fun resetComposing() {
         clearDecodeUiState()
         decodeRequests.trySend(DecodeRequest.Reset)
     }
 
     fun replaceComposing(text: String) {
+        composerBuffer = text
         decodeRequests.trySend(DecodeRequest.ReplaceComposing(text))
     }
 
@@ -248,7 +262,10 @@ class InputMethodController(
                 is KeyboardStateMachine.Effect.PushToken -> {
                     val token = applyShiftToToken(effect.token)
                     MLog.d(logTag, "Effect.PushToken type=${token.type}")
-                    decodeRequests.trySend(DecodeRequest.Token(token))
+                    val handledByComposer = applyComposerToken(token)
+                    if (!handledByComposer) {
+                        decodeRequests.trySend(DecodeRequest.Token(token))
+                    }
 
                     if (shouldReleaseShiftAfterToken(token)) {
                         val layout = _currentLayout.value
@@ -395,6 +412,9 @@ class InputMethodController(
             MLog.d(logTag, "commitTexts size=${update.commitTexts.size} $preview")
         }
         update.composingText?.let { _composingText.value = it }
+        if (update.composingText != null && update.composingText.isBlank()) {
+            composerBuffer = ""
+        }
         _composingOptions.value = update.composingOptions
         for (t in update.commitTexts) {
             if (t.isEmpty()) continue
@@ -442,6 +462,7 @@ class InputMethodController(
         _composingText.value = ""
         _composingOptions.value = emptyList()
         _candidates.value = emptyList()
+        composerBuffer = ""
     }
 
     private fun onToken(decoder: Decoder, token: KeyToken): DecodeUpdate {
@@ -487,6 +508,23 @@ class InputMethodController(
         if (token !is KeyToken.Literal) return false
         if (token.text.length != 1) return false
         return token.text[0].isLetter()
+    }
+
+    private fun applyComposerToken(token: KeyToken): Boolean {
+        if (composer.id == AppenderComposer.id) return false
+        val literal = token as? KeyToken.Literal ?: return false
+        val text = literal.text
+        if (text.length != 1 || !text[0].isLetter()) return false
+
+        val prev = composerBuffer.takeLast(composer.toRead)
+        val (deleteCount, replacement) = composer.getActions(prev, text)
+        if (deleteCount > 0) {
+            val dropCount = deleteCount.coerceAtMost(composerBuffer.length)
+            composerBuffer = composerBuffer.dropLast(dropCount)
+        }
+        composerBuffer += replacement
+        replaceComposing(composerBuffer)
+        return true
     }
 
     private fun computeLabelOverrides(layout: KeyboardLayout, layer: KeyboardLayer): Map<String, String> {

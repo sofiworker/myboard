@@ -44,6 +44,7 @@ class FloatingComposingPopup(
     var onCursorMove: ((Int) -> Unit)? = null
 
     private var rawText: String = ""
+    private var displayText: String = ""
     private var editing: Boolean = false
     private var cursorIndex: Int = 0
 
@@ -82,24 +83,25 @@ class FloatingComposingPopup(
     fun update(
         anchor: View,
         composing: String,
+        displayText: String = composing,
         xOffsetPx: Int,
         yOffsetPx: Int,
         editing: Boolean = false,
         cursorIndex: Int = 0,
     ) {
-        val display = displayText(composing, editing, cursorIndex)
+        val display = displayText(displayText, composing, editing, cursorIndex)
         if (display.isBlank()) {
             dismiss()
             return
         }
 
         if (anchor.width == 0 || anchor.height == 0) {
-            anchor.post { update(anchor, composing, xOffsetPx, yOffsetPx) }
+            anchor.post { update(anchor, composing, displayText, xOffsetPx, yOffsetPx) }
             return
         }
 
         textView.text = display
-        updateEditingState(composing, editing, cursorIndex)
+        updateEditingState(composing, displayText, editing, cursorIndex)
         measureContent()
 
         val loc = IntArray(2)
@@ -115,23 +117,24 @@ class FloatingComposingPopup(
     fun updateAbove(
         anchor: View,
         composing: String,
+        displayText: String = composing,
         xMarginPx: Int,
         yMarginPx: Int,
         editing: Boolean = false,
         cursorIndex: Int = 0,
     ) {
-        val display = displayText(composing, editing, cursorIndex)
+        val display = displayText(displayText, composing, editing, cursorIndex)
         if (display.isBlank()) {
             dismiss()
             return
         }
         if (anchor.width == 0 || anchor.height == 0) {
-            anchor.post { updateAbove(anchor, composing, xMarginPx, yMarginPx) }
+            anchor.post { updateAbove(anchor, composing, displayText, xMarginPx, yMarginPx) }
             return
         }
 
         textView.text = display
-        updateEditingState(composing, editing, cursorIndex)
+        updateEditingState(composing, displayText, editing, cursorIndex)
         measureContent()
 
         val loc = IntArray(2)
@@ -158,19 +161,22 @@ class FloatingComposingPopup(
         }
     }
 
-    private fun displayText(text: String, editing: Boolean, cursorIndex: Int): String {
-        val trimmed = text.trim()
+    private fun displayText(displayText: String, rawText: String, editing: Boolean, cursorIndex: Int): String {
+        val trimmed = displayText.trim()
         if (!editing) return trimmed
         if (trimmed.isBlank()) return "|"
-        val safeCursor = cursorIndex.coerceIn(0, trimmed.codePointCount(0, trimmed.length))
-        val offset = trimmed.offsetByCodePoints(0, safeCursor)
+        val rawLen = countRawCodePoints(trimmed)
+        val safeCursor = cursorIndex.coerceIn(0, rawLen)
+        val offset = rawCursorToDisplayOffset(trimmed, safeCursor)
         return trimmed.substring(0, offset) + "|" + trimmed.substring(offset)
     }
 
-    private fun updateEditingState(text: String, editing: Boolean, cursorIndex: Int) {
-        this.rawText = text.trim()
+    private fun updateEditingState(rawText: String, displayText: String, editing: Boolean, cursorIndex: Int) {
+        this.rawText = rawText.trim()
+        this.displayText = displayText.trim()
         this.editing = editing
-        this.cursorIndex = cursorIndex.coerceIn(0, rawText.codePointCount(0, rawText.length))
+        val rawLen = countRawCodePoints(this.displayText)
+        this.cursorIndex = cursorIndex.coerceIn(0, rawLen)
         if (!editing) {
             textView.setOnTouchListener(null)
             return
@@ -190,7 +196,7 @@ class FloatingComposingPopup(
     }
 
     private fun resolveCursorIndex(x: Float): Int {
-        val text = rawText
+        val text = displayText
         if (text.isBlank()) return 0
         val paint = textView.paint
         val contentX = (x - textView.paddingLeft).coerceAtLeast(0f)
@@ -202,13 +208,49 @@ class FloatingComposingPopup(
             val ch = String(Character.toChars(cp))
             val w = paint.measureText(ch)
             if (contentX <= width + w / 2f) {
-                return index
+                return displayIndexToRaw(text, index)
             }
             width += w
             offset += Character.charCount(cp)
             index += 1
         }
-        return index
+        return displayIndexToRaw(text, index)
+    }
+
+    private fun countRawCodePoints(text: String): Int {
+        var count = 0
+        var offset = 0
+        while (offset < text.length) {
+            val cp = text.codePointAt(offset)
+            if (cp != '\''.code) count += 1
+            offset += Character.charCount(cp)
+        }
+        return count
+    }
+
+    private fun rawCursorToDisplayOffset(displayText: String, rawCursor: Int): Int {
+        var rawCount = 0
+        var offset = 0
+        while (offset < displayText.length) {
+            if (rawCount == rawCursor) return offset
+            val cp = displayText.codePointAt(offset)
+            if (cp != '\''.code) rawCount += 1
+            offset += Character.charCount(cp)
+        }
+        return displayText.length
+    }
+
+    private fun displayIndexToRaw(displayText: String, displayIndex: Int): Int {
+        var rawCount = 0
+        var offset = 0
+        var index = 0
+        while (offset < displayText.length && index < displayIndex) {
+            val cp = displayText.codePointAt(offset)
+            if (cp != '\''.code) rawCount += 1
+            offset += Character.charCount(cp)
+            index += 1
+        }
+        return rawCount
     }
 
     private fun dp(value: Float): Float = value * displayMetrics.density
