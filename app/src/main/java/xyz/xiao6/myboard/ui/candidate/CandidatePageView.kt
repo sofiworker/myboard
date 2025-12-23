@@ -2,7 +2,6 @@ package xyz.xiao6.myboard.ui.candidate
 
 import android.content.Context
 import android.graphics.Color
-import android.graphics.Typeface
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.drawable.GradientDrawable
@@ -22,6 +21,8 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import xyz.xiao6.myboard.model.ThemeSpec
+import xyz.xiao6.myboard.ui.theme.AppFont
+import xyz.xiao6.myboard.ui.theme.applyAppFont
 import xyz.xiao6.myboard.ui.theme.ThemeRuntime
 import kotlin.math.ceil
 import kotlin.math.max
@@ -56,7 +57,11 @@ class CandidatePageView @JvmOverloads constructor(
     private var selectedPinyinIndex: Int = 0
 
     private val gridSpanCount = 12
-    private val candidateTextPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { textSize = sp(26f) }
+    private val candidateTextPaint =
+        Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            textSize = sp(26f)
+            applyAppFont(context)
+        }
     private val leftDividerDecoration = SimpleDividerDecoration(Color.parseColor("#14000000"), dp(1f))
     private val gridDividerDecoration = ExcelGridDecoration(Color.parseColor("#22000000"), dp(1f))
 
@@ -166,6 +171,7 @@ class CandidatePageView @JvmOverloads constructor(
             textSize = 18f
             setTextColor(Color.parseColor("#3C3C43"))
             this.text = text
+            applyAppFont(bold = true)
             setOnClickListener { onClick() }
         }
     }
@@ -207,6 +213,7 @@ class CandidatePageView @JvmOverloads constructor(
                 layoutParams = RecyclerView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(parent.context, 56f).toInt())
                 gravity = Gravity.CENTER
                 textSize = 22f
+                applyAppFont()
             }
             return PinyinVH(tv, onClick)
         }
@@ -228,7 +235,7 @@ class CandidatePageView @JvmOverloads constructor(
         fun bind(text: String, index: Int, selected: Boolean) {
             tv.text = text
             tv.setTextColor(if (selected) Color.parseColor("#007AFF") else Color.parseColor("#3C3C43"))
-            tv.typeface = if (selected) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
+            tv.typeface = if (selected) AppFont.bold(tv.context) else AppFont.regular(tv.context)
             tv.setOnClickListener { onClick(index) }
         }
     }
@@ -254,6 +261,7 @@ class CandidatePageView @JvmOverloads constructor(
                 ellipsize = null
                 val hp = dp(parent.context, 10f).toInt()
                 setPadding(hp, 0, hp, 0)
+                applyAppFont()
             }
             return CandidateVH(tv, onClick)
         }

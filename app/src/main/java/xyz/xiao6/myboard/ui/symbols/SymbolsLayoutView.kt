@@ -3,7 +3,6 @@ package xyz.xiao6.myboard.ui.symbols
 import android.content.Context
 import android.content.res.ColorStateList
 import android.graphics.Color
-import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.util.AttributeSet
 import android.view.Gravity
@@ -18,6 +17,8 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import xyz.xiao6.myboard.R
 import xyz.xiao6.myboard.model.ThemeSpec
+import xyz.xiao6.myboard.ui.theme.AppFont
+import xyz.xiao6.myboard.ui.theme.applyAppFont
 import xyz.xiao6.myboard.ui.theme.ThemeRuntime
 
 /**
@@ -259,7 +260,7 @@ class SymbolsLayoutView @JvmOverloads constructor(
                 )
                 gravity = Gravity.CENTER
                 textSize = 20f
-                typeface = Typeface.DEFAULT
+                typeface = AppFont.symbols(parent.context)
                 setTextColor(tint)
                 setBackgroundColor(Color.WHITE)
             }
@@ -282,6 +283,8 @@ class SymbolsLayoutView @JvmOverloads constructor(
         fun bind(symbol: String, tint: ColorStateList) {
             tv.text = symbol
             tv.setTextColor(tint)
+            tv.typeface =
+                if (isMathSymbol(symbol)) AppFont.math(tv.context) else AppFont.symbols(tv.context)
             tv.setOnClickListener { if (symbol.isNotBlank()) onClick(symbol) }
         }
     }
@@ -330,7 +333,7 @@ class SymbolsLayoutView @JvmOverloads constructor(
                 gravity = Gravity.CENTER
                 setPadding(dp(parent.context, 12f).toInt(), 0, dp(parent.context, 12f).toInt(), 0)
                 textSize = 14f
-                typeface = Typeface.DEFAULT_BOLD
+                applyAppFont(bold = true)
             }
             return CategoryViewHolder(tv) { idx -> onClick(idx) }
         }
@@ -429,4 +432,26 @@ class SymbolsLayoutView @JvmOverloads constructor(
         symbolLayoutManager.spanCount = span
     }
 
+    private companion object {
+        fun isMathSymbol(text: String): Boolean {
+            if (text.isBlank()) return false
+            return text.codePoints().anyMatch { cp ->
+                when (cp) {
+                    0x002B, // +
+                    0x2212, // −
+                    0x00D7, // ×
+                    0x00F7, // ÷
+                    0x003D, // =
+                    0x003C, // <
+                    0x003E, // >
+                    -> true
+                    else ->
+                        (cp in 0x2200..0x22FF) || // Mathematical Operators
+                            (cp in 0x27C0..0x27EF) || // Misc Math Symbols-A
+                            (cp in 0x2980..0x29FF) || // Misc Math Symbols-B
+                            (cp in 0x2A00..0x2AFF) // Supplemental Mathematical Operators
+                }
+            }
+        }
+    }
 }

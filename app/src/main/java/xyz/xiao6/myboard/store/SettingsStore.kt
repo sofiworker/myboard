@@ -195,6 +195,36 @@ class SettingsStore(context: Context) {
             writeString(KEY_SUGGESTION_CLOUD_HEADERS_JSON, value?.trim())
         }
 
+    var benchmarkDisableCandidates: Boolean
+        get() = readBoolean(KEY_BENCHMARK_DISABLE_CANDIDATES) ?: false
+        set(value) {
+            writeBoolean(KEY_BENCHMARK_DISABLE_CANDIDATES, value)
+        }
+
+    var benchmarkDisableKeyPreview: Boolean
+        get() = readBoolean(KEY_BENCHMARK_DISABLE_KEY_PREVIEW) ?: false
+        set(value) {
+            writeBoolean(KEY_BENCHMARK_DISABLE_KEY_PREVIEW, value)
+        }
+
+    var benchmarkDisableKeyDecorations: Boolean
+        get() = readBoolean(KEY_BENCHMARK_DISABLE_KEY_DECORATIONS) ?: false
+        set(value) {
+            writeBoolean(KEY_BENCHMARK_DISABLE_KEY_DECORATIONS, value)
+        }
+
+    var benchmarkDisableKeyLabels: Boolean
+        get() = readBoolean(KEY_BENCHMARK_DISABLE_KEY_LABELS) ?: false
+        set(value) {
+            writeBoolean(KEY_BENCHMARK_DISABLE_KEY_LABELS, value)
+        }
+
+    var debugTouchLoggingEnabled: Boolean
+        get() = readBoolean(KEY_DEBUG_TOUCH_LOGGING_ENABLED) ?: false
+        set(value) {
+            writeBoolean(KEY_DEBUG_TOUCH_LOGGING_ENABLED, value)
+        }
+
     fun getPreferredLayoutId(localeTag: String): String? {
         val key = KEY_PREFERRED_LAYOUT_PREFIX + normalizeLocaleTag(localeTag)
         return readString(key)?.trim()?.takeIf { it.isNotBlank() }
@@ -308,6 +338,11 @@ class SettingsStore(context: Context) {
         private const val KEY_SUGGESTION_CLOUD_AUTH_TYPE = "suggestion_cloud_auth_type"
         private const val KEY_SUGGESTION_CLOUD_AUTH_VALUE = "suggestion_cloud_auth_value"
         private const val KEY_SUGGESTION_CLOUD_HEADERS_JSON = "suggestion_cloud_headers_json"
+        private const val KEY_BENCHMARK_DISABLE_CANDIDATES = "benchmark_disable_candidates"
+        private const val KEY_BENCHMARK_DISABLE_KEY_PREVIEW = "benchmark_disable_key_preview"
+        private const val KEY_BENCHMARK_DISABLE_KEY_DECORATIONS = "benchmark_disable_key_decorations"
+        private const val KEY_BENCHMARK_DISABLE_KEY_LABELS = "benchmark_disable_key_labels"
+        private const val KEY_DEBUG_TOUCH_LOGGING_ENABLED = "debug_touch_logging_enabled"
     }
 
     private fun readString(key: String): String? = cache[key]

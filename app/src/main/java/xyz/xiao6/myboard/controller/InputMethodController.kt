@@ -27,6 +27,8 @@ import xyz.xiao6.myboard.model.Action
 import xyz.xiao6.myboard.model.ActionType
 import xyz.xiao6.myboard.ui.keyboard.KeyboardSurfaceView
 import xyz.xiao6.myboard.util.MLog
+import android.os.SystemClock
+import xyz.xiao6.myboard.util.DebugInputLatency
 
 /**
  * 输入法控制器：负责执行状态机 effect，并严格遵守 requestLayout vs invalidate 的约束。
@@ -61,6 +63,7 @@ class InputMethodController(
     private var lastLoggedComposing: String? = null
     private var lastLoggedCandidatesHash: Int? = null
     private val decodeRequests = Channel<DecodeRequest>(Channel.UNLIMITED)
+    private val pendingCommitStartMs = ArrayDeque<Long>()
 
     private var model = KeyboardStateMachine.Model(
         currentLayoutId = "",
@@ -74,6 +77,7 @@ class InputMethodController(
     var onSwitchLocale: ((String) -> Unit)? = null
     var onToggleLocale: (() -> Unit)? = null
     var onShowSymbols: (() -> Unit)? = null
+    var onCommitLatencyMs: ((Long) -> Unit)? = null
 
     private sealed interface DecodeRequest {
         data class SetDecoder(val decoder: Decoder) : DecodeRequest
@@ -170,7 +174,8 @@ class InputMethodController(
             logTag,
             "onKeyTriggered layout=${model.currentLayoutId} keyId=$keyId trigger=$trigger label=${key.label}",
         )
-        dispatch(KeyboardStateMachine.Event.Triggered(key, trigger))
+        val startMs = SystemClock.uptimeMillis()
+        dispatch(KeyboardStateMachine.Event.Triggered(key, trigger), startMs)
     }
 
     /**
@@ -178,7 +183,7 @@ class InputMethodController(
      * Handle an action (e.g. Shift or layout switch).
      */
     fun onAction(action: KeyAction) {
-        dispatch(KeyboardStateMachine.Event.ActionEvent(action))
+        dispatch(KeyboardStateMachine.Event.ActionEvent(action), startMs = null)
     }
 
     fun onCandidateSelected(text: String) {
@@ -226,9 +231,12 @@ class InputMethodController(
         updateState(reducer = { next }, invalidateKeyIds = invalidateIds)
     }
 
-    private fun dispatch(event: KeyboardStateMachine.Event) {
+    private fun dispatch(event: KeyboardStateMachine.Event, startMs: Long?) {
         val (newModel, effects) = KeyboardStateMachine.reduce(model, event)
         model = newModel
+        if (startMs != null && effects.any { it is KeyboardStateMachine.Effect.CommitText || it is KeyboardStateMachine.Effect.PushToken }) {
+            pendingCommitStartMs.addLast(startMs)
+        }
 
         for (effect in effects) {
             when (effect) {
@@ -394,6 +402,14 @@ class InputMethodController(
     }
 
     private fun applyDecodeUpdate(update: DecodeUpdate) {
+        if (update.commitTexts.isNotEmpty()) {
+            val startMs = pendingCommitStartMs.removeFirstOrNull()
+            if (startMs != null) {
+                val latency = (SystemClock.uptimeMillis() - startMs).coerceAtLeast(0L)
+                onCommitLatencyMs?.invoke(latency)
+            }
+            DebugInputLatency.markCommit(SystemClock.uptimeMillis())
+        }
         val nextComposing = update.composingText
         if (nextComposing != null && nextComposing != lastLoggedComposing) {
             lastLoggedComposing = nextComposing
@@ -463,6 +479,7 @@ class InputMethodController(
         _composingOptions.value = emptyList()
         _candidates.value = emptyList()
         composerBuffer = ""
+        pendingCommitStartMs.clear()
     }
 
     private fun onToken(decoder: Decoder, token: KeyToken): DecodeUpdate {

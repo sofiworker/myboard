@@ -20,6 +20,7 @@ data class ThemeSpec(
     val version: Int = 1,
     val themeId: String,
     val name: String? = null,
+    val support: ThemeSupport? = null,
     /**
      * Named color tokens. Values may be hex or references to other tokens.
      */
@@ -28,6 +29,10 @@ data class ThemeSpec(
      * Global typography + common paint defaults.
      */
     val global: GlobalTheme = GlobalTheme(),
+    /**
+     * Optional icon registry for key labels.
+     */
+    val icons: Map<String, IconSpec> = emptyMap(),
     /**
      * Keyboard layout surface (background behind keys).
      */
@@ -54,16 +59,47 @@ data class ThemeSpec(
     @SerialName("styles")
     val keyStyles: Map<String, KeyStyle> = emptyMap(),
     /**
+     * Theme-level defaults for resolving style groups.
+     */
+    val styleDefaults: StyleDefaults? = null,
+    /**
      * Optional per-key overrides addressed by layout `Key.keyId`.
      * If present, it is applied on top of the resolved [keyStyles] style.
      */
     val keyOverrides: Map<String, KeyStyle> = emptyMap(),
+    /**
+     * Optional dark-mode overrides. Fields are applied as a deep override.
+     */
+    val dark: ThemeOverrides? = null,
 )
 
 @Serializable
 data class GlobalTheme(
     val font: FontTheme = FontTheme(),
+    val fontSize: FontSizeTheme? = null,
+    val icon: IconStyle? = null,
+    val labelCase: LabelCaseTheme? = null,
     val paint: PaintTheme = PaintTheme(),
+)
+
+@Serializable
+data class ThemeSupport(
+    val layouts: List<String> = emptyList(),
+    val layoutSchemaVersion: Int? = null,
+)
+
+@Serializable
+data class FontSizeTheme(
+    val labelSp: Float? = null,
+    val hintSp: Float? = null,
+    val candidateSp: Float? = null,
+    val toolbarSp: Float? = null,
+)
+
+@Serializable
+data class LabelCaseTheme(
+    val alphaCase: String? = null,
+    val respectShift: Boolean? = null,
 )
 
 @Serializable
@@ -88,6 +124,19 @@ data class FontFamilySpec(
     val mediumAsset: String? = null,
     val boldAsset: String? = null,
     val italicAsset: String? = null,
+)
+
+@Serializable
+data class IconSpec(
+    val source: String? = null,
+    val name: String? = null,
+    val path: String? = null,
+    val url: String? = null,
+    val sizeDp: Float? = null,
+    val scaleMode: String? = null,
+    val paddingDp: Float? = null,
+    val tint: String? = null,
+    val alpha: Float? = null,
 )
 
 @Serializable
@@ -172,6 +221,30 @@ data class KeyStyle(
 )
 
 @Serializable
+data class StyleDefaults(
+    val normal: String? = null,
+    val function: String? = null,
+    val functionPrimary: String? = null,
+    val functionDanger: String? = null,
+    val functionToggle: String? = null,
+)
+
+@Serializable
+data class ThemeOverrides(
+    val colors: Map<String, String> = emptyMap(),
+    val global: GlobalTheme? = null,
+    val icons: Map<String, IconSpec> = emptyMap(),
+    val layout: LayoutTheme? = null,
+    val toolbar: ToolbarTheme? = null,
+    val candidates: CandidateTheme? = null,
+    val composingPopup: PopupTheme? = null,
+    val keyPopup: PopupTheme? = null,
+    @SerialName("styles")
+    val keyStyles: Map<String, KeyStyle> = emptyMap(),
+    val styleDefaults: StyleDefaults? = null,
+)
+
+@Serializable
 data class SurfaceStyle(
     val background: BackgroundStyle? = null,
     val stroke: StrokeStyle? = null,
@@ -221,6 +294,10 @@ data class TextStyle(
      * If provided, overrides global font family.
      */
     val fontFamily: String? = null,
+    /**
+     * Optional label case override: AUTO | LOWER | UPPER.
+     */
+    val case: String? = null,
     val stroke: StrokeStyle? = null,
     val shadow: ShadowStyle? = null,
     val letterSpacingEm: Float? = null,
@@ -234,6 +311,8 @@ data class IconStyle(
     val tint: String? = null,
     val sizeDp: Float? = null,
     val alpha: Float? = null,
+    val scaleMode: String? = null,
+    val paddingDp: Float? = null,
 )
 
 @Serializable

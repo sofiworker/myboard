@@ -43,6 +43,10 @@ android {
         kotlinCompilerExtensionVersion = libs.versions.composeCompiler.get()
     }
     packaging {
+        jniLibs {
+            // Force extraction of native libs to avoid 16 KB page size mmap issues.
+            useLegacyPackaging = true
+        }
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
@@ -69,7 +73,7 @@ val generateSubtypes by tasks.registering(Exec::class) {
     // convertDictionaries writes `base.mybdict` into assets/dictionary; keep ordering explicit.
     dependsOn(convertDictionaries)
     commandLine(
-        "python3",
+        "python",
         project.rootDir.resolve("scripts/generate_subtypes.py").absolutePath,
         "--layouts-dir",
         project.layout.projectDirectory.dir("src/main/assets/layouts").asFile.absolutePath,
@@ -102,7 +106,7 @@ val convertDictionaries by tasks.registering(Exec::class) {
     outputs.file(outMeta)
 
     commandLine(
-        "python3",
+        "python",
         project.rootDir.resolve("scripts/dict_tool.py").absolutePath,
         "convert-multi",
         "--inputs",
@@ -179,6 +183,7 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+    androidTestImplementation("androidx.test.uiautomator:uiautomator:2.3.0")
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)

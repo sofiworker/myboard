@@ -14,6 +14,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import xyz.xiao6.myboard.model.ThemeSpec
+import xyz.xiao6.myboard.ui.theme.applyAppFont
 import xyz.xiao6.myboard.ui.theme.ThemeRuntime
 
 /**
@@ -110,6 +111,7 @@ class CandidateView @JvmOverloads constructor(
                     (parent.context.resources.displayMetrics.density * 12f).toInt(),
                     0,
                 )
+                applyAppFont()
             }
             return CandidateViewHolder(textView, onClick, onLongClick)
         }

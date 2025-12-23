@@ -3,7 +3,6 @@ package xyz.xiao6.myboard.ui.clipboard
 import android.content.Context
 import android.content.res.ColorStateList
 import android.graphics.Color
-import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.text.TextUtils
 import android.util.AttributeSet
@@ -19,6 +18,7 @@ import androidx.core.view.isVisible
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import xyz.xiao6.myboard.model.ThemeSpec
+import xyz.xiao6.myboard.ui.theme.applyAppFont
 import xyz.xiao6.myboard.ui.theme.ThemeRuntime
 
 class ClipboardLayoutView @JvmOverloads constructor(
@@ -102,7 +102,7 @@ class ClipboardLayoutView @JvmOverloads constructor(
             text = "Clipboard"
             setTextColor(textTint)
             setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 15f)
-            setTypeface(typeface, Typeface.BOLD)
+            applyAppFont(bold = true)
             ellipsize = TextUtils.TruncateAt.END
             maxLines = 1
         }
@@ -130,6 +130,7 @@ class ClipboardLayoutView @JvmOverloads constructor(
             gravity = Gravity.CENTER
             text = "No clipboard items"
             setTextColor(textTint)
+            applyAppFont()
             visibility = View.GONE
         }
 
@@ -344,6 +345,7 @@ class ClipboardLayoutView @JvmOverloads constructor(
                 setPadding(dp(parent.context, 14f).toInt(), dp(parent.context, 12f).toInt(),
                     dp(parent.context, 14f).toInt(), dp(parent.context, 12f).toInt())
                 setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 15f)
+                applyAppFont()
                 maxLines = 3
                 ellipsize = TextUtils.TruncateAt.END
             }

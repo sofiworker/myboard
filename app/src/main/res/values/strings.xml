@@ -133,6 +133,16 @@
     <string name="settings_suggestions_ngram_desc">Expand Han words into 2–3 grams for association</string>
     <string name="settings_suggestions_clear_learning">Clear learning data</string>
     <string name="settings_suggestions_clear_blocked">Clear blocked words</string>
+    <string name="settings_suggestions_benchmark_disable">Disable candidates for benchmark</string>
+    <string name="settings_suggestions_benchmark_disable_desc">Hide candidates and skip updates during benchmarks.</string>
+    <string name="settings_benchmark_disable_key_preview">Disable key preview for benchmark</string>
+    <string name="settings_benchmark_disable_key_preview_desc">Disable the key preview popup during benchmarks.</string>
+    <string name="settings_benchmark_disable_key_decorations">Disable key decorations for benchmark</string>
+    <string name="settings_benchmark_disable_key_decorations_desc">Disable key shadows, strokes, and hints during benchmarks.</string>
+    <string name="settings_benchmark_disable_key_labels">Disable key labels for benchmark</string>
+    <string name="settings_benchmark_disable_key_labels_desc">Hide key labels during benchmarks.</string>
+    <string name="settings_debug_touch_logging">Debug touch logging</string>
+    <string name="settings_debug_touch_logging_desc">Log key touch movement and hit-testing details.</string>
     <string name="settings_suggestions_cloud">Cloud suggestions</string>
     <string name="settings_suggestions_cloud_endpoint">Endpoint</string>
     <string name="settings_suggestions_cloud_auth_type">Auth type</string>
@@ -155,5 +165,13 @@
     <string name="settings_vibration_strength_following_system">Following system settings</string>
 
     <string name="settings_reset_desc">Clear setup data and re-run the setup wizard</string>
+
+    <string name="benchmark_input_title">Input benchmark</string>
+    <string name="benchmark_input_desc">Use this screen to run UI input benchmarks.</string>
+    <string name="benchmark_input_hint">Tap here to type...</string>
+    <string name="ime_picker_title">Switch input method</string>
+    <string name="ime_picker_desc">Tap to open the input method picker.</string>
+    <string name="ime_picker_channel_name">Input method</string>
+    <string name="ime_picker_channel_desc">Input method picker notification.</string>
 
 </resources>

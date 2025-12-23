@@ -3,7 +3,6 @@ package xyz.xiao6.myboard.ui.popup
 import android.content.Context
 import android.graphics.Color
 import android.graphics.RectF
-import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.view.Gravity
 import android.view.MotionEvent
@@ -14,6 +13,8 @@ import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.TextView
 import xyz.xiao6.myboard.model.ThemeSpec
+import xyz.xiao6.myboard.ui.theme.AppFont
+import xyz.xiao6.myboard.ui.theme.applyAppFont
 import xyz.xiao6.myboard.ui.theme.ThemeRuntime
 import kotlin.math.max
 
@@ -75,9 +76,14 @@ class PopupView(
         candidatesContainer.reset()
     }
 
-    fun showKeyPreview(anchor: View, keyRectInAnchor: RectF, text: String) {
+    fun showKeyPreview(
+        anchor: View,
+        keyRectInAnchor: RectF,
+        text: String,
+        forceAbove: Boolean = false,
+    ) {
         if (host.width == 0 || host.height == 0) {
-            host.post { showKeyPreview(anchor, keyRectInAnchor, text) }
+            host.post { showKeyPreview(anchor, keyRectInAnchor, text, forceAbove) }
             return
         }
 
@@ -93,6 +99,7 @@ class PopupView(
             popupWidth = w,
             popupHeight = h,
             preferAbovePadding = dpInt(6f),
+            forceAbove = forceAbove,
         )
 
         (previewTextView.layoutParams as? FrameLayout.LayoutParams)?.let { lp ->
@@ -192,7 +199,7 @@ class PopupView(
         return TextView(context).apply {
             setTextColor(Color.WHITE)
             textSize = 28f
-            typeface = Typeface.DEFAULT_BOLD
+            applyAppFont(bold = true)
             gravity = Gravity.CENTER
             setPadding(dpInt(18f), dpInt(12f), dpInt(18f), dpInt(12f))
             background = GradientDrawable().apply {
@@ -228,6 +235,7 @@ class PopupView(
         popupWidth: Int,
         popupHeight: Int,
         preferAbovePadding: Int,
+        forceAbove: Boolean = false,
     ): PopupPosition {
         val anchorLoc = IntArray(2)
         anchor.getLocationInWindow(anchorLoc)
@@ -245,7 +253,7 @@ class PopupView(
         val belowY = (anchorYInHost + keyRectInAnchor.bottom + preferAbovePadding).toInt()
 
         val x = clampX(desiredX, popupWidth)
-        val y = clampYPreferAbove(aboveY, belowY, popupHeight)
+        val y = if (forceAbove) clampYAboveOnly(aboveY, popupHeight) else clampYPreferAbove(aboveY, belowY, popupHeight)
         return PopupPosition(x = x, y = y)
     }
 
@@ -261,6 +269,12 @@ class PopupView(
         val clampedAbove = aboveY.coerceIn(minY, max(minY, maxY))
         if (aboveY >= minY) return clampedAbove
         return belowY.coerceIn(minY, max(minY, maxY))
+    }
+
+    private fun clampYAboveOnly(aboveY: Int, popupHeight: Int): Int {
+        val minY = dpInt(4f)
+        val maxY = host.height - popupHeight - dpInt(4f)
+        return aboveY.coerceIn(minY, max(minY, maxY))
     }
 
     private class CandidateStripView(context: Context) : LinearLayout(context) {
@@ -379,6 +393,7 @@ class PopupView(
                 textSize = 18f
                 setTextColor(itemTextColor)
                 this.text = text
+                applyAppFont()
                 background = GradientDrawable().apply {
                     shape = GradientDrawable.RECTANGLE
                     cornerRadius = dp(10f)
@@ -394,7 +409,7 @@ class PopupView(
                 val selected = i == selectedIndex
                 bg.setColor(if (selected) itemSelectedBg else Color.parseColor("#00000000"))
                 child.setTextColor(if (selected) itemSelectedText else itemTextColor)
-                child.typeface = if (selected) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
+                child.typeface = if (selected) AppFont.bold(child.context) else AppFont.regular(child.context)
             }
         }
 

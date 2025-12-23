@@ -149,4 +149,27 @@
 
     <string name="settings_reset_desc">清除引导数据并重新运行引导</string>
 
+    <string name="benchmark_input_title">基准测试</string>
+    <string name="benchmark_input_desc">基准测试</string>
+    <string name="benchmark_input_hint">在这儿输入</string>
+
+    <string name="ime_picker_title">åˆ‡æ¢è¾“å…¥æ³•</string>
+    <string name="ime_picker_desc">ç‚¹å‡»æ‰“å¼€è¾“å…¥æ³•é€‰æ‹©å™¨ã€?</string>
+    <string name="ime_picker_channel_name">è¾“å…¥æ³•</string>
+    <string name="ime_picker_channel_desc">è¾“å…¥æ³•é€‰æ‹©å™¨é€šçŸ¥ã€?</string>
+
+    <string name="settings_suggestions_benchmark_disable">关闭候选条（基准测试）</string>
+    <string name="settings_suggestions_benchmark_disable_desc">基准测试时隐藏候选并停止更新。</string>
+    <string name="settings_benchmark_disable_key_preview">关闭按键预览（基准测试）</string>
+    <string name="settings_benchmark_disable_key_preview_desc">基准测试时关闭按键放大预览弹窗。</string>
+
+    <string name="settings_benchmark_disable_key_decorations">关闭按键装饰（基准测试）</string>
+    <string name="settings_benchmark_disable_key_decorations_desc">基准测试时关闭阴影、描边与提示。</string>
+
+    <string name="settings_benchmark_disable_key_labels">关闭按键标签（基准测试）</string>
+    <string name="settings_benchmark_disable_key_labels_desc">基准测试时隐藏按键文字。</string>
+
+    <string name="settings_debug_touch_logging">触摸调试日志</string>
+    <string name="settings_debug_touch_logging_desc">输出按键触摸移动与命中细节。</string>
+
 </resources>

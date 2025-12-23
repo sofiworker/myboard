@@ -57,7 +57,7 @@ class EmojiController(
     private fun currentCategories(): List<EmojiCategory> {
         return when (state.menu) {
             EmojiMenu.EMOJI -> catalog.emojiCategories
-            EmojiMenu.KAOMOJI -> catalog.kaomojiCategories
+            EmojiMenu.KAOMOJI -> catalog.kaomojiCategories.map { EmojiCategory(it.categoryId, it.name, emptyList()) }
         }
     }
 
@@ -68,12 +68,26 @@ class EmojiController(
     private fun buildUiState(): EmojiUiState {
         val categories = currentCategories()
         val selectedIndex = state.selectedCategoryIndex.coerceIn(0, categories.lastIndex.coerceAtLeast(0))
-        val current = categories.getOrNull(selectedIndex)
-        val raw = current?.items.orEmpty()
         val q = state.query.trim()
+
         val items =
-            if (q.isBlank()) raw
-            else raw.filter { it.contains(q, ignoreCase = true) }
+            when (state.menu) {
+                EmojiMenu.EMOJI -> {
+                    val current = catalog.emojiCategories.getOrNull(selectedIndex)
+                    val raw = current?.items.orEmpty()
+                    if (q.isBlank()) {
+                        raw.map { it.emoji }
+                    } else {
+                        val locale = java.util.Locale.getDefault().language.lowercase(java.util.Locale.ROOT)
+                        raw.filter { matchesQuery(it, q, locale) }.map { it.emoji }
+                    }
+                }
+                EmojiMenu.KAOMOJI -> {
+                    val current = catalog.kaomojiCategories.getOrNull(selectedIndex)
+                    val raw = current?.items.orEmpty()
+                    if (q.isBlank()) raw else raw.filter { it.contains(q, ignoreCase = true) }
+                }
+            }
         val gridConfig =
             when (state.menu) {
                 EmojiMenu.EMOJI -> EmojiGridConfig(columns = 8, rows = 4, textSizeSp = 24f, cellHeightDp = 60f)
@@ -88,5 +102,30 @@ class EmojiController(
             query = state.query,
             gridConfig = gridConfig,
         )
+    }
+
+    private fun matchesQuery(item: EmojiItem, query: String, locale: String): Boolean {
+        val q = query.lowercase(java.util.Locale.ROOT)
+        val name = pickLocalizedName(item.name, locale).lowercase(java.util.Locale.ROOT)
+        val keywords = pickLocalizedKeywords(item.keywords, locale)
+            .joinToString(" ")
+            .lowercase(java.util.Locale.ROOT)
+        return name.contains(q) || keywords.contains(q) || item.emoji.contains(query)
+    }
+
+    private fun pickLocalizedName(name: EmojiName, locale: String): String {
+        return when {
+            locale.startsWith("zh") && name.zh.isNotBlank() -> name.zh
+            name.en.isNotBlank() -> name.en
+            else -> ""
+        }
+    }
+
+    private fun pickLocalizedKeywords(keywords: EmojiKeywords, locale: String): List<String> {
+        return when {
+            locale.startsWith("zh") && keywords.zh.isNotEmpty() -> keywords.zh
+            keywords.en.isNotEmpty() -> keywords.en
+            else -> emptyList()
+        }
     }
 }

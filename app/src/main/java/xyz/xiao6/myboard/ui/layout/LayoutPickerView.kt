@@ -4,7 +4,6 @@ import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
-import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.util.AttributeSet
 import android.view.Gravity
@@ -20,6 +19,8 @@ import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import xyz.xiao6.myboard.model.KeyboardLayout
 import xyz.xiao6.myboard.model.ThemeSpec
+import xyz.xiao6.myboard.ui.theme.AppFont
+import xyz.xiao6.myboard.ui.theme.applyAppFont
 import xyz.xiao6.myboard.ui.theme.ThemeRuntime
 import kotlin.math.max
 
@@ -69,7 +70,7 @@ class LayoutPickerView @JvmOverloads constructor(
                 gravity = Gravity.START or Gravity.CENTER_VERTICAL
             }
             textSize = 16f
-            typeface = Typeface.DEFAULT_BOLD
+            applyAppFont(bold = true)
             setTextColor(Color.parseColor("#3C3C43"))
             text = "Languages & Layouts"
         }
@@ -181,7 +182,7 @@ class LayoutPickerView @JvmOverloads constructor(
                                 setMargins(m, m, m, dp(parent.context, 2f).toInt())
                             }
                         textSize = 14f
-                        typeface = Typeface.DEFAULT_BOLD
+                        applyAppFont(bold = true)
                         setPadding(dp(parent.context, 6f).toInt(), dp(parent.context, 8f).toInt(), dp(parent.context, 6f).toInt(), dp(parent.context, 4f).toInt())
                     }
                     HeaderVH(tv)
@@ -232,6 +233,7 @@ class LayoutPickerView @JvmOverloads constructor(
                 setPadding(0, dp(8f).toInt(), 0, 0)
                 maxLines = 1
                 ellipsize = android.text.TextUtils.TruncateAt.END
+                applyAppFont()
             }
             root.addView(thumb)
             root.addView(title)
@@ -287,7 +289,7 @@ class LayoutPickerView @JvmOverloads constructor(
         fun bind(option: LayoutOption, textColor: Int, accentColor: Int) {
             title.text = option.name
             title.setTextColor(textColor)
-            title.typeface = if (option.selected) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
+            title.typeface = if (option.selected) AppFont.bold(title.context) else AppFont.regular(title.context)
             thumbnail.setLayout(option.layout, keyColor, keyStroke, keyText)
 
             val bg = root.background as? GradientDrawable
@@ -309,7 +311,11 @@ class LayoutPickerView @JvmOverloads constructor(
 
         private val keyPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
         private val strokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE }
-        private val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { textAlign = Paint.Align.CENTER }
+        private val textPaint =
+            Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                textAlign = Paint.Align.CENTER
+                applyAppFont(context)
+            }
 
         fun setLayout(layout: KeyboardLayout?, keyColor: Int, keyStrokeColor: Int, keyTextColor: Int) {
             this.layout = layout

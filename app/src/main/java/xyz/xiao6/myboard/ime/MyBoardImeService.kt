@@ -5,6 +5,9 @@ import android.media.AudioManager
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
@@ -71,6 +74,9 @@ import xyz.xiao6.myboard.suggest.SuggestionContext
 import xyz.xiao6.myboard.suggest.SuggestionManager
 import xyz.xiao6.myboard.suggest.SuggestionSource
 import xyz.xiao6.myboard.ui.popup.CandidateActionPopup
+import xyz.xiao6.myboard.ui.ImePickerActivity
+import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
 
 class MyBoardImeService : InputMethodService() {
     private val logTag = "ImeService"
@@ -123,6 +129,8 @@ class MyBoardImeService : InputMethodService() {
     private var lastDecoderCandidates: List<String> = emptyList()
     private var lastCommittedWord: String? = null
     private var candidateActionPopup: CandidateActionPopup? = null
+    private val commitLatenciesMs = ArrayList<Long>(2048)
+    private var imePickerNotificationShown: Boolean = false
 
     override fun onCreate() {
         super.onCreate()
@@ -135,6 +143,7 @@ class MyBoardImeService : InputMethodService() {
         toolbarSpec = ToolbarManager(this).loadAllFromAssets().getDefaultToolbar()
         clipboardManager = getSystemService(ClipboardManager::class.java)
         registerClipboardListener()
+        ensureImePickerChannel()
     }
 
     override fun onDestroy() {
@@ -415,6 +424,7 @@ class MyBoardImeService : InputMethodService() {
         // Ensure toolbar is visible and has actions.
         registerPrefsListener()
         updateToolbarFromPrefs()
+        updateBenchmarkFlags()
         toolbarView.onItemClick = { item ->
             when (item.itemId) {
                 "layout" -> {
@@ -554,6 +564,12 @@ class MyBoardImeService : InputMethodService() {
             onSwitchLocale = { localeTag -> onLocaleSwitched(localeTag) }
             onToggleLocale = { toggleLocale() }
             onShowSymbols = { showSymbols() }
+            onCommitLatencyMs = { ms ->
+                commitLatenciesMs.add(ms)
+                if (commitLatenciesMs.size % 100 == 0) {
+                    logCommitLatencyStats()
+                }
+            }
         }
         controller = c
         c.attach(keyboardView)
@@ -1302,6 +1318,18 @@ class MyBoardImeService : InputMethodService() {
         keyboardView: KeyboardSurfaceView,
         candidatePageView: CandidatePageView,
     ) {
+        if (prefs?.benchmarkDisableCandidates == true) {
+            clearSuggestionState()
+            renderCandidatesUi(
+                candidates = emptyList(),
+                composing = composing,
+                composingOptions = lastComposingOptions,
+                toolbarView = toolbarView,
+                keyboardView = keyboardView,
+                candidatePageView = candidatePageView,
+            )
+            return
+        }
         val manager = suggestionManager
         val tag = activeLocaleTag ?: Locale.getDefault().toLanguageTag()
         val prefs = prefs
@@ -1332,6 +1360,14 @@ class MyBoardImeService : InputMethodService() {
             keyboardView = keyboardView,
             candidatePageView = candidatePageView,
         )
+    }
+
+    private fun clearSuggestionState() {
+        lastCandidates = emptyList()
+        suggestionCandidates = emptyList()
+        suggestionByText = emptyMap()
+        candidatePagePreviewCandidates = null
+        isCandidatePageExpanded = false
     }
 
     private fun clearSuggestionsAfterDelete(keepToolbarHidden: Boolean) {
@@ -1495,12 +1531,19 @@ class MyBoardImeService : InputMethodService() {
 
     override fun onFinishInputView(finishingInput: Boolean) {
         super.onFinishInputView(finishingInput)
+        dismissImePickerNotification()
         resetImeWindowState()
     }
 
     override fun onWindowHidden() {
         super.onWindowHidden()
+        dismissImePickerNotification()
         resetImeWindowState()
+    }
+
+    override fun onWindowShown() {
+        super.onWindowShown()
+        showImePickerNotificationIfNeeded()
     }
 
     private fun resetImeWindowState() {
@@ -1540,6 +1583,60 @@ class MyBoardImeService : InputMethodService() {
         }
     }
 
+    private fun showImePickerNotificationIfNeeded() {
+        if (imePickerNotificationShown) return
+        val manager = NotificationManagerCompat.from(this)
+        if (!manager.areNotificationsEnabled()) return
+        val intent =
+            Intent(this, ImePickerActivity::class.java).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+            }
+        val pending =
+            PendingIntent.getActivity(
+                this,
+                0,
+                intent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+            )
+        val notification =
+            NotificationCompat.Builder(this, IME_PICKER_CHANNEL_ID)
+                .setSmallIcon(R.drawable.ic_launcher_foreground)
+                .setContentTitle(getString(R.string.ime_picker_title))
+                .setContentText(getString(R.string.ime_picker_desc))
+                .setContentIntent(pending)
+                .setOngoing(true)
+                .setAutoCancel(true)
+                .setCategory(NotificationCompat.CATEGORY_STATUS)
+                .build()
+        manager.notify(IME_PICKER_NOTIFICATION_ID, notification)
+        imePickerNotificationShown = true
+    }
+
+    private fun dismissImePickerNotification() {
+        if (!imePickerNotificationShown) return
+        NotificationManagerCompat.from(this).cancel(IME_PICKER_NOTIFICATION_ID)
+        imePickerNotificationShown = false
+    }
+
+    private fun ensureImePickerChannel() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
+        val manager = getSystemService(NotificationManager::class.java) ?: return
+        val existing = manager.getNotificationChannel(IME_PICKER_CHANNEL_ID)
+        if (existing != null) return
+        val channel =
+            NotificationChannel(
+                IME_PICKER_CHANNEL_ID,
+                getString(R.string.ime_picker_channel_name),
+                NotificationManager.IMPORTANCE_LOW,
+            ).apply {
+                description = getString(R.string.ime_picker_channel_desc)
+                setSound(null, null)
+                enableVibration(false)
+                enableLights(false)
+            }
+        manager.createNotificationChannel(channel)
+    }
+
     private fun updateToolbarFromPrefs() {
         val p = prefs ?: return
         val toolbar = toolbarView ?: return
@@ -1553,6 +1650,7 @@ class MyBoardImeService : InputMethodService() {
         val listener = p.addOnChangeListener {
             updateToolbarFromPrefs()
             updateRuntimeDictionariesFromPrefs()
+            updateBenchmarkFlags()
         }
         prefsListener = listener
     }
@@ -1566,6 +1664,40 @@ class MyBoardImeService : InputMethodService() {
             return
         }
         dicts.setEnabledDictionaryIds(p.getEnabledDictionaryIds(tag))
+    }
+
+    private fun updateBenchmarkFlags() {
+        val keyboard = rootView?.findViewById<KeyboardSurfaceView>(R.id.keyboardView) ?: return
+        val p = prefs ?: return
+        keyboard.setPreviewEnabled(!p.benchmarkDisableKeyPreview)
+        keyboard.setDecorationsEnabled(!p.benchmarkDisableKeyDecorations)
+        keyboard.setLabelsEnabled(!p.benchmarkDisableKeyLabels)
+        keyboard.setDebugTouchLoggingEnabled(p.debugTouchLoggingEnabled)
+    }
+
+    private fun logCommitLatencyStats() {
+        if (commitLatenciesMs.isEmpty()) return
+        val sorted = commitLatenciesMs.sorted()
+        val p50 = percentile(sorted, 50.0)
+        val p95 = percentile(sorted, 95.0)
+        val p99 = percentile(sorted, 99.0)
+        val max = sorted.lastOrNull() ?: 0L
+        MLog.d(
+            logTag,
+            "inputLatency count=${sorted.size} p50=${p50}ms p95=${p95}ms p99=${p99}ms max=${max}ms",
+        )
+    }
+
+    private fun percentile(sorted: List<Long>, p: Double): Long {
+        if (sorted.isEmpty()) return 0L
+        val pos = (p / 100.0) * (sorted.size - 1)
+        val lower = kotlin.math.floor(pos).toInt()
+        val upper = kotlin.math.ceil(pos).toInt()
+        if (lower == upper) return sorted[lower]
+        val weight = pos - lower
+        val low = sorted[lower]
+        val high = sorted[upper]
+        return (low + (high - low) * weight).toLong()
     }
 
     private fun renderCandidatesUi(
@@ -1777,5 +1909,7 @@ class MyBoardImeService : InputMethodService() {
 
     private companion object {
         private const val MAX_CLIPBOARD_ENTRIES = 50
+        private const val IME_PICKER_CHANNEL_ID = "ime_picker"
+        private const val IME_PICKER_NOTIFICATION_ID = 0x494D45
     }
 }

@@ -21,7 +21,7 @@ class ThemeManager(
             val spec =
                 runCatching {
                     val text = assetManager.open(path).bufferedReader(Charsets.UTF_8).use { it.readText() }
-                    ThemeParser.parseThemeSpec(text)
+                    ThemeParser.parseThemeSpec(text, useDark = ThemeParser.isSystemDark(context))
                 }.onFailure { t ->
                     MLog.e(logTag, "Failed to load theme: $path", t)
                 }.getOrNull() ?: continue

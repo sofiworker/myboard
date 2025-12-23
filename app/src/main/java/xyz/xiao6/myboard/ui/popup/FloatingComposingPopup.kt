@@ -2,7 +2,6 @@ package xyz.xiao6.myboard.ui.popup
 
 import android.content.Context
 import android.graphics.Color
-import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.util.TypedValue
 import android.view.Gravity
@@ -12,6 +11,7 @@ import android.graphics.drawable.ColorDrawable
 import android.widget.PopupWindow
 import android.widget.TextView
 import xyz.xiao6.myboard.model.ThemeSpec
+import xyz.xiao6.myboard.ui.theme.applyAppFont
 import xyz.xiao6.myboard.ui.theme.ThemeRuntime
 
 /**
@@ -25,7 +25,7 @@ class FloatingComposingPopup(
     private val textView = TextView(context).apply {
         textSize = 18f
         setTextColor(Color.BLACK)
-        typeface = Typeface.DEFAULT
+        applyAppFont()
         setPadding(dpInt(14f), dpInt(10f), dpInt(14f), dpInt(10f))
         background = GradientDrawable().apply {
             shape = GradientDrawable.RECTANGLE

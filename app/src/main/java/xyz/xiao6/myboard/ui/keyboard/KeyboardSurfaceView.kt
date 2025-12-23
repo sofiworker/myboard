@@ -19,10 +19,14 @@ import xyz.xiao6.myboard.model.KeyboardLayout
 import xyz.xiao6.myboard.model.KeyAction
 import xyz.xiao6.myboard.model.Key
 import xyz.xiao6.myboard.model.GestureType
+import xyz.xiao6.myboard.model.KeyIds
 import xyz.xiao6.myboard.model.KeyStyle
 import xyz.xiao6.myboard.model.ThemeSpec
 import xyz.xiao6.myboard.ui.popup.PopupView
+import xyz.xiao6.myboard.ui.theme.applyAppFont
 import xyz.xiao6.myboard.ui.theme.ThemeRuntime
+import android.os.SystemClock
+import xyz.xiao6.myboard.util.DebugInputLatency
 import xyz.xiao6.myboard.util.MLog
 import kotlin.math.abs
 import kotlin.math.hypot
@@ -42,6 +46,8 @@ class KeyboardSurfaceView @JvmOverloads constructor(
     private var keys: List<Key> = emptyList()
     private var keyRects: Map<String, RectF> = emptyMap()
     private var keyTouchRects: Map<String, RectF> = emptyMap()
+    private var keyGestureConfigs: Map<String, KeyGestureConfig> = emptyMap()
+    private var firstRowKeyIds: Set<String> = emptySet()
     private var layoutState: LayoutState = LayoutState()
     private var popupView: PopupView? = null
 
@@ -52,13 +58,14 @@ class KeyboardSurfaceView @JvmOverloads constructor(
     var onTrigger: ((keyId: String, trigger: GestureType) -> Unit)? = null
     var onAction: ((KeyAction) -> Unit)? = null
 
-    private val previewDelayMs = 100L
+    private val previewDelayMs = 0L
     private val longPressTimeoutMs = ViewConfiguration.getLongPressTimeout().toLong()
     private val touchSlopPx = ViewConfiguration.get(context).scaledTouchSlop.toFloat()
     private val swipeThresholdPx = touchSlopPx * 2.5f
     private var activeKeyId: String? = null
     private var activeKeyRect: RectF? = null
     private var activeKeyTouchRect: RectF? = null
+    private var activeKeyGestures: KeyGestureConfig = KeyGestureConfig.EMPTY
     private var activePointerId: Int = -1
     private var downX = 0f
     private var downY = 0f
@@ -68,16 +75,22 @@ class KeyboardSurfaceView @JvmOverloads constructor(
     private var movedSinceDown: Boolean = false
     private var longPressPopupKeyId: String? = null
     private var longPressPopupCommitted: Boolean = false
+    private var previewEnabled: Boolean = true
+    private var decorationsEnabled: Boolean = true
+    private var labelsEnabled: Boolean = true
+    private var debugTouchLoggingEnabled: Boolean = false
     private val previewRunnable = Runnable {
         val popup = popupView ?: return@Runnable
         val keyId = activeKeyId ?: return@Runnable
         val key = keys.firstOrNull { it.keyId == keyId } ?: return@Runnable
         val rect = activeKeyRect ?: return@Runnable
-        popup.showKeyPreview(this, rect, resolveLabel(key))
+        val forceAbove = keyId in firstRowKeyIds
+        popup.showKeyPreview(this, rect, resolveLabel(key), forceAbove = forceAbove)
     }
     private val longPressRunnable = Runnable {
         val popup = popupView ?: return@Runnable
         val keyId = activeKeyId ?: return@Runnable
+        if (!shouldHandleLongPress(keyId)) return@Runnable
         val key = keys.firstOrNull { it.keyId == keyId } ?: return@Runnable
         val rect = activeKeyRect ?: return@Runnable
         MLog.d(logTag, "longPress keyId=$keyId")
@@ -100,10 +113,12 @@ class KeyboardSurfaceView @JvmOverloads constructor(
         color = ContextCompat.getColor(context, R.color.black)
         textAlign = Paint.Align.CENTER
         textSize = sp(16f)
+        applyAppFont(context)
     }
     private val hintPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = Color.parseColor("#AA000000")
         textSize = sp(10f)
+        applyAppFont(context)
     }
 
     fun resolveKeyLabelForInput(keyId: String): String? {
@@ -126,6 +141,8 @@ class KeyboardSurfaceView @JvmOverloads constructor(
     fun setLayout(layout: KeyboardLayout) {
         layoutModel = layout
         keys = layout.rows.flatMap { it.keys }
+        keyGestureConfigs = keys.associate { it.keyId to KeyGestureConfig.fromKey(it) }
+        firstRowKeyIds = layout.rows.firstOrNull()?.keys?.mapTo(LinkedHashSet()) { it.keyId } ?: emptySet()
         requestLayout()
         invalidate()
     }
@@ -148,8 +165,32 @@ class KeyboardSurfaceView @JvmOverloads constructor(
         this.popupView = popupView
     }
 
+    fun setPreviewEnabled(enabled: Boolean) {
+        previewEnabled = enabled
+        if (!enabled) {
+            popupView?.dismissPreview()
+            removeCallbacks(previewRunnable)
+        }
+    }
+
+    fun setDecorationsEnabled(enabled: Boolean) {
+        decorationsEnabled = enabled
+        invalidate()
+    }
+
+    fun setLabelsEnabled(enabled: Boolean) {
+        labelsEnabled = enabled
+        invalidate()
+    }
+
+    fun setDebugTouchLoggingEnabled(enabled: Boolean) {
+        debugTouchLoggingEnabled = enabled
+    }
+
     fun setKeys(keys: List<Key>) {
         this.keys = keys
+        keyGestureConfigs = keys.associate { it.keyId to KeyGestureConfig.fromKey(it) }
+        firstRowKeyIds = emptySet()
         requestLayout()
         invalidate()
     }
@@ -221,6 +262,8 @@ class KeyboardSurfaceView @JvmOverloads constructor(
                 activeKeyId = hit.keyId
                 activeKeyRect = keyRects[hit.keyId]
                 activeKeyTouchRect = keyTouchRects[hit.keyId] ?: activeKeyRect
+                activeKeyGestures = keyGestureConfigs[hit.keyId] ?: KeyGestureConfig.EMPTY
+                DebugInputLatency.markTouchDown(SystemClock.uptimeMillis())
                 activePointerId = event.getPointerId(0)
                 downX = event.x
                 downY = event.y
@@ -261,12 +304,24 @@ class KeyboardSurfaceView @JvmOverloads constructor(
                         removeCallbacks(longPressRunnable)
                         popup?.dismissPreview()
                     }
-                    if (abs(dy) > swipeThresholdPx && abs(dy) > abs(dx)) {
-                        resolvedTrigger = if (dy < 0f) GestureType.FLICK_UP else GestureType.FLICK_DOWN
-                        cancelPreviewAndLongPress()
-                        popup?.dismissPreview()
-                        MLog.d(logTag, "SWIPE trigger=$resolvedTrigger keyId=$keyId dy=${dy.toInt()} dx=${dx.toInt()}")
-                        return true
+                    if (abs(dx) > swipeThresholdPx || abs(dy) > swipeThresholdPx) {
+                        val direction =
+                            if (abs(dx) >= abs(dy)) {
+                                if (dx < 0f) GestureDirection.LEFT else GestureDirection.RIGHT
+                            } else {
+                                if (dy < 0f) GestureDirection.UP else GestureDirection.DOWN
+                            }
+                        val trigger = activeKeyGestures.resolveDirectionalTrigger(direction)
+                        if (trigger != null) {
+                            resolvedTrigger = trigger
+                            cancelPreviewAndLongPress()
+                            popup?.dismissPreview()
+                            MLog.d(
+                                logTag,
+                                "SWIPE trigger=$resolvedTrigger keyId=$keyId dy=${dy.toInt()} dx=${dx.toInt()}",
+                            )
+                            return true
+                        }
                     }
                 }
 
@@ -277,6 +332,7 @@ class KeyboardSurfaceView @JvmOverloads constructor(
                         activeKeyId = hit.keyId
                         activeKeyRect = keyRects[hit.keyId]
                         activeKeyTouchRect = keyTouchRects[hit.keyId] ?: activeKeyRect
+                        activeKeyGestures = keyGestureConfigs[hit.keyId] ?: KeyGestureConfig.EMPTY
                         cancelPreviewAndLongPress()
                         popup?.dismissPreview()
                         schedulePreview()
@@ -288,6 +344,16 @@ class KeyboardSurfaceView @JvmOverloads constructor(
                         cancelPreviewAndLongPress()
                         popup?.dismissPreview()
                     }
+                }
+
+                if (debugTouchLoggingEnabled && movedSinceDown) {
+                    val dx = absX - downAbsX
+                    val dy = absY - downAbsY
+                    val absDist = hypot(dx.toDouble(), dy.toDouble()).toFloat()
+                    MLog.d(
+                        logTag,
+                        "MOVE debug keyId=$keyId dx=${dx.toInt()} dy=${dy.toInt()} absDist=${absDist.toInt()} inRect=${touchRect.contains(x, y)}",
+                    )
                 }
                 return true
             }
@@ -325,6 +391,7 @@ class KeyboardSurfaceView @JvmOverloads constructor(
                 activeKeyId = null
                 activeKeyRect = null
                 activeKeyTouchRect = null
+                activeKeyGestures = KeyGestureConfig.EMPTY
                 activePointerId = -1
                 resolvedTrigger = null
                 movedSinceDown = false
@@ -337,6 +404,7 @@ class KeyboardSurfaceView @JvmOverloads constructor(
                 activeKeyId = null
                 activeKeyRect = null
                 activeKeyTouchRect = null
+                activeKeyGestures = KeyGestureConfig.EMPTY
                 activePointerId = -1
                 resolvedTrigger = null
                 MLog.d(logTag, "CANCEL")
@@ -374,17 +442,21 @@ class KeyboardSurfaceView @JvmOverloads constructor(
                 canvas.drawRoundRect(rect, cornerRadius, cornerRadius, keyStrokePaint)
             }
 
-            val hints = resolveHints(key)
-            if (hints.isNotEmpty()) {
-                for (h in hints) {
-                    if (h.text.isBlank()) continue
-                    drawHint(canvas, rect, h.anchor, h.text)
+            if (decorationsEnabled) {
+                val hints = resolveHints(key)
+                if (hints.isNotEmpty()) {
+                    for (h in hints) {
+                        if (h.text.isBlank()) continue
+                        drawHint(canvas, rect, h.anchor, h.text)
+                    }
                 }
             }
 
-            val x = rect.centerX()
-            val y = rect.centerY() - (labelPaint.ascent() + labelPaint.descent()) / 2f
-            canvas.drawText(resolveLabel(key), x, y, labelPaint)
+            if (labelsEnabled) {
+                val x = rect.centerX()
+                val y = rect.centerY() - (labelPaint.ascent() + labelPaint.descent()) / 2f
+                canvas.drawText(resolveLabel(key), x, y, labelPaint)
+            }
         }
     }
 
@@ -409,25 +481,31 @@ class KeyboardSurfaceView @JvmOverloads constructor(
             }
 
         keyFillPaint.color = bgColor
-        val shadow = style?.shadow
-        if (shadow != null && theme != null) {
-            keyFillPaint.setShadowLayer(
-                dp(shadow.radiusDp ?: 2f),
-                dp(shadow.dxDp ?: 0f),
-                dp(shadow.dyDp ?: 1f),
-                theme.resolveShadowColor(shadow, Color.parseColor("#33000000")),
-            )
+        if (decorationsEnabled) {
+            val shadow = style?.shadow
+            if (shadow != null && theme != null) {
+                keyFillPaint.setShadowLayer(
+                    dp(shadow.radiusDp ?: 2f),
+                    dp(shadow.dxDp ?: 0f),
+                    dp(shadow.dyDp ?: 1f),
+                    theme.resolveShadowColor(shadow, Color.parseColor("#33000000")),
+                )
+            } else {
+                keyFillPaint.clearShadowLayer()
+            }
+
+            val stroke = (if (pressed) style?.strokePressed else null) ?: style?.stroke
+            if (stroke?.widthDp != null && stroke.widthDp > 0f) {
+                keyStrokePaint.strokeWidth = dp(stroke.widthDp)
+                keyStrokePaint.color = theme?.resolveStrokeColor(stroke, defaultStroke) ?: defaultStroke
+            } else {
+                keyStrokePaint.strokeWidth = dp(1f)
+                keyStrokePaint.color = theme?.resolveStrokeColor(stroke, Color.TRANSPARENT) ?: Color.TRANSPARENT
+            }
         } else {
             keyFillPaint.clearShadowLayer()
-        }
-
-        val stroke = (if (pressed) style?.strokePressed else null) ?: style?.stroke
-        if (stroke?.widthDp != null && stroke.widthDp > 0f) {
-            keyStrokePaint.strokeWidth = dp(stroke.widthDp)
-            keyStrokePaint.color = theme?.resolveStrokeColor(stroke, defaultStroke) ?: defaultStroke
-        } else {
-            keyStrokePaint.strokeWidth = dp(1f)
-            keyStrokePaint.color = theme?.resolveStrokeColor(stroke, Color.TRANSPARENT) ?: Color.TRANSPARENT
+            keyStrokePaint.strokeWidth = 0f
+            keyStrokePaint.color = Color.TRANSPARENT
         }
 
         val labelColor =
@@ -435,11 +513,13 @@ class KeyboardSurfaceView @JvmOverloads constructor(
         val labelSizeSp = style?.label?.sizeSp ?: style?.textSizeSp ?: 16f
         labelPaint.color = labelColor
         labelPaint.textSize = sp(labelSizeSp)
+        labelPaint.applyAppFont(context, bold = style?.label?.bold == true)
 
         val hintColor =
             theme?.resolveColor(style?.hint?.color ?: "colors.key_hint", Color.parseColor("#8E8E93")) ?: Color.parseColor("#8E8E93")
         hintPaint.color = hintColor
         hintPaint.textSize = sp(style?.hint?.sizeSp ?: 10f)
+        hintPaint.applyAppFont(context, bold = style?.hint?.bold == true)
     }
 
     private fun resolveLabel(key: Key): String {
@@ -597,13 +677,18 @@ class KeyboardSurfaceView @JvmOverloads constructor(
     }
 
     private fun schedulePreview() {
-        if (popupView == null) return
+        if (!previewEnabled || popupView == null) return
         removeCallbacks(previewRunnable)
-        postDelayed(previewRunnable, previewDelayMs)
+        if (previewDelayMs <= 0L) {
+            post(previewRunnable)
+        } else {
+            postDelayed(previewRunnable, previewDelayMs)
+        }
     }
 
     private fun scheduleLongPressPopup() {
         if (popupView == null) return
+        if (!shouldHandleLongPress(activeKeyId)) return
         removeCallbacks(longPressRunnable)
         postDelayed(longPressRunnable, longPressTimeoutMs)
     }
@@ -611,6 +696,53 @@ class KeyboardSurfaceView @JvmOverloads constructor(
     private fun cancelPreviewAndLongPress() {
         removeCallbacks(previewRunnable)
         removeCallbacks(longPressRunnable)
+    }
+
+    private fun shouldHandleLongPress(keyId: String?): Boolean {
+        if (keyId.isNullOrBlank()) return false
+        if (keyId == KeyIds.BACKSPACE) return true
+        return keyGestureConfigs[keyId]?.supports(GestureType.LONG_PRESS) == true
+    }
+
+    private enum class GestureDirection {
+        UP,
+        DOWN,
+        LEFT,
+        RIGHT,
+    }
+
+    private data class KeyGestureConfig(
+        val gestures: Set<GestureType>,
+    ) {
+        fun supports(gesture: GestureType): Boolean = gesture in gestures
+
+        fun resolveDirectionalTrigger(direction: GestureDirection): GestureType? {
+            val swipe =
+                when (direction) {
+                    GestureDirection.UP -> GestureType.SWIPE_UP
+                    GestureDirection.DOWN -> GestureType.SWIPE_DOWN
+                    GestureDirection.LEFT -> GestureType.SWIPE_LEFT
+                    GestureDirection.RIGHT -> GestureType.SWIPE_RIGHT
+                }
+            if (swipe in gestures) return swipe
+
+            val flick =
+                when (direction) {
+                    GestureDirection.UP -> GestureType.FLICK_UP
+                    GestureDirection.DOWN -> GestureType.FLICK_DOWN
+                    GestureDirection.LEFT -> GestureType.FLICK_LEFT
+                    GestureDirection.RIGHT -> GestureType.FLICK_RIGHT
+                }
+            return flick.takeIf { it in gestures }
+        }
+
+        companion object {
+            val EMPTY = KeyGestureConfig(emptySet())
+
+            fun fromKey(key: Key): KeyGestureConfig {
+                return KeyGestureConfig(key.actions.keys)
+            }
+        }
     }
 
     private fun expand(rect: RectF): RectF {

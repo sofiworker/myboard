@@ -89,6 +89,7 @@ import xyz.xiao6.myboard.manager.ToolbarManager
 import xyz.xiao6.myboard.model.LocaleLayoutProfile
 import xyz.xiao6.myboard.model.DictionarySpec
 import xyz.xiao6.myboard.store.SettingsStore
+import xyz.xiao6.myboard.ui.theme.MyBoardTheme
 import xyz.xiao6.myboard.util.KeyboardSizeConstraints
 import java.util.Locale
 import kotlinx.coroutines.Dispatchers
@@ -118,7 +119,7 @@ class SettingsActivity : AppCompatActivity() {
         }
 
         setContent {
-            MaterialTheme {
+            MyBoardTheme {
                 SettingsScreen(
                     prefs = prefs,
                     subtypeManager = subtypeManager,
@@ -1778,6 +1779,11 @@ private fun SuggestionsSettings(
     var learningEnabled by remember { mutableStateOf(prefs.suggestionLearningEnabled) }
     var ngramEnabled by remember { mutableStateOf(prefs.suggestionNgramEnabled) }
     var cloudEnabled by remember { mutableStateOf(prefs.suggestionCloudEnabled) }
+    var benchmarkDisableCandidates by remember { mutableStateOf(prefs.benchmarkDisableCandidates) }
+    var benchmarkDisableKeyPreview by remember { mutableStateOf(prefs.benchmarkDisableKeyPreview) }
+    var benchmarkDisableKeyDecorations by remember { mutableStateOf(prefs.benchmarkDisableKeyDecorations) }
+    var benchmarkDisableKeyLabels by remember { mutableStateOf(prefs.benchmarkDisableKeyLabels) }
+    var debugTouchLoggingEnabled by remember { mutableStateOf(prefs.debugTouchLoggingEnabled) }
     var endpoint by remember { mutableStateOf(prefs.suggestionCloudEndpoint.orEmpty()) }
     var authType by remember { mutableStateOf(prefs.suggestionCloudAuthType) }
     var authValue by remember { mutableStateOf(prefs.suggestionCloudAuthValue.orEmpty()) }
@@ -1794,6 +1800,71 @@ private fun SuggestionsSettings(
                     onCheckedChange = {
                         enabled = it
                         prefs.suggestionEnabled = it
+                    },
+                )
+            },
+        )
+        ListItem(
+            headlineContent = { Text(stringResource(R.string.settings_suggestions_benchmark_disable)) },
+            supportingContent = { Text(stringResource(R.string.settings_suggestions_benchmark_disable_desc)) },
+            trailingContent = {
+                Switch(
+                    checked = benchmarkDisableCandidates,
+                    onCheckedChange = {
+                        benchmarkDisableCandidates = it
+                        prefs.benchmarkDisableCandidates = it
+                    },
+                )
+            },
+        )
+        ListItem(
+            headlineContent = { Text(stringResource(R.string.settings_benchmark_disable_key_preview)) },
+            supportingContent = { Text(stringResource(R.string.settings_benchmark_disable_key_preview_desc)) },
+            trailingContent = {
+                Switch(
+                    checked = benchmarkDisableKeyPreview,
+                    onCheckedChange = {
+                        benchmarkDisableKeyPreview = it
+                        prefs.benchmarkDisableKeyPreview = it
+                    },
+                )
+            },
+        )
+        ListItem(
+            headlineContent = { Text(stringResource(R.string.settings_benchmark_disable_key_decorations)) },
+            supportingContent = { Text(stringResource(R.string.settings_benchmark_disable_key_decorations_desc)) },
+            trailingContent = {
+                Switch(
+                    checked = benchmarkDisableKeyDecorations,
+                    onCheckedChange = {
+                        benchmarkDisableKeyDecorations = it
+                        prefs.benchmarkDisableKeyDecorations = it
+                    },
+                )
+            },
+        )
+        ListItem(
+            headlineContent = { Text(stringResource(R.string.settings_benchmark_disable_key_labels)) },
+            supportingContent = { Text(stringResource(R.string.settings_benchmark_disable_key_labels_desc)) },
+            trailingContent = {
+                Switch(
+                    checked = benchmarkDisableKeyLabels,
+                    onCheckedChange = {
+                        benchmarkDisableKeyLabels = it
+                        prefs.benchmarkDisableKeyLabels = it
+                    },
+                )
+            },
+        )
+        ListItem(
+            headlineContent = { Text(stringResource(R.string.settings_debug_touch_logging)) },
+            supportingContent = { Text(stringResource(R.string.settings_debug_touch_logging_desc)) },
+            trailingContent = {
+                Switch(
+                    checked = debugTouchLoggingEnabled,
+                    onCheckedChange = {
+                        debugTouchLoggingEnabled = it
+                        prefs.debugTouchLoggingEnabled = it
                     },
                 )
             },

@@ -3,7 +3,6 @@ package xyz.xiao6.myboard.ui.emoji
 import android.content.Context
 import android.content.res.ColorStateList
 import android.graphics.Color
-import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.text.Editable
 import android.text.TextWatcher
@@ -22,6 +21,8 @@ import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.ViewPager2
 import xyz.xiao6.myboard.R
 import xyz.xiao6.myboard.model.ThemeSpec
+import xyz.xiao6.myboard.ui.theme.AppFont
+import xyz.xiao6.myboard.ui.theme.applyAppFont
 import xyz.xiao6.myboard.ui.theme.ThemeRuntime
 
 /**
@@ -119,7 +120,7 @@ class EmojiLayoutView @JvmOverloads constructor(
                 layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1f)
                 gravity = Gravity.CENTER
                 textSize = 14f
-                typeface = Typeface.DEFAULT_BOLD
+                applyAppFont(bold = true)
                 this.text = text
             }
         }
@@ -139,6 +140,7 @@ class EmojiLayoutView @JvmOverloads constructor(
                 setSingleLine(true)
                 hint = "Search"
                 textSize = 14f
+                applyAppFont()
                 background =
                     GradientDrawable().apply {
                         shape = GradientDrawable.RECTANGLE
@@ -336,6 +338,7 @@ class EmojiLayoutView @JvmOverloads constructor(
                 textSize = cfg.textSizeSp
                 setTextColor(Color.BLACK)
                 setBackgroundColor(Color.WHITE)
+                typeface = AppFont.emoji(parent.context)
             }
             return CellVH(tv, onClick)
         }
@@ -399,7 +402,7 @@ class EmojiLayoutView @JvmOverloads constructor(
                 gravity = Gravity.CENTER
                 setPadding(dp(parent.context, 12f).toInt(), 0, dp(parent.context, 12f).toInt(), 0)
                 textSize = 14f
-                typeface = Typeface.DEFAULT_BOLD
+                applyAppFont(bold = true)
             }
             return CategoryVH(tv, onClick)
         }

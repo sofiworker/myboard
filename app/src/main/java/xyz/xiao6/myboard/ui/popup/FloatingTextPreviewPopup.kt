@@ -2,7 +2,6 @@ package xyz.xiao6.myboard.ui.popup
 
 import android.content.Context
 import android.graphics.Color
-import android.graphics.Typeface
 import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.GradientDrawable
 import android.util.TypedValue
@@ -12,6 +11,7 @@ import android.view.ViewGroup
 import android.widget.PopupWindow
 import android.widget.TextView
 import xyz.xiao6.myboard.model.ThemeSpec
+import xyz.xiao6.myboard.ui.theme.applyAppFont
 import xyz.xiao6.myboard.ui.theme.ThemeRuntime
 import kotlin.math.max
 
@@ -26,7 +26,7 @@ class FloatingTextPreviewPopup(
     private val textView = TextView(context).apply {
         textSize = 18f
         setTextColor(Color.BLACK)
-        typeface = Typeface.DEFAULT_BOLD
+        applyAppFont(bold = true)
         setPadding(dpInt(14f), dpInt(10f), dpInt(14f), dpInt(10f))
         background = GradientDrawable().apply {
             shape = GradientDrawable.RECTANGLE

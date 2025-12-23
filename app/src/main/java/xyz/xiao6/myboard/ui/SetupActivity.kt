@@ -65,6 +65,7 @@ import xyz.xiao6.myboard.manager.LayoutManager
 import xyz.xiao6.myboard.manager.SubtypeManager
 import xyz.xiao6.myboard.model.LocaleLayoutProfile
 import xyz.xiao6.myboard.store.SettingsStore
+import xyz.xiao6.myboard.ui.theme.MyBoardTheme
 import java.util.Locale
 
 /** 首次安装引导（Setup Wizard Activity）。 */
@@ -81,7 +82,7 @@ class SetupActivity : AppCompatActivity() {
         layoutManager = LayoutManager(this).loadAllFromAssets()
 
         setContent {
-            MaterialTheme {
+            MyBoardTheme {
                 OnboardingWizard(
                     prefs = prefs,
                     subtypeManager = subtypeManager,

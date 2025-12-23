@@ -22,7 +22,7 @@
   "rows": [
     {
       "rowId": "row_1_alpha",
-      "heightRatio": 0.25,
+      "heightRatio": 0.2,
       "alignment": "JUSTIFY",
       "keys": [
         {
@@ -359,7 +359,7 @@
     },
     {
       "rowId": "row_2_alpha",
-      "heightRatio": 0.25,
+      "heightRatio": 0.2,
       "alignment": "CENTER",
       "keys": [
         {
@@ -689,7 +689,7 @@
     },
     {
       "rowId": "row_3_alpha",
-      "heightRatio": 0.25,
+      "heightRatio": 0.2,
       "alignment": "JUSTIFY",
       "keys": [
         {
@@ -989,7 +989,7 @@
     },
     {
       "rowId": "row_4_function",
-      "heightRatio": 0.25,
+      "heightRatio": 0.2,
       "alignment": "JUSTIFY",
       "keys": [
         {

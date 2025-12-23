@@ -5,11 +5,11 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.RectF
-import android.graphics.Typeface
 import android.util.AttributeSet
 import android.util.TypedValue
 import android.view.MotionEvent
 import android.view.View
+import xyz.xiao6.myboard.ui.theme.applyAppFont
 import kotlin.math.max
 import kotlin.math.abs
 
@@ -91,7 +91,7 @@ class KeyboardResizeOverlayView @JvmOverloads constructor(
             color = Color.WHITE
             textAlign = Paint.Align.CENTER
             textSize = sp(14f)
-            typeface = Typeface.DEFAULT_BOLD
+            applyAppFont(context, bold = true)
         }
 
     override fun onDraw(canvas: Canvas) {

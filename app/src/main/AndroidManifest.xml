@@ -3,10 +3,12 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
+        android:extractNativeLibs="true"
         android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
@@ -14,6 +16,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Myboard">
 
+        <profileable android:shell="true" />
         <activity
             android:name=".ui.SettingsActivity"
             android:exported="true">
@@ -26,6 +29,19 @@
         <activity
             android:name=".ui.SetupActivity"
             android:exported="false" />
+
+        <activity
+            android:name=".ui.BenchmarkInputActivity"
+            android:exported="true"
+            android:label="@string/benchmark_input_title" />
+
+        <activity
+            android:name=".ui.ImePickerActivity"
+            android:exported="false"
+            android:label="@string/ime_picker_title"
+            android:excludeFromRecents="true"
+            android:finishOnTaskLaunch="true"
+            android:taskAffinity="" />
 
         <service
             android:name=".ime.MyBoardImeService"
