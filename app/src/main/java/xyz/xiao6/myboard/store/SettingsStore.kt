@@ -225,6 +225,18 @@ class SettingsStore(context: Context) {
             writeBoolean(KEY_DEBUG_TOUCH_LOGGING_ENABLED, value)
         }
 
+    var emojiImageEnabled: Boolean
+        get() = readBoolean(KEY_EMOJI_IMAGE_ENABLED) ?: false
+        set(value) {
+            writeBoolean(KEY_EMOJI_IMAGE_ENABLED, value)
+        }
+
+    var keyboardThemeId: String?
+        get() = readString(KEY_KEYBOARD_THEME_ID)
+        set(value) {
+            writeString(KEY_KEYBOARD_THEME_ID, value?.trim())
+        }
+
     fun getPreferredLayoutId(localeTag: String): String? {
         val key = KEY_PREFERRED_LAYOUT_PREFIX + normalizeLocaleTag(localeTag)
         return readString(key)?.trim()?.takeIf { it.isNotBlank() }
@@ -250,6 +262,22 @@ class SettingsStore(context: Context) {
         val key = KEY_PREFERRED_LAYOUT_PREFIX + normalizeLocaleTag(localeTag)
         val value = layoutId?.trim()?.takeIf { it.isNotBlank() }
         writeString(key, value)
+    }
+
+    fun getCustomLayoutIds(localeTag: String): List<String> {
+        val key = KEY_CUSTOM_LAYOUTS_PREFIX + normalizeLocaleTag(localeTag)
+        val raw = readString(key)?.trim().orEmpty()
+        if (raw.isBlank()) return emptyList()
+        return raw.split(',')
+            .map { it.trim() }
+            .filter { it.isNotBlank() }
+            .distinct()
+    }
+
+    fun setCustomLayoutIds(localeTag: String, layoutIds: List<String>) {
+        val key = KEY_CUSTOM_LAYOUTS_PREFIX + normalizeLocaleTag(localeTag)
+        val normalized = layoutIds.map { it.trim() }.filter { it.isNotBlank() }.distinct()
+        writeString(key, normalized.joinToString(","))
     }
 
     fun getEnabledDictionaryIds(localeTag: String): List<String>? {
@@ -311,6 +339,7 @@ class SettingsStore(context: Context) {
         private const val KEY_ENABLED_LOCALES = "enabled_locale_tags"
         private const val KEY_ENABLED_LAYOUTS_PREFIX = "enabled_layout_ids:"
         private const val KEY_PREFERRED_LAYOUT_PREFIX = "preferred_layout_id:"
+        private const val KEY_CUSTOM_LAYOUTS_PREFIX = "custom_layout_ids:"
         private const val KEY_ENABLED_DICTIONARIES_PREFIX = "enabled_dictionary_ids:"
         private const val DICTIONARY_EMPTY_TOKEN = "__empty__"
         private const val KEY_CLICK_SOUND_VOLUME_PERCENT = "click_sound_volume_percent"
@@ -343,6 +372,8 @@ class SettingsStore(context: Context) {
         private const val KEY_BENCHMARK_DISABLE_KEY_DECORATIONS = "benchmark_disable_key_decorations"
         private const val KEY_BENCHMARK_DISABLE_KEY_LABELS = "benchmark_disable_key_labels"
         private const val KEY_DEBUG_TOUCH_LOGGING_ENABLED = "debug_touch_logging_enabled"
+        private const val KEY_EMOJI_IMAGE_ENABLED = "emoji_image_enabled"
+        private const val KEY_KEYBOARD_THEME_ID = "keyboard_theme_id"
     }
 
     private fun readString(key: String): String? = cache[key]

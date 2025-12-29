@@ -7,7 +7,7 @@
   ],
   "totalWidthRatio": 1.0,
   "totalWidthDpOffset": 0,
-  "totalHeightRatio": 0.3,
+  "totalHeightRatio": 0.25,
   "totalHeightDpOffset": 0,
   "defaults": {
     "horizontalGapDp": 4,
@@ -22,7 +22,7 @@
   "rows": [
     {
       "rowId": "row_1_alpha",
-      "heightRatio": 0.2,
+      "heightRatio": 0.25,
       "alignment": "JUSTIFY",
       "keys": [
         {
@@ -359,7 +359,7 @@
     },
     {
       "rowId": "row_2_alpha",
-      "heightRatio": 0.2,
+      "heightRatio": 0.25,
       "alignment": "CENTER",
       "keys": [
         {
@@ -689,7 +689,7 @@
     },
     {
       "rowId": "row_3_alpha",
-      "heightRatio": 0.2,
+      "heightRatio": 0.25,
       "alignment": "JUSTIFY",
       "keys": [
         {
@@ -989,7 +989,7 @@
     },
     {
       "rowId": "row_4_function",
-      "heightRatio": 0.2,
+      "heightRatio": 0.25,
       "alignment": "JUSTIFY",
       "keys": [
         {
@@ -1085,7 +1085,7 @@
         },
         {
           "keyId": "key_space",
-          "label": "space",
+          "label": "",
           "primaryCode": 32,
           "ui": {
             "styleId": "style_function_key_important",

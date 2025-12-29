@@ -17,6 +17,7 @@ import androidx.core.graphics.ColorUtils
 import androidx.core.view.isVisible
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import xyz.xiao6.myboard.R
 import xyz.xiao6.myboard.model.ThemeSpec
 import xyz.xiao6.myboard.ui.theme.applyAppFont
 import xyz.xiao6.myboard.ui.theme.ThemeRuntime
@@ -95,11 +96,11 @@ class ClipboardLayoutView @JvmOverloads constructor(
 
         btnBack = actionButton("Back")
         btnAction = actionButton("Clear all")
-        btnBack.setImageResource(android.R.drawable.ic_media_previous)
+        btnBack.setImageResource(R.drawable.ic_arrow_left_line)
         titleView = TextView(context).apply {
             layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
             gravity = Gravity.CENTER
-            text = "Clipboard"
+            text = ""
             setTextColor(textTint)
             setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 15f)
             applyAppFont(bold = true)
@@ -281,15 +282,15 @@ class ClipboardLayoutView @JvmOverloads constructor(
         if (selectionMode) {
             val count = selectedIds.size
             titleView.text = if (count > 0) "Selected $count" else "Select items"
-            btnAction.setImageResource(android.R.drawable.ic_menu_delete)
+            btnAction.setImageResource(R.drawable.delete_bin_2_line)
             btnAction.contentDescription = "Delete"
         } else if (clearAllConfirmPending) {
             titleView.text = "Tap again to clear"
-            btnAction.setImageResource(android.R.drawable.ic_menu_delete)
+            btnAction.setImageResource(R.drawable.delete_bin_2_line)
             btnAction.contentDescription = "Confirm clear all"
         } else {
             titleView.text = "Clipboard"
-            btnAction.setImageResource(android.R.drawable.ic_menu_close_clear_cancel)
+            btnAction.setImageResource(R.drawable.delete_bin_2_line)
             btnAction.contentDescription = "Clear all"
         }
         btnAction.imageTintList = iconTint

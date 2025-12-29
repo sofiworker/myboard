@@ -79,7 +79,7 @@ class SetupActivity : AppCompatActivity() {
 
         prefs = SettingsStore(this)
         subtypeManager = SubtypeManager(this).loadAll()
-        layoutManager = LayoutManager(this).loadAllFromAssets()
+        layoutManager = LayoutManager(this).loadAll()
 
         setContent {
             MyBoardTheme {

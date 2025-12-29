@@ -2,23 +2,28 @@ package xyz.xiao6.myboard.ui.emoji
 
 import android.content.Context
 import android.content.res.ColorStateList
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.text.Editable
 import android.text.TextWatcher
 import android.util.AttributeSet
+import android.util.LruCache
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
 import android.widget.EditText
 import android.widget.FrameLayout
+import android.widget.ImageView
 import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import androidx.viewpager2.widget.ViewPager2
+import android.view.GestureDetector
+import android.view.MotionEvent
 import xyz.xiao6.myboard.R
 import xyz.xiao6.myboard.model.ThemeSpec
 import xyz.xiao6.myboard.ui.theme.AppFont
@@ -28,7 +33,7 @@ import xyz.xiao6.myboard.ui.theme.ThemeRuntime
 /**
  * Emoji/Kaomoji panel:
  * - Top bar: back | (Emoji / 顔文字) | search
- * - Content: swipeable grid (ViewPager2)
+ * - Content: scrollable grid
  * - Bottom: per-menu categories
  */
 class EmojiLayoutView @JvmOverloads constructor(
@@ -39,19 +44,22 @@ class EmojiLayoutView @JvmOverloads constructor(
 
     var onBack: (() -> Unit)? = null
     var onCommit: ((String) -> Unit)? = null
+    var onDelete: (() -> Unit)? = null
 
     private val controller = EmojiController(AssetEmojiCatalogProvider(context))
     private var isUpdatingSearch: Boolean = false
 
     private val btnBack: ImageButton
     private val btnSearch: ImageButton
+    private val btnDelete: ImageButton
     private val tabEmoji: TextView
     private val tabKaomoji: TextView
     private val tabsContainer: LinearLayout
     private val searchField: EditText
 
-    private val pager: ViewPager2
-    private val pagerAdapter: PagesAdapter
+    private val gridView: RecyclerView
+    private val gridAdapter: GridAdapter
+    private val gridDecoration: GridDecoration
     private val categoryList: RecyclerView
     private val categoryAdapter: CategoryAdapter
 
@@ -60,6 +68,10 @@ class EmojiLayoutView @JvmOverloads constructor(
     private var pillColor: Int = Color.parseColor("#1F000000")
     private var gridDividerColor: Int = Color.parseColor("#22000000")
     private var gridDividerWidthPx: Float = dp(1f)
+    private var useEmojiImages: Boolean = false
+    private var lastCategoryIndex: Int = -1
+    private var lastMenu: EmojiMenu? = null
+    private var currentState: EmojiUiState? = null
 
     init {
         background = GradientDrawable().apply {
@@ -93,10 +105,25 @@ class EmojiLayoutView @JvmOverloads constructor(
             ImageButton(context).apply {
                 layoutParams = LinearLayout.LayoutParams(dp(40f).toInt(), dp(40f).toInt())
                 setBackgroundResource(android.R.color.transparent)
-                setImageResource(android.R.drawable.ic_menu_search)
+                setImageResource(R.drawable.search_line)
                 imageTintList = iconTint
                 contentDescription = "Search"
                 setOnClickListener { toggleSearch() }
+            }
+
+        btnDelete =
+            ImageButton(context).apply {
+                layoutParams =
+                    LayoutParams(dp(40f).toInt(), dp(40f).toInt()).apply {
+                        gravity = Gravity.END or Gravity.TOP
+                        topMargin = dp(154f).toInt()
+                        rightMargin = dp(6f).toInt()
+                    }
+                setBackgroundResource(android.R.color.transparent)
+                setImageResource(R.drawable.delete_bin_2_line)
+                imageTintList = iconTint
+                contentDescription = context.getString(R.string.emoji_delete)
+                setOnClickListener { onDelete?.invoke() }
             }
 
         tabsContainer =
@@ -166,17 +193,40 @@ class EmojiLayoutView @JvmOverloads constructor(
         topBar.addView(searchField)
         topBar.addView(btnSearch)
 
-        pager =
-            ViewPager2(context).apply {
+        gridView =
+            RecyclerView(context).apply {
                 layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f)
-                orientation = ViewPager2.ORIENTATION_HORIZONTAL
-                offscreenPageLimit = 1
+                overScrollMode = View.OVER_SCROLL_NEVER
             }
+        gridAdapter = GridAdapter(onClick = { item -> if (item.isNotBlank()) onCommit?.invoke(item) })
+        gridDecoration = GridDecoration(gridDividerColor, gridDividerWidthPx)
+        gridView.adapter = gridAdapter
+        gridView.addItemDecoration(gridDecoration)
 
-        pagerAdapter = PagesAdapter(
-            onClick = { item -> if (item.isNotBlank()) onCommit?.invoke(item) },
-        )
-        pager.adapter = pagerAdapter
+        val gestureDetector =
+            GestureDetector(
+                context,
+                object : GestureDetector.SimpleOnGestureListener() {
+                    override fun onFling(
+                        e1: MotionEvent?,
+                        e2: MotionEvent,
+                        velocityX: Float,
+                        velocityY: Float,
+                    ): Boolean {
+                        val state = currentState ?: return false
+                        if (state.isSearching) return false
+                        val dx = (e2.x - (e1?.x ?: e2.x))
+                        val dy = (e2.y - (e1?.y ?: e2.y))
+                        if (kotlin.math.abs(dx) < kotlin.math.abs(dy)) return false
+                        if (kotlin.math.abs(velocityX) < 800f) return false
+                        val max = state.categories.lastIndex.coerceAtLeast(0)
+                        val next = if (dx < 0) state.selectedCategoryIndex + 1 else state.selectedCategoryIndex - 1
+                        controller.selectCategory(next.coerceIn(0, max))
+                        return true
+                    }
+                },
+            )
+        gridView.setOnTouchListener { _, event -> gestureDetector.onTouchEvent(event) }
 
         categoryList =
             RecyclerView(context).apply {
@@ -189,9 +239,10 @@ class EmojiLayoutView @JvmOverloads constructor(
         categoryList.adapter = categoryAdapter
 
         root.addView(topBar)
-        root.addView(pager)
+        root.addView(gridView)
         root.addView(categoryList)
         addView(root)
+        addView(btnDelete)
 
         controller.attach { ui, keepPage -> renderUi(ui, keepPage) }
     }
@@ -207,13 +258,21 @@ class EmojiLayoutView @JvmOverloads constructor(
         (background as? GradientDrawable)?.setColor(surfaceColor)
         btnBack.imageTintList = iconTint
         btnSearch.imageTintList = iconTint
+        btnDelete.imageTintList = iconTint
         (tabsContainer.background as? GradientDrawable)?.setColor(pillColor)
         val divider = theme?.candidates?.divider
         gridDividerColor = runtime?.resolveColor(divider?.color, gridDividerColor) ?: gridDividerColor
         gridDividerWidthPx = dp(divider?.widthDp ?: 1f)
-        pagerAdapter.setDivider(gridDividerColor, gridDividerWidthPx)
+        gridDecoration.updateStyle(gridDividerColor, gridDividerWidthPx)
+        gridView.invalidateItemDecorations()
         categoryAdapter.setTheme(runtime, theme)
         controller.refresh(keepPage = true)
+    }
+
+    fun setUseEmojiImages(enabled: Boolean) {
+        if (useEmojiImages == enabled) return
+        useEmojiImages = enabled
+        gridAdapter.setUseImages(enabled)
     }
 
     private fun toggleSearch() {
@@ -221,6 +280,7 @@ class EmojiLayoutView @JvmOverloads constructor(
     }
 
     private fun renderUi(state: EmojiUiState, keepPage: Boolean) {
+        currentState = state
         val selectedTextColor = Color.WHITE
         val normalTextColor = Color.parseColor("#E5FFFFFF")
         when (state.menu) {
@@ -248,103 +308,78 @@ class EmojiLayoutView @JvmOverloads constructor(
         categoryAdapter.submit(state.categories.map { it.name })
         categoryAdapter.setSelected(state.selectedCategoryIndex)
 
-        val oldPage = pager.currentItem
-        pagerAdapter.submit(state.items, state.gridConfig)
-        pager.setCurrentItem(if (keepPage) oldPage.coerceIn(0, (pagerAdapter.itemCount - 1).coerceAtLeast(0)) else 0, false)
-    }
-
-    private class PagesAdapter(
-        private val onClick: (String) -> Unit,
-    ) : RecyclerView.Adapter<PageVH>() {
-        private var pages: List<List<String>> = emptyList()
-        private var cfg: EmojiGridConfig = EmojiGridConfig(columns = 8, rows = 4, textSizeSp = 24f, cellHeightDp = 60f)
-        private var dividerColor: Int = Color.parseColor("#22000000")
-        private var dividerWidthPx: Float = 1f
-
-        fun submit(items: List<String>, cfg: EmojiGridConfig) {
-            this.cfg = cfg
-            val pageSize = (cfg.columns * cfg.rows).coerceAtLeast(1)
-            pages = items.filter { it.isNotBlank() }.chunked(pageSize)
-            notifyDataSetChanged()
+        val shouldResetScroll =
+            !keepPage || state.menu != lastMenu || state.selectedCategoryIndex != lastCategoryIndex
+        gridAdapter.setConfig(state.gridConfig)
+        gridAdapter.setUseImages(useEmojiImages)
+        gridAdapter.submit(state.items)
+        gridView.layoutManager = GridLayoutManager(context, state.gridConfig.columns.coerceAtLeast(1))
+        if (shouldResetScroll) {
+            gridView.scrollToPosition(0)
         }
-
-        fun setDivider(color: Int, widthPx: Float) {
-            dividerColor = color
-            dividerWidthPx = widthPx
-            notifyDataSetChanged()
-        }
-
-        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): PageVH {
-            val rv = RecyclerView(parent.context).apply {
-                layoutParams = RecyclerView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
-                overScrollMode = View.OVER_SCROLL_NEVER
-            }
-            return PageVH(rv, onClick, dividerColor, dividerWidthPx)
-        }
-
-        override fun onBindViewHolder(holder: PageVH, position: Int) {
-            holder.bind(pages.getOrNull(position).orEmpty(), cfg)
-            holder.updateDivider(dividerColor, dividerWidthPx)
-        }
-
-        override fun getItemCount(): Int = pages.size
-    }
-
-    private class PageVH(
-        private val recyclerView: RecyclerView,
-        private val onClick: (String) -> Unit,
-        dividerColor: Int,
-        dividerWidthPx: Float,
-    ) : RecyclerView.ViewHolder(recyclerView) {
-        private val adapter = GridAdapter(onClick)
-        private val decoration = GridDecoration(dividerColor, dividerWidthPx)
-
-        init {
-            recyclerView.adapter = adapter
-            recyclerView.addItemDecoration(decoration)
-        }
-
-        fun bind(items: List<String>, cfg: EmojiGridConfig) {
-            recyclerView.layoutManager = GridLayoutManager(recyclerView.context, cfg.columns.coerceAtLeast(1))
-            adapter.setConfig(cfg)
-            adapter.submit(items)
-        }
-
-        fun updateDivider(color: Int, widthPx: Float) {
-            decoration.updateStyle(color, widthPx)
-            recyclerView.invalidateItemDecorations()
-        }
+        lastMenu = state.menu
+        lastCategoryIndex = state.selectedCategoryIndex
     }
 
     private class GridAdapter(
         private val onClick: (String) -> Unit,
     ) : RecyclerView.Adapter<CellVH>() {
-        private var items: List<String> = emptyList()
+        private var items: List<EmojiItem> = emptyList()
         private var cfg: EmojiGridConfig = EmojiGridConfig(columns = 8, rows = 4, textSizeSp = 24f, cellHeightDp = 60f)
+        private var useImages: Boolean = false
 
         fun setConfig(cfg: EmojiGridConfig) {
             this.cfg = cfg
         }
 
-        fun submit(items: List<String>) {
+        fun setUseImages(enabled: Boolean) {
+            if (useImages == enabled) return
+            useImages = enabled
+            notifyDataSetChanged()
+        }
+
+        fun submit(items: List<EmojiItem>) {
             this.items = items
             notifyDataSetChanged()
         }
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): CellVH {
-            val tv = TextView(parent.context).apply {
+            val root = FrameLayout(parent.context).apply {
                 layoutParams = RecyclerView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(parent.context, cfg.cellHeightDp).toInt())
+                setBackgroundColor(Color.WHITE)
+            }
+            val iv = ImageView(parent.context).apply {
+                layoutParams = FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
+                scaleType = ImageView.ScaleType.FIT_CENTER
+                visibility = View.GONE
+                contentDescription = null
+            }
+            val tv = TextView(parent.context).apply {
+                layoutParams = FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
                 gravity = Gravity.CENTER
                 textSize = cfg.textSizeSp
                 setTextColor(Color.BLACK)
-                setBackgroundColor(Color.WHITE)
                 typeface = AppFont.emoji(parent.context)
             }
-            return CellVH(tv, onClick)
+            root.addView(iv)
+            root.addView(tv)
+            return CellVH(root, iv, tv, onClick)
         }
 
         override fun onBindViewHolder(holder: CellVH, position: Int) {
-            holder.bind(items.getOrNull(position).orEmpty())
+            if (useImages) {
+                val rv = holder.itemView.parent as? RecyclerView
+                val width = rv?.measuredWidth ?: rv?.width ?: 0
+                if (width > 0) {
+                    val target = (width / cfg.columns.coerceAtLeast(1)).coerceAtLeast(1)
+                    val lp = holder.itemView.layoutParams
+                    if (lp != null && lp.height != target) {
+                        lp.height = target
+                        holder.itemView.layoutParams = lp
+                    }
+                }
+            }
+            holder.bind(items.getOrNull(position), useImages)
         }
 
         override fun getItemCount(): Int = items.size
@@ -353,12 +388,39 @@ class EmojiLayoutView @JvmOverloads constructor(
     }
 
     private class CellVH(
+        private val root: View,
+        private val iv: ImageView,
         private val tv: TextView,
         private val onClick: (String) -> Unit,
-    ) : RecyclerView.ViewHolder(tv) {
-        fun bind(text: String) {
-            tv.text = text
-            tv.setOnClickListener { if (text.isNotBlank()) onClick(text) }
+    ) : RecyclerView.ViewHolder(root) {
+        fun bind(item: EmojiItem?, useImages: Boolean) {
+            val emoji = item?.emoji.orEmpty()
+            val path = item?.image?.path.orEmpty()
+            val bitmap =
+                if (useImages && path.isNotBlank()) {
+                    EmojiImageCache.getBitmap(iv.context, path)
+                } else {
+                    null
+                }
+            if (bitmap != null) {
+                iv.setImageBitmap(bitmap)
+                iv.scaleType = ImageView.ScaleType.CENTER_INSIDE
+                val pad = dp(iv.context, 6f)
+                iv.setPadding(pad, pad, pad, pad)
+                iv.visibility = View.VISIBLE
+                tv.visibility = View.GONE
+            } else {
+                iv.setImageDrawable(null)
+                iv.setPadding(0, 0, 0, 0)
+                iv.visibility = View.GONE
+                tv.visibility = View.VISIBLE
+                tv.text = emoji
+            }
+            root.setOnClickListener { if (emoji.isNotBlank()) onClick(emoji) }
+        }
+
+        private fun dp(context: Context, value: Float): Int {
+            return (value * context.resources.displayMetrics.density).toInt()
         }
     }
 
@@ -486,6 +548,29 @@ class EmojiLayoutView @JvmOverloads constructor(
                 c.drawRect(right, top, right + w, bottom, paint)
                 c.drawRect(left, bottom, right, bottom + w, paint)
             }
+        }
+    }
+
+    private object EmojiImageCache {
+        private val cache: LruCache<String, Bitmap> = run {
+            val maxKb = (Runtime.getRuntime().maxMemory() / 1024L).toInt()
+            val sizeKb = (maxKb / 16).coerceAtLeast(1024)
+            object : LruCache<String, Bitmap>(sizeKb) {
+                override fun sizeOf(key: String, value: Bitmap): Int = value.byteCount / 1024
+            }
+        }
+
+        fun getBitmap(context: Context, assetPath: String): Bitmap? {
+            if (assetPath.isBlank()) return null
+            cache.get(assetPath)?.let { return it }
+            val bitmap =
+                runCatching {
+                    context.assets.open(assetPath).use { input ->
+                        BitmapFactory.decodeStream(input)
+                    }
+                }.getOrNull() ?: return null
+            cache.put(assetPath, bitmap)
+            return bitmap
         }
     }
 }

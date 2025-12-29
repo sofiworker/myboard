@@ -25,6 +25,7 @@ data class EmojiItem(
     val codes: List<String> = emptyList(),
     val name: EmojiName = EmojiName(),
     val keywords: EmojiKeywords = EmojiKeywords(),
+    val image: EmojiImage = EmojiImage(),
 )
 
 @Serializable
@@ -37,6 +38,12 @@ data class EmojiName(
 data class EmojiKeywords(
     val zh: List<String> = emptyList(),
     val en: List<String> = emptyList(),
+)
+
+@Serializable
+data class EmojiImage(
+    val provider: String = "",
+    val path: String = "",
 )
 
 @Serializable
@@ -72,7 +79,7 @@ data class EmojiUiState(
     val menu: EmojiMenu,
     val categories: List<EmojiCategory>,
     val selectedCategoryIndex: Int,
-    val items: List<String>,
+    val items: List<EmojiItem>,
     val isSearching: Boolean,
     val query: String,
     val gridConfig: EmojiGridConfig,

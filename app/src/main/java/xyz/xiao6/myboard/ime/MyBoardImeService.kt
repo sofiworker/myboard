@@ -85,6 +85,7 @@ class MyBoardImeService : InputMethodService() {
     private var lastCandidates: List<String> = emptyList()
     private var lastComposing: String = ""
     private var lastComposingOptions: List<String> = emptyList()
+    private var lastEmojiCommitText: String? = null
     private var candidatePageSelectedPinyinIndex: Int = 0
     private var candidatePagePreviewCandidates: List<String>? = null
 
@@ -97,10 +98,18 @@ class MyBoardImeService : InputMethodService() {
     private var subtypeManager: SubtypeManager? = null
     private var prefs: SettingsStore? = null
     private var themeSpec: ThemeSpec? = null
+    private var themeManager: ThemeManager? = null
+    private var currentThemeId: String? = null
     private val mainHandler = Handler(Looper.getMainLooper())
     private var pendingClearInputRunnable: Runnable? = null
     private var pendingClearInputSeq: Long = 0L
     private var toolbarView: ToolbarView? = null
+    private var keyboardView: KeyboardSurfaceView? = null
+    private var candidatePageView: CandidatePageView? = null
+    private var layoutPickerView: LayoutPickerView? = null
+    private var imePanelView: ImePanelView? = null
+    private var toolbarDividerView: View? = null
+    private var popupView: PopupView? = null
     private var prefsListener: SettingsStore.ChangeListener? = null
     private var toolbarSpec: ToolbarSpec? = null
     private var activeLocaleTag: String? = null
@@ -139,7 +148,8 @@ class MyBoardImeService : InputMethodService() {
         subtypeManager = SubtypeManager(this).loadAll()
         prefs = SettingsStore(this)
         suggestionManager = SuggestionManager(this, prefs!!)
-        themeSpec = ThemeManager(this).loadAllFromAssets().getDefaultTheme()
+        themeManager = ThemeManager(this).loadAll()
+        themeSpec = resolveThemeFromPrefs(forceReload = true)
         toolbarSpec = ToolbarManager(this).loadAllFromAssets().getDefaultToolbar()
         clipboardManager = getSystemService(ClipboardManager::class.java)
         registerClipboardListener()
@@ -165,20 +175,26 @@ class MyBoardImeService : InputMethodService() {
 
         val imeRoot = view.findViewById<View>(R.id.imeRoot)
         val imePanel = view.findViewById<ImePanelView>(R.id.imePanel)
+        imePanelView = imePanel
         val topBarSlot = view.findViewById<View>(R.id.topBarSlot)
         topBarSlotView = topBarSlot
         val toolbarDivider = view.findViewById<View>(R.id.toolbarDivider)
+        toolbarDividerView = toolbarDivider
         val toolbarView = view.findViewById<ToolbarView>(R.id.toolbarView)
         this.toolbarView = toolbarView
         val keyboardView = view.findViewById<KeyboardSurfaceView>(R.id.keyboardView)
+        this.keyboardView = keyboardView
         val candidatePageView = view.findViewById<CandidatePageView>(R.id.candidatePageView)
+        this.candidatePageView = candidatePageView
         val layoutPickerView = view.findViewById<LayoutPickerView>(R.id.layoutPickerView)
+        this.layoutPickerView = layoutPickerView
         val symbolsView = view.findViewById<SymbolsLayoutView>(R.id.symbolsView)
         val emojiView = view.findViewById<EmojiLayoutView>(R.id.emojiView)
         val clipboardView = view.findViewById<ClipboardLayoutView>(R.id.clipboardView)
         val resizeOverlay = view.findViewById<KeyboardResizeOverlayView>(R.id.resizeOverlay)
         val popupHost = view.findViewById<FrameLayout>(R.id.popupHost)
         val popupView = PopupView(popupHost).apply { applyTheme(themeSpec) }
+        this.popupView = popupView
         keyboardView.setPopupView(popupView)
         keyboardView.setTheme(themeSpec)
         toolbarView.applyTheme(themeSpec)
@@ -189,6 +205,7 @@ class MyBoardImeService : InputMethodService() {
         symbolsView.applyTheme(themeSpec)
         this.symbolsView = symbolsView
         emojiView.applyTheme(themeSpec)
+        prefs?.let { emojiView.setUseEmojiImages(it.emojiImageEnabled) }
         this.emojiView = emojiView
         clipboardView.applyTheme(themeSpec)
         this.clipboardView = clipboardView
@@ -219,7 +236,7 @@ class MyBoardImeService : InputMethodService() {
             }
         this.candidateActionPopup = candidateActionPopup
 
-        val layoutManager = LayoutManager(this).loadAllFromAssets()
+        val layoutManager = LayoutManager(this).loadAll()
         val dictionaryManager = DictionaryManager(this).loadAll()
 
         fun hideOverlays() {
@@ -400,6 +417,11 @@ class MyBoardImeService : InputMethodService() {
         emojiView.onCommit = { text ->
             playKeyFeedback(keyboardView)
             commitTextToEditor(text)
+            lastEmojiCommitText = text
+        }
+        emojiView.onDelete = {
+            playKeyFeedback(keyboardView)
+            deleteLastEmojiCommit()
         }
 
         clipboardView.onBack = { hideClipboard() }
@@ -853,24 +875,24 @@ class MyBoardImeService : InputMethodService() {
             .sortedWith(compareByDescending<xyz.xiao6.myboard.model.ToolbarItemSpec> { it.priority }.thenBy { it.itemId })
         if (items.isEmpty()) {
             return listOf(
-                ToolbarView.Item("layout", R.drawable.ic_toolbar_layout, "Layout"),
-                ToolbarView.Item("voice", R.drawable.ic_toolbar_voice, "Voice"),
-                ToolbarView.Item("emoji", R.drawable.ic_toolbar_emoji, "Emoji"),
-                ToolbarView.Item("clipboard", R.drawable.ic_toolbar_clipboard, "Clipboard"),
-                ToolbarView.Item("kb_resize", android.R.drawable.ic_menu_crop, "Resize"),
-                ToolbarView.Item("settings", R.drawable.ic_toolbar_settings, "Settings"),
+                ToolbarView.Item("layout", R.drawable.layout_line, "Layout"),
+                ToolbarView.Item("voice", R.drawable.mic_line, "Voice"),
+                ToolbarView.Item("emoji", R.drawable.emotion_line, "Emoji"),
+                ToolbarView.Item("clipboard", R.drawable.clipboard_line, "Clipboard"),
+                ToolbarView.Item("kb_resize", R.drawable.custom_size, "Resize"),
+                ToolbarView.Item("settings", R.drawable.settings_line, "Settings"),
             )
         }
 
         fun iconResId(icon: String): Int {
             return when (icon.lowercase()) {
-                "layout" -> R.drawable.ic_toolbar_layout
-                "voice" -> R.drawable.ic_toolbar_voice
-                "emoji" -> R.drawable.ic_toolbar_emoji
-                "clipboard" -> R.drawable.ic_toolbar_clipboard
-                "kb_resize" -> android.R.drawable.ic_menu_crop
-                "settings" -> R.drawable.ic_toolbar_settings
-                else -> R.drawable.ic_toolbar_settings
+                "layout" -> R.drawable.layout_line
+                "voice" -> R.drawable.mic_line
+                "emoji" -> R.drawable.emotion_line
+                "clipboard" -> R.drawable.clipboard_line
+                "kb_resize" -> R.drawable.custom_size
+                "settings" -> R.drawable.settings_line
+                else -> R.drawable.settings_line
             }
         }
 
@@ -921,7 +943,7 @@ class MyBoardImeService : InputMethodService() {
         val profiles = enabledLocaleProfiles(sm)
         if (profiles.isEmpty()) return emptyList()
 
-        layoutManager.loadAllFromAssets()
+        layoutManager.loadAll()
         val currentLocale = activeLocaleTag ?: prefs?.userLocaleTag
         val currentLayoutId = controller?.currentLayout?.value?.layoutId
 
@@ -1020,7 +1042,7 @@ class MyBoardImeService : InputMethodService() {
                 enabledLayoutIdsFiltered.isNotEmpty() -> enabledLayoutIdsFiltered.firstOrNull()
                 !profile?.defaultLayoutId.isNullOrBlank() -> profile?.defaultLayoutId
                 !profile?.layoutIds.isNullOrEmpty() -> profile?.layoutIds?.firstOrNull()
-                else -> runCatching { LayoutManager(this).loadAllFromAssets().getDefaultLayout(locale).layoutId }.getOrNull()
+                else -> runCatching { LayoutManager(this).loadAll().getDefaultLayout(locale).layoutId }.getOrNull()
             } ?: "qwerty"
 
         runtimeDicts?.setLocale(locale)
@@ -1078,6 +1100,17 @@ class MyBoardImeService : InputMethodService() {
         }
         ic.commitText(text, 1)
         recordCommittedText(text)
+    }
+
+    private fun deleteLastEmojiCommit() {
+        val ic = currentInputConnection ?: return
+        val last = lastEmojiCommitText.orEmpty()
+        if (last.isNotBlank()) {
+            ic.deleteSurroundingText(last.length, 0)
+            lastEmojiCommitText = null
+        } else {
+            ic.deleteSurroundingText(1, 0)
+        }
     }
 
     private fun recordCommittedText(text: String) {
@@ -1651,8 +1684,45 @@ class MyBoardImeService : InputMethodService() {
             updateToolbarFromPrefs()
             updateRuntimeDictionariesFromPrefs()
             updateBenchmarkFlags()
+            updateEmojiViewFromPrefs()
+            updateThemeFromPrefs(forceReload = true)
         }
         prefsListener = listener
+    }
+
+    private fun resolveThemeFromPrefs(forceReload: Boolean): ThemeSpec? {
+        val manager = themeManager ?: ThemeManager(this).also { themeManager = it }
+        if (forceReload) manager.reload() else manager.loadAll()
+        val themeId = prefs?.keyboardThemeId?.trim().orEmpty().ifBlank { null }
+        currentThemeId = themeId
+        return themeId?.let { manager.getTheme(it) } ?: manager.getDefaultTheme()
+    }
+
+    private fun updateThemeFromPrefs(forceReload: Boolean) {
+        val theme = resolveThemeFromPrefs(forceReload) ?: return
+        applyTheme(theme)
+    }
+
+    private fun applyTheme(theme: ThemeSpec?) {
+        themeSpec = theme
+        popupView?.applyTheme(theme)
+        keyboardView?.setTheme(theme)
+        toolbarView?.applyTheme(theme)
+        imePanelView?.let { applyImePanelTheme(it, theme) }
+        toolbarDividerView?.let { applyToolbarDividerTheme(it, theme) }
+        candidatePageView?.applyTheme(theme)
+        layoutPickerView?.applyTheme(theme)
+        symbolsView?.applyTheme(theme)
+        emojiView?.applyTheme(theme)
+        clipboardView?.applyTheme(theme)
+        composingPopup?.applyTheme(theme)
+        wordPreviewPopup?.applyTheme(theme)
+    }
+
+    private fun updateEmojiViewFromPrefs() {
+        val p = prefs ?: return
+        val emoji = emojiView ?: return
+        emoji.setUseEmojiImages(p.emojiImageEnabled)
     }
 
     private fun updateRuntimeDictionariesFromPrefs() {

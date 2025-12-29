@@ -1,6 +1,7 @@
 package xyz.xiao6.myboard.manager
 
 import android.content.Context
+import java.io.File
 import xyz.xiao6.myboard.model.KeyboardLayout
 import xyz.xiao6.myboard.model.LayoutParser
 import xyz.xiao6.myboard.model.validate
@@ -20,10 +21,23 @@ import java.util.zip.ZipInputStream
 class LayoutManager(
     private val context: Context,
     private val assetsDir: String = "layouts",
+    private val userDir: File = File(context.filesDir, DEFAULT_USER_LAYOUT_DIR),
 ) {
     private val layoutsById = LinkedHashMap<String, KeyboardLayout>()
     private val layoutIdsByLocaleTag = LinkedHashMap<String, LinkedHashSet<String>>()
     private var loaded = false
+
+    /**
+     * 一次性加载 assets/layouts 与用户自定义布局。
+     * Loads built-in layouts and user-defined layouts.
+     */
+    fun loadAll(): LayoutManager {
+        if (loaded) return this
+        loaded = true
+        loadBuiltInFromAssets()
+        loadUserDefinedFromFiles()
+        return this
+    }
 
     /**
      * 一次性加载 assets/layouts 目录下所有 .json 作为候选布局。
@@ -32,28 +46,15 @@ class LayoutManager(
     fun loadAllFromAssets(): LayoutManager {
         if (loaded) return this
         loaded = true
-
-        val files = context.assets.list(assetsDir).orEmpty()
-            .filter {
-                it.endsWith(".json", ignoreCase = true) ||
-                    it.endsWith(".json.jar", ignoreCase = true)
-            }
-            .sorted()
-
-        for (file in files) {
-            val text = readAssetText("$assetsDir/$file")
-            val layout = LayoutParser.parseOrNull(text) ?: continue
-
-            val errors = layout.validate()
-            require(errors.isEmpty()) {
-                "Invalid layout '$file' (layoutId=${layout.layoutId}): ${errors.joinToString("; ")}"
-            }
-
-            layoutsById[layout.layoutId] = layout
-            indexLocales(layout)
-        }
-
+        loadBuiltInFromAssets()
         return this
+    }
+
+    fun reloadAll(): LayoutManager {
+        loaded = false
+        layoutsById.clear()
+        layoutIdsByLocaleTag.clear()
+        return loadAll()
     }
 
     /**
@@ -65,6 +66,13 @@ class LayoutManager(
         return layoutsById[layoutId]
             ?: error("Layout not found: $layoutId (available=${layoutsById.keys})")
     }
+
+    fun listLayoutIds(): List<String> {
+        ensureLoaded()
+        return layoutsById.keys.toList()
+    }
+
+    fun getUserLayoutDir(): File = userDir.apply { mkdirs() }
 
     /**
      * 查找某个 Locale 支持的所有布局（一个 locale 可以对应多个 layout）。
@@ -97,7 +105,7 @@ class LayoutManager(
     }
 
     private fun ensureLoaded() {
-        check(loaded) { "LayoutManager not loaded; call loadAllFromAssets() first." }
+        check(loaded) { "LayoutManager not loaded; call loadAll() first." }
     }
 
     private fun candidateTagsFor(locale: Locale): List<String> {
@@ -131,5 +139,48 @@ class LayoutManager(
             }
         }
         return context.assets.open(path).bufferedReader().use { it.readText() }
+    }
+
+    private fun loadBuiltInFromAssets() {
+        val files = context.assets.list(assetsDir).orEmpty()
+            .filter {
+                it.endsWith(".json", ignoreCase = true) ||
+                    it.endsWith(".json.jar", ignoreCase = true)
+            }
+            .sorted()
+
+        for (file in files) {
+            val text = readAssetText("$assetsDir/$file")
+            val layout = LayoutParser.parseOrNull(text) ?: continue
+
+            val errors = layout.validate()
+            require(errors.isEmpty()) {
+                "Invalid layout '$file' (layoutId=${layout.layoutId}): ${errors.joinToString("; ")}"
+            }
+
+            layoutsById[layout.layoutId] = layout
+            indexLocales(layout)
+        }
+    }
+
+    private fun loadUserDefinedFromFiles() {
+        userDir.mkdirs()
+        val files = userDir.listFiles()?.filter { it.isFile && it.name.endsWith(".json", ignoreCase = true) }.orEmpty()
+            .sortedBy { it.name }
+        for (file in files) {
+            val layout =
+                runCatching {
+                    val text = file.readText(Charsets.UTF_8)
+                    LayoutParser.parse(text)
+                }.getOrNull() ?: continue
+            val errors = layout.validate()
+            if (errors.isNotEmpty()) continue
+            layoutsById[layout.layoutId] = layout
+            indexLocales(layout)
+        }
+    }
+
+    companion object {
+        const val DEFAULT_USER_LAYOUT_DIR = "layouts"
     }
 }

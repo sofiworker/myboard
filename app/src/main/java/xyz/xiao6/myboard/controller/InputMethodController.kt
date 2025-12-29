@@ -148,7 +148,7 @@ class InputMethodController(
             onShowSymbols?.invoke()
             return
         }
-        layoutManager.loadAllFromAssets()
+        layoutManager.loadAll()
         val layout = layoutManager.getLayout(layoutId)
         applyNewLayout(layout, pushToHistory = pushToHistory)
     }

@@ -76,16 +76,17 @@ class EmojiController(
                     val current = catalog.emojiCategories.getOrNull(selectedIndex)
                     val raw = current?.items.orEmpty()
                     if (q.isBlank()) {
-                        raw.map { it.emoji }
+                        raw
                     } else {
                         val locale = java.util.Locale.getDefault().language.lowercase(java.util.Locale.ROOT)
-                        raw.filter { matchesQuery(it, q, locale) }.map { it.emoji }
+                        raw.filter { matchesQuery(it, q, locale) }
                     }
                 }
                 EmojiMenu.KAOMOJI -> {
                     val current = catalog.kaomojiCategories.getOrNull(selectedIndex)
                     val raw = current?.items.orEmpty()
-                    if (q.isBlank()) raw else raw.filter { it.contains(q, ignoreCase = true) }
+                    val filtered = if (q.isBlank()) raw else raw.filter { it.contains(q, ignoreCase = true) }
+                    filtered.map { EmojiItem(emoji = it) }
                 }
             }
         val gridConfig =

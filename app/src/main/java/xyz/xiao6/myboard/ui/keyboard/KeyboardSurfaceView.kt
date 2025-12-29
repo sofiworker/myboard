@@ -3,13 +3,21 @@ package xyz.xiao6.myboard.ui.keyboard
 import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.BitmapShader
+import android.graphics.Matrix
 import android.graphics.Paint
+import android.graphics.PorterDuff
+import android.graphics.PorterDuffColorFilter
 import android.graphics.RectF
+import android.graphics.Shader
 import android.util.AttributeSet
 import android.util.TypedValue
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewConfiguration
+import android.util.LruCache
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import xyz.xiao6.myboard.R
@@ -21,6 +29,8 @@ import xyz.xiao6.myboard.model.Key
 import xyz.xiao6.myboard.model.GestureType
 import xyz.xiao6.myboard.model.KeyIds
 import xyz.xiao6.myboard.model.KeyStyle
+import xyz.xiao6.myboard.model.BackgroundStyle
+import xyz.xiao6.myboard.model.ImageSpec
 import xyz.xiao6.myboard.model.ThemeSpec
 import xyz.xiao6.myboard.ui.popup.PopupView
 import xyz.xiao6.myboard.ui.theme.applyAppFont
@@ -30,6 +40,7 @@ import xyz.xiao6.myboard.util.DebugInputLatency
 import xyz.xiao6.myboard.util.MLog
 import kotlin.math.abs
 import kotlin.math.hypot
+import java.io.File
 
 /**
  * 键盘核心区骨架：Canvas 自绘 + onLayout 中计算按键几何。
@@ -54,6 +65,8 @@ class KeyboardSurfaceView @JvmOverloads constructor(
     private var themeSpec: ThemeSpec? = null
     private var theme: ThemeRuntime? = null
     private var layoutBackgroundColor: Int = Color.parseColor("#F2F2F7")
+    private var layoutBackgroundStyle: BackgroundStyle? = null
+    private val bitmapCache = LruCache<String, Bitmap>(12)
 
     var onTrigger: ((keyId: String, trigger: GestureType) -> Unit)? = null
     var onAction: ((KeyAction) -> Unit)? = null
@@ -120,6 +133,12 @@ class KeyboardSurfaceView @JvmOverloads constructor(
         textSize = sp(10f)
         applyAppFont(context)
     }
+    private val layoutImagePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.FILL
+    }
+    private val keyImagePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.FILL
+    }
 
     fun resolveKeyLabelForInput(keyId: String): String? {
         val key = keys.firstOrNull { it.keyId == keyId } ?: return null
@@ -129,6 +148,7 @@ class KeyboardSurfaceView @JvmOverloads constructor(
     fun setTheme(theme: ThemeSpec?) {
         themeSpec = theme
         this.theme = theme?.let { ThemeRuntime(it) }
+        layoutBackgroundStyle = theme?.layout?.background
         layoutBackgroundColor =
             this.theme?.resolveColor(theme?.layout?.background?.color ?: theme?.colors?.get("background"), layoutBackgroundColor)
                 ?: layoutBackgroundColor
@@ -426,18 +446,35 @@ class KeyboardSurfaceView @JvmOverloads constructor(
         if (keyRects.isEmpty()) return
 
         canvas.drawColor(layoutBackgroundColor)
+        drawLayoutBackgroundImage(canvas)
 
         for (key in keys) {
             if (layoutState.hiddenKeyIds.contains(key.keyId)) continue
             val rect = keyRects[key.keyId] ?: continue
             val pressed = layoutState.highlightedKeyIds.contains(key.keyId)
 
-            val style = resolveKeyStyle(key.ui.styleId)
+            val style = resolveKeyStyle(key)
             val cornerRadius = dp((style?.cornerRadiusDp ?: themeSpec?.global?.paint?.cornerRadiusDp ?: 10f))
 
             applyKeyPaints(style, pressed)
 
             canvas.drawRoundRect(rect, cornerRadius, cornerRadius, keyFillPaint)
+            val bgStyle = resolveBackgroundStyle(style, pressed)
+            if (bgStyle?.image != null) {
+                val bitmap = resolveBitmap(bgStyle.image)
+                if (bitmap != null) {
+                    applyImagePaint(
+                        paint = keyImagePaint,
+                        bitmap = bitmap,
+                        rect = rect,
+                        tile = bgStyle.tile,
+                        image = bgStyle.image,
+                    )
+                    canvas.drawRoundRect(rect, cornerRadius, cornerRadius, keyImagePaint)
+                    keyImagePaint.shader = null
+                    keyImagePaint.colorFilter = null
+                }
+            }
             if (keyStrokePaint.color != Color.TRANSPARENT && keyStrokePaint.strokeWidth > 0f) {
                 canvas.drawRoundRect(rect, cornerRadius, cornerRadius, keyStrokePaint)
             }
@@ -460,7 +497,12 @@ class KeyboardSurfaceView @JvmOverloads constructor(
         }
     }
 
-    private fun resolveKeyStyle(styleId: String): KeyStyle? = themeSpec?.keyStyles?.get(styleId)
+    private fun resolveKeyStyle(key: Key): KeyStyle? {
+        val base = themeSpec?.keyStyles?.get(key.ui.styleId)
+        val override = themeSpec?.keyOverrides?.get(key.keyId)
+        if (override == null) return base
+        return mergeKeyStyle(base, override)
+    }
 
     private fun applyKeyPaints(style: KeyStyle?, pressed: Boolean) {
         val theme = theme
@@ -520,6 +562,105 @@ class KeyboardSurfaceView @JvmOverloads constructor(
         hintPaint.color = hintColor
         hintPaint.textSize = sp(style?.hint?.sizeSp ?: 10f)
         hintPaint.applyAppFont(context, bold = style?.hint?.bold == true)
+    }
+
+    private fun resolveBackgroundStyle(style: KeyStyle?, pressed: Boolean): BackgroundStyle? {
+        return if (pressed) {
+            style?.backgroundPressed ?: style?.background
+        } else {
+            style?.background
+        }
+    }
+
+    private fun drawLayoutBackgroundImage(canvas: Canvas) {
+        val style = layoutBackgroundStyle ?: return
+        val image = style.image ?: return
+        val bitmap = resolveBitmap(image) ?: return
+        val rect = RectF(0f, 0f, width.toFloat(), height.toFloat())
+        applyImagePaint(
+            paint = layoutImagePaint,
+            bitmap = bitmap,
+            rect = rect,
+            tile = style.tile,
+            image = image,
+        )
+        canvas.drawRect(rect, layoutImagePaint)
+        layoutImagePaint.shader = null
+        layoutImagePaint.colorFilter = null
+    }
+
+    private fun resolveBitmap(image: ImageSpec): Bitmap? {
+        val path = image.assetPath.trim()
+        if (path.isBlank()) return null
+        bitmapCache.get(path)?.let { return it }
+        val bitmap =
+            runCatching {
+                if (path.startsWith("file:", ignoreCase = true)) {
+                    val filePath = path.removePrefix("file:").trim()
+                    BitmapFactory.decodeFile(filePath)
+                } else if (File(path).isAbsolute) {
+                    BitmapFactory.decodeFile(path)
+                } else {
+                    context.assets.open(path).use { input ->
+                        BitmapFactory.decodeStream(input)
+                    }
+                }
+            }.getOrNull()
+        if (bitmap != null) {
+            bitmapCache.put(path, bitmap)
+        }
+        return bitmap
+    }
+
+    private fun applyImagePaint(
+        paint: Paint,
+        bitmap: Bitmap,
+        rect: RectF,
+        tile: Boolean,
+        image: ImageSpec,
+    ) {
+        val shader =
+            BitmapShader(
+                bitmap,
+                if (tile) Shader.TileMode.REPEAT else Shader.TileMode.CLAMP,
+                if (tile) Shader.TileMode.REPEAT else Shader.TileMode.CLAMP,
+            )
+        if (!tile) {
+            val matrix = Matrix()
+            val scaleX = rect.width() / bitmap.width.toFloat()
+            val scaleY = rect.height() / bitmap.height.toFloat()
+            matrix.setScale(scaleX, scaleY)
+            shader.setLocalMatrix(matrix)
+        }
+        paint.shader = shader
+        val tint = theme?.resolveColor(image.tint, Color.TRANSPARENT)
+        paint.colorFilter =
+            if (tint != null && tint != Color.TRANSPARENT) {
+                PorterDuffColorFilter(tint, PorterDuff.Mode.SRC_ATOP)
+            } else {
+                null
+            }
+        paint.alpha = ((image.alpha ?: 1f).coerceIn(0f, 1f) * 255).toInt()
+    }
+
+    private fun mergeKeyStyle(base: KeyStyle?, override: KeyStyle): KeyStyle {
+        if (base == null) return override
+        return base.copy(
+            background = override.background ?: base.background,
+            backgroundPressed = override.backgroundPressed ?: base.backgroundPressed,
+            backgroundDisabled = override.backgroundDisabled ?: base.backgroundDisabled,
+            stroke = override.stroke ?: base.stroke,
+            strokePressed = override.strokePressed ?: base.strokePressed,
+            shadow = override.shadow ?: base.shadow,
+            padding = override.padding ?: base.padding,
+            cornerRadiusDp = override.cornerRadiusDp ?: base.cornerRadiusDp,
+            icon = override.icon ?: base.icon,
+            label = override.label ?: base.label,
+            hint = override.hint ?: base.hint,
+            keyBackground = override.keyBackground ?: base.keyBackground,
+            textColor = override.textColor ?: base.textColor,
+            textSizeSp = override.textSizeSp ?: base.textSizeSp,
+        )
     }
 
     private fun resolveLabel(key: Key): String {

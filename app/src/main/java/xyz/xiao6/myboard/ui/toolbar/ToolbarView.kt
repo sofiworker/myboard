@@ -15,6 +15,7 @@ import androidx.core.view.isVisible
 import androidx.annotation.DrawableRes
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import xyz.xiao6.myboard.R
 import xyz.xiao6.myboard.model.ThemeSpec
 import xyz.xiao6.myboard.ui.candidate.CandidateView
 import xyz.xiao6.myboard.ui.theme.ThemeRuntime
@@ -104,7 +105,7 @@ class ToolbarView @JvmOverloads constructor(
         overflowButton = ImageButton(context).apply {
             layoutParams = LayoutParams(overflowButtonWidthPx, LayoutParams.MATCH_PARENT, Gravity.END or Gravity.CENTER_VERTICAL)
             setBackgroundResource(android.R.color.transparent)
-            setImageResource(android.R.drawable.arrow_down_float)
+            setImageResource(R.drawable.arrow_down_s_fill)
             contentDescription = "More"
             imageTintList = iconTint
             scaleType = ImageView.ScaleType.CENTER
