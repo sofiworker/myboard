@@ -363,7 +363,7 @@ class SymbolsLayoutView @JvmOverloads constructor(
 
             val surface = runtime?.resolveColor(theme?.toolbar?.surface?.background?.color, Color.parseColor("#EE1F1F1F"))
                 ?: Color.parseColor("#EE1F1F1F")
-            val selectedBg = runtime?.resolveColor("colors.accent", Color.parseColor("#FF3B30")) ?: Color.parseColor("#FF3B30")
+            val selectedBg = runtime?.resolveColor("colors.accent", Color.parseColor("#007AFF")) ?: Color.parseColor("#007AFF")
             val fg = runtime?.resolveColor(theme?.toolbar?.itemText?.color, Color.WHITE) ?: Color.WHITE
 
             bg.shape = GradientDrawable.RECTANGLE

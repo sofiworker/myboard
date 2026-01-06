@@ -13,6 +13,8 @@ local.properties
 /test.sh
 __pycache__
 
+.claude
+
 # Generated dictionary binaries (unreleased workflow writes into assets at build time)
 app/src/main/assets/dictionary/*.mybdict
 

@@ -106,7 +106,7 @@ class SuggestionManager(
     private fun extractTokens(text: String, useNgram: Boolean): List<String> {
         val trimmed = text.trim()
         if (trimmed.isBlank()) return emptyList()
-        val regex = Regex("[\\p{IsHan}]+|[\\p{L}\\p{N}]+")
+        val regex = Regex("[\\u4e00-\\u9fff]+|[\\p{L}\\p{N}]+")
         val base = regex.findAll(trimmed).map { it.value }.toList()
         if (!useNgram) return base
         val out = ArrayList<String>(base.size * 2)

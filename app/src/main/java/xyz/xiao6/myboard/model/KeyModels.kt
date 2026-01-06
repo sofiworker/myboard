@@ -145,11 +145,19 @@ enum class CommandType {
     TAB,
     MOVE_CURSOR_LEFT,
     MOVE_CURSOR_RIGHT,
+    MOVE_CURSOR_UP,
+    MOVE_CURSOR_DOWN,
     MOVE_CURSOR_START,
     MOVE_CURSOR_END,
     SELECT_CANDIDATE,
     NEXT_PAGE,
     PREV_PAGE,
+    CUT,
+    COPY,
+    PASTE,
+    SELECT_ALL,
+    UNDO,
+    REDO,
 }
 
 @Serializable

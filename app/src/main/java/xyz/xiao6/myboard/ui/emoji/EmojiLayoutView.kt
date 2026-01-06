@@ -30,6 +30,10 @@ import xyz.xiao6.myboard.ui.theme.AppFont
 import xyz.xiao6.myboard.ui.theme.applyAppFont
 import xyz.xiao6.myboard.ui.theme.ThemeRuntime
 
+private fun Int.withAlpha(alpha: Int): Int {
+    return (this and 0x00FFFFFF) or (alpha shl 24)
+}
+
 /**
  * Emoji/Kaomoji panel:
  * - Top bar: back | (Emoji / 顔文字) | search
@@ -66,6 +70,12 @@ class EmojiLayoutView @JvmOverloads constructor(
     private var iconTint: ColorStateList = ColorStateList.valueOf(Color.WHITE)
     private var surfaceColor: Int = Color.parseColor("#F2F2F7")
     private var pillColor: Int = Color.parseColor("#1F000000")
+    private var toolbarTextColor: Int = Color.WHITE
+    private var toolbarTextDimColor: Int = Color.parseColor("#E5FFFFFF")
+    private var searchBoxBackgroundColor: Int = Color.WHITE
+    private var searchBoxBorderColor: Int = Color.parseColor("#22000000")
+    private var searchBoxTextColor: Int = Color.BLACK
+    private var searchBoxHintColor: Int = Color.parseColor("#80000000")
     private var gridDividerColor: Int = Color.parseColor("#22000000")
     private var gridDividerWidthPx: Float = dp(1f)
     private var useEmojiImages: Boolean = false
@@ -172,8 +182,8 @@ class EmojiLayoutView @JvmOverloads constructor(
                     GradientDrawable().apply {
                         shape = GradientDrawable.RECTANGLE
                         cornerRadius = dp(18f)
-                        setColor(Color.WHITE)
-                        setStroke(dp(1f).toInt(), Color.parseColor("#22000000"))
+                        setColor(searchBoxBackgroundColor)
+                        setStroke(dp(1f).toInt(), searchBoxBorderColor)
                     }
                 visibility = View.GONE
                 addTextChangedListener(
@@ -254,12 +264,26 @@ class EmojiLayoutView @JvmOverloads constructor(
         pillColor = runtime?.resolveColor(theme?.toolbar?.surface?.background?.color, Color.parseColor("#1F000000"))
             ?: Color.parseColor("#1F000000")
         iconTint = ColorStateList.valueOf(runtime?.resolveColor(theme?.toolbar?.itemIcon?.tint, Color.WHITE) ?: Color.WHITE)
+        toolbarTextColor = runtime?.resolveColor(theme?.toolbar?.itemText?.color, Color.WHITE) ?: Color.WHITE
+        toolbarTextDimColor = toolbarTextColor.withAlpha(230)
+        searchBoxBackgroundColor = runtime?.resolveColor(theme?.toolbar?.surface?.background?.color, Color.WHITE)
+            ?: Color.WHITE
+        searchBoxBorderColor = runtime?.resolveColor(theme?.candidates?.divider?.color, Color.parseColor("#22000000"))
+            ?: Color.parseColor("#22000000")
+        searchBoxTextColor = runtime?.resolveColor("colors.key_text", Color.BLACK) ?: Color.BLACK
+        searchBoxHintColor = searchBoxTextColor.withAlpha(128)
 
         (background as? GradientDrawable)?.setColor(surfaceColor)
         btnBack.imageTintList = iconTint
         btnSearch.imageTintList = iconTint
         btnDelete.imageTintList = iconTint
         (tabsContainer.background as? GradientDrawable)?.setColor(pillColor)
+        (searchField.background as? GradientDrawable)?.apply {
+            setColor(searchBoxBackgroundColor)
+            setStroke(dp(1f).toInt(), searchBoxBorderColor)
+        }
+        searchField.setTextColor(searchBoxTextColor)
+        searchField.setHintTextColor(searchBoxHintColor)
         val divider = theme?.candidates?.divider
         gridDividerColor = runtime?.resolveColor(divider?.color, gridDividerColor) ?: gridDividerColor
         gridDividerWidthPx = dp(divider?.widthDp ?: 1f)
@@ -281,16 +305,14 @@ class EmojiLayoutView @JvmOverloads constructor(
 
     private fun renderUi(state: EmojiUiState, keepPage: Boolean) {
         currentState = state
-        val selectedTextColor = Color.WHITE
-        val normalTextColor = Color.parseColor("#E5FFFFFF")
         when (state.menu) {
             EmojiMenu.EMOJI -> {
-                tabEmoji.setTextColor(selectedTextColor)
-                tabKaomoji.setTextColor(normalTextColor)
+                tabEmoji.setTextColor(toolbarTextColor)
+                tabKaomoji.setTextColor(toolbarTextDimColor)
             }
             EmojiMenu.KAOMOJI -> {
-                tabEmoji.setTextColor(normalTextColor)
-                tabKaomoji.setTextColor(selectedTextColor)
+                tabEmoji.setTextColor(toolbarTextDimColor)
+                tabKaomoji.setTextColor(toolbarTextColor)
             }
         }
 

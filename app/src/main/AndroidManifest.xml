@@ -31,6 +31,12 @@
             android:exported="false" />
 
         <activity
+            android:name=".ui.ModernLayoutEditorActivity"
+            android:exported="false"
+            android:label="Layout Editor"
+            android:parentActivityName=".ui.SettingsActivity" />
+
+        <activity
             android:name=".ui.BenchmarkInputActivity"
             android:exported="true"
             android:label="@string/benchmark_input_title" />

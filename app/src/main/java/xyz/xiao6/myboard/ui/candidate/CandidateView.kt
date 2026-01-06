@@ -2,6 +2,7 @@ package xyz.xiao6.myboard.ui.candidate
 
 import android.content.Context
 import android.graphics.Color
+import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.util.AttributeSet
 import android.view.Gravity
@@ -14,6 +15,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import xyz.xiao6.myboard.model.ThemeSpec
+import xyz.xiao6.myboard.store.SettingsStore
 import xyz.xiao6.myboard.ui.theme.applyAppFont
 import xyz.xiao6.myboard.ui.theme.ThemeRuntime
 
@@ -31,6 +33,8 @@ class CandidateView @JvmOverloads constructor(
     private var surfaceBackground: Int = Color.parseColor("#F2F2F7")
     private var surfaceStroke: Int = Color.parseColor("#14000000")
     private var embeddedInToolbar: Boolean = false
+    private var fontSizeSp: Float = 16f
+    private var fontWeight: Int = 400
 
     private val surfaceDrawable =
         GradientDrawable().apply {
@@ -42,11 +46,13 @@ class CandidateView @JvmOverloads constructor(
 
     private val recyclerView: RecyclerView
     private val adapter: CandidateAdapter
+    private val settingsStore: SettingsStore
 
     var onCandidateClick: ((String) -> Unit)? = null
     var onCandidateLongPress: ((anchor: View, text: String) -> Unit)? = null
 
     init {
+        settingsStore = SettingsStore(context)
         background = surfaceDrawable
         recyclerView = RecyclerView(context).apply {
             layoutParams = LayoutParams(
@@ -60,6 +66,8 @@ class CandidateView @JvmOverloads constructor(
         }
         adapter = CandidateAdapter(
             resolveTextColor = { textColor },
+            resolveFontSize = { fontSizeSp },
+            resolveFontWeight = { fontWeight },
             onClick = { text -> onCandidateClick?.invoke(text) },
             onLongClick = { anchor, text -> onCandidateLongPress?.invoke(anchor, text) },
         )
@@ -79,6 +87,8 @@ class CandidateView @JvmOverloads constructor(
         surfaceBackground = runtime?.resolveColor(theme?.candidates?.surface?.background?.color, surfaceBackground) ?: surfaceBackground
         surfaceStroke = runtime?.resolveColor(theme?.candidates?.surface?.stroke?.color, surfaceStroke) ?: surfaceStroke
         textColor = runtime?.resolveColor(theme?.candidates?.candidateText?.color, textColor) ?: textColor
+        fontSizeSp = settingsStore.candidateFontSizeSp
+        fontWeight = settingsStore.candidateFontWeight
         surfaceDrawable.apply {
             setColor(surfaceBackground)
             setStroke(dp(1f).toInt(), surfaceStroke)
@@ -93,6 +103,8 @@ class CandidateView @JvmOverloads constructor(
 
     private class CandidateAdapter(
         private val resolveTextColor: () -> Int,
+        private val resolveFontSize: () -> Float,
+        private val resolveFontWeight: () -> Int,
         private val onClick: (String) -> Unit,
         private val onLongClick: (View, String) -> Unit,
     ) : ListAdapter<String, CandidateViewHolder>(DIFF) {
@@ -117,7 +129,12 @@ class CandidateView @JvmOverloads constructor(
         }
 
         override fun onBindViewHolder(holder: CandidateViewHolder, position: Int) {
-            holder.bind(getItem(position), resolveTextColor())
+            holder.bind(
+                getItem(position),
+                resolveTextColor(),
+                resolveFontSize(),
+                resolveFontWeight()
+            )
         }
 
         companion object {
@@ -135,9 +152,15 @@ class CandidateView @JvmOverloads constructor(
         private val onLongClick: (View, String) -> Unit,
     ) : RecyclerView.ViewHolder(textView) {
 
-        fun bind(text: String, textColor: Int) {
+        fun bind(text: String, textColor: Int, fontSizeSp: Float, fontWeight: Int) {
             textView.text = text
             textView.setTextColor(textColor)
+            textView.textSize = fontSizeSp
+            textView.setTypeface(null, when {
+                fontWeight >= 700 -> Typeface.BOLD
+                fontWeight >= 500 -> Typeface.BOLD
+                else -> Typeface.NORMAL
+            })
             textView.setOnClickListener { onClick(text) }
             textView.setOnLongClickListener {
                 onLongClick(textView, text)

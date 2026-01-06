@@ -137,6 +137,43 @@
     <string name="layout_editor_key_label_backspace">Bksp</string>
     <string name="layout_editor_key_label_shift">Shift</string>
     <string name="layout_editor_key_label_tab">Tab</string>
+
+    <!-- Editor key categories -->
+    <string name="editor_category_character">Character</string>
+    <string name="editor_category_command">Command</string>
+    <string name="editor_category_modifier">Modifier</string>
+    <string name="editor_category_navigation">Navigation</string>
+    <string name="editor_category_editing">Editing</string>
+    <string name="editor_category_function">Function</string>
+
+    <!-- Additional editor key types -->
+    <string name="editor_key_type_caps_lock">Caps Lock</string>
+    <string name="editor_key_type_alt">Alt</string>
+    <string name="editor_key_type_cursor_left">Left</string>
+    <string name="editor_key_type_cursor_right">Right</string>
+    <string name="editor_key_type_cursor_up">Up</string>
+    <string name="editor_key_type_cursor_down">Down</string>
+    <string name="editor_key_type_home">Home</string>
+    <string name="editor_key_type_end">End</string>
+    <string name="editor_key_type_cut">Cut</string>
+    <string name="editor_key_type_copy">Copy</string>
+    <string name="editor_key_type_paste">Paste</string>
+    <string name="editor_key_type_select_all">Select All</string>
+    <string name="editor_key_type_undo">Undo</string>
+    <string name="editor_key_type_redo">Redo</string>
+    <string name="editor_key_type_locale_toggle">Language</string>
+    <string name="editor_key_type_mode_switch">Mode</string>
+    <string name="editor_key_type_layer_switch">Layer</string>
+    <string name="editor_key_type_symbols_panel">Symbols</string>
+
+    <!-- Key presets -->
+    <string name="preset_number_row">Number row</string>
+    <string name="preset_punctuation_row">Punctuation row</string>
+    <string name="preset_navigation_row">Navigation row</string>
+    <string name="preset_editing_row">Editing row</string>
+    <string name="layout_editor_presets_title">Quick presets</string>
+    <string name="layout_editor_width_weight">Width weight</string>
+
     <string name="settings_default">Default</string>
 
     <string name="settings_appearance">Appearance</string>
@@ -266,6 +303,9 @@
     <string name="settings_suggestions_ngram_desc">Expand Han words into 2–3 grams for association</string>
     <string name="settings_suggestions_clear_learning">Clear learning data</string>
     <string name="settings_suggestions_clear_blocked">Clear blocked words</string>
+    <string name="settings_candidate_font">Candidate Font</string>
+    <string name="settings_candidate_font_size">Font size</string>
+    <string name="settings_candidate_font_weight">Font weight</string>
     <string name="settings_suggestions_benchmark_disable">Disable candidates for benchmark</string>
     <string name="settings_suggestions_benchmark_disable_desc">Hide candidates and skip updates during benchmarks.</string>
     <string name="settings_benchmark_disable_key_preview">Disable key preview for benchmark</string>

@@ -237,6 +237,18 @@ class SettingsStore(context: Context) {
             writeString(KEY_KEYBOARD_THEME_ID, value?.trim())
         }
 
+    var candidateFontSizeSp: Float
+        get() = readFloat(KEY_CANDIDATE_FONT_SIZE_SP) ?: 16f
+        set(value) {
+            writeFloat(KEY_CANDIDATE_FONT_SIZE_SP, value.coerceIn(12f, 24f))
+        }
+
+    var candidateFontWeight: Int
+        get() = readInt(KEY_CANDIDATE_FONT_WEIGHT) ?: 400
+        set(value) {
+            writeInt(KEY_CANDIDATE_FONT_WEIGHT, value.coerceIn(100, 900))
+        }
+
     fun getPreferredLayoutId(localeTag: String): String? {
         val key = KEY_PREFERRED_LAYOUT_PREFIX + normalizeLocaleTag(localeTag)
         return readString(key)?.trim()?.takeIf { it.isNotBlank() }
@@ -374,6 +386,8 @@ class SettingsStore(context: Context) {
         private const val KEY_DEBUG_TOUCH_LOGGING_ENABLED = "debug_touch_logging_enabled"
         private const val KEY_EMOJI_IMAGE_ENABLED = "emoji_image_enabled"
         private const val KEY_KEYBOARD_THEME_ID = "keyboard_theme_id"
+        private const val KEY_CANDIDATE_FONT_SIZE_SP = "candidate_font_size_sp"
+        private const val KEY_CANDIDATE_FONT_WEIGHT = "candidate_font_weight"
     }
 
     private fun readString(key: String): String? = cache[key]

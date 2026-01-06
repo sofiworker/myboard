@@ -1140,8 +1140,40 @@ class MyBoardImeService : InputMethodService() {
     private fun extractTokens(text: String): List<String> {
         val trimmed = text.trim()
         if (trimmed.isBlank()) return emptyList()
-        val regex = Regex("[\\p{IsHan}]+|[\\p{L}\\p{N}]+")
-        return regex.findAll(trimmed).map { it.value }.toList()
+
+        // Match CJK characters (Chinese, Japanese, Korean) using Unicode ranges
+        // This is more compatible than \p{IsHan} or \p{Script=Han}
+        val cjkRegex = Regex("[\\u4e00-\\u9fff\\u3400-\\u4dbf\\u20000-\\u2a6df\\u2a700-\\u2b73f\\u2b740-\\u2b81f\\u2b820-\\u2ceaf\\uf900-\\ufaff\\u3300-\\u33ff\\ufe30-\\ufe4f\\uf900-\\ufaff\\u2f800-\\u2fa1f]+")
+        // Match letters and numbers
+        val letterNumberRegex = Regex("[\\p{L}\\p{N}]+")
+
+        // Find all matches from both patterns
+        val tokens = mutableListOf<String>()
+        var currentIndex = 0
+
+        while (currentIndex < trimmed.length) {
+            // Try to match CJK characters first
+            val cjkMatch = cjkRegex.find(trimmed, currentIndex)
+            // Try to match letters and numbers
+            val letterNumberMatch = letterNumberRegex.find(trimmed, currentIndex)
+
+            when {
+                cjkMatch != null && (letterNumberMatch == null || cjkMatch.range.first <= letterNumberMatch.range.first) -> {
+                    tokens.add(cjkMatch.value)
+                    currentIndex = cjkMatch.range.last + 1
+                }
+                letterNumberMatch != null -> {
+                    tokens.add(letterNumberMatch.value)
+                    currentIndex = letterNumberMatch.range.last + 1
+                }
+                else -> {
+                    // No match found, skip this character
+                    currentIndex++
+                }
+            }
+        }
+
+        return tokens
     }
 
     private fun handleBackspaceLongPress() {

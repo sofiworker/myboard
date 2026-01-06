@@ -484,15 +484,26 @@ class KeyboardSurfaceView @JvmOverloads constructor(
                 if (hints.isNotEmpty()) {
                     for (h in hints) {
                         if (h.text.isBlank()) continue
-                        drawHint(canvas, rect, h.anchor, h.text)
+                        // Skip hints with invalid color (alpha = 0 means fully transparent)
+                        val hintAlpha = (hintPaint.color ushr 24) and 0xFF
+                        if (hintAlpha > 0) {
+                            drawHint(canvas, rect, h.anchor, h.text)
+                        }
                     }
                 }
             }
 
             if (labelsEnabled) {
-                val x = rect.centerX()
-                val y = rect.centerY() - (labelPaint.ascent() + labelPaint.descent()) / 2f
-                canvas.drawText(resolveLabel(key), x, y, labelPaint)
+                val labelText = resolveLabel(key)
+                if (labelText.isNotBlank()) {
+                    // Skip labels with invalid color (check alpha channel)
+                    val labelAlpha = (labelPaint.color ushr 24) and 0xFF
+                    if (labelAlpha > 0) {
+                        val x = rect.centerX()
+                        val y = rect.centerY() - (labelPaint.ascent() + labelPaint.descent()) / 2f
+                        canvas.drawText(labelText, x, y, labelPaint)
+                    }
+                }
             }
         }
     }
@@ -554,13 +565,13 @@ class KeyboardSurfaceView @JvmOverloads constructor(
             theme?.resolveColor(style?.label?.color ?: style?.textColor ?: "colors.key_text", Color.BLACK) ?: Color.BLACK
         val labelSizeSp = style?.label?.sizeSp ?: style?.textSizeSp ?: 16f
         labelPaint.color = labelColor
-        labelPaint.textSize = sp(labelSizeSp)
+        labelPaint.textSize = sp(labelSizeSp.coerceIn(8f, 32f))
         labelPaint.applyAppFont(context, bold = style?.label?.bold == true)
 
         val hintColor =
             theme?.resolveColor(style?.hint?.color ?: "colors.key_hint", Color.parseColor("#8E8E93")) ?: Color.parseColor("#8E8E93")
         hintPaint.color = hintColor
-        hintPaint.textSize = sp(style?.hint?.sizeSp ?: 10f)
+        hintPaint.textSize = sp((style?.hint?.sizeSp ?: 10f).coerceIn(6f, 20f))
         hintPaint.applyAppFont(context, bold = style?.hint?.bold == true)
     }
 
@@ -750,56 +761,261 @@ class KeyboardSurfaceView @JvmOverloads constructor(
         val fm = hintPaint.fontMetrics
         val textHeight = fm.descent - fm.ascent
 
+        // Minimum spacing between hints and label
+        val minSpacing = dp(4f)
+
+        // Calculate label's actual bounding box more accurately
+        val labelText = resolveLabel(keys.firstOrNull { keyRects[it.keyId] == rect } ?: return)
+        val labelWidth = if (labelText.isNotBlank()) {
+            labelPaint.measureText(labelText)
+        } else {
+            0f
+        }
+        val labelCenterY = rect.centerY() - (labelPaint.ascent() + labelPaint.descent()) / 2f
+        val labelTextHeight = labelPaint.descent() - labelPaint.ascent()
+
+        // Label's bounding box (exact boundaries)
+        val labelLeft = rect.centerX() - labelWidth / 2f
+        val labelRight = rect.centerX() + labelWidth / 2f
+        val labelTop = labelCenterY + labelPaint.ascent()
+        val labelBottom = labelCenterY + labelPaint.descent()
+
+        // Create exclusion zone: label boundaries ± minSpacing
+        val exclusionLeft = labelLeft - minSpacing
+        val exclusionRight = labelRight + minSpacing
+        val exclusionTop = labelTop - minSpacing
+        val exclusionBottom = labelBottom + minSpacing
+
+        // Function to check if a point is in exclusion zone
+        fun isInExclusionZone(x: Float, y: Float): Boolean {
+            return x >= exclusionLeft && x <= exclusionRight &&
+                   y >= exclusionTop && y <= exclusionBottom
+        }
+
+        // Function to check if horizontal position overlaps exclusion zone
+        fun overlapsHorizontally(x: Float, textWidth: Float): Boolean {
+            val hintLeft = when {
+                hintPaint.textAlign == Paint.Align.LEFT -> x
+                hintPaint.textAlign == Paint.Align.RIGHT -> x - textWidth
+                else -> x - textWidth / 2f
+            }
+            val hintRight = when {
+                hintPaint.textAlign == Paint.Align.LEFT -> x + textWidth
+                hintPaint.textAlign == Paint.Align.RIGHT -> x
+                else -> x + textWidth / 2f
+            }
+            return hintLeft < exclusionRight && hintRight > exclusionLeft
+        }
+
         val (x, y, align) =
             when (anchor) {
                 is HintAnchor.Relative -> {
                     val px = rect.left + rect.width() * anchor.x
                     val py = rect.top + rect.height() * anchor.y
-                    // Use baseline positioning; nudge away from edges a bit.
+                    val hintTextWidth = hintPaint.measureText(text)
+
+                    // Check if position is in exclusion zone
+                    val inExclusion = isInExclusionZone(px, py) || overlapsHorizontally(px, hintTextWidth)
+
+                    val adjustedY = if (inExclusion) {
+                        // Move to the closest safe zone (top or bottom)
+                        val topSpace = exclusionTop - rect.top
+                        val bottomSpace = rect.bottom - exclusionBottom
+
+                        if (topSpace >= bottomSpace) {
+                            // Place at top with spacing
+                            rect.top + paddingY - fm.ascent
+                        } else {
+                            // Place at bottom with spacing
+                            rect.bottom - paddingY - fm.descent
+                        }
+                    } else {
+                        py
+                    }
+
                     val xClamped = px.coerceIn(rect.left + paddingX, rect.right - paddingX)
-                    val yClamped = (py - fm.descent).coerceIn(rect.top + paddingY - fm.ascent, rect.bottom - paddingY - fm.descent)
+                    val yClamped = (adjustedY - fm.descent).coerceIn(rect.top + paddingY - fm.ascent, rect.bottom - paddingY - fm.descent)
                     Triple(xClamped, yClamped, anchor.align)
                 }
                 is HintAnchor.Grid ->
                     when (anchor.position) {
-                        HintGridPosition.TOP_LEFT ->
-                            Triple(rect.left + paddingX, rect.top + paddingY - fm.ascent, Paint.Align.LEFT)
+                        HintGridPosition.TOP_LEFT -> {
+                            val x = rect.left + paddingX
+                            val y = rect.top + paddingY - fm.ascent
 
-                        HintGridPosition.TOP_CENTER ->
-                            Triple(rect.centerX(), rect.top + paddingY - fm.ascent, Paint.Align.CENTER)
+                            // Check if hint would be in exclusion zone
+                            val hintTextWidth = hintPaint.measureText(text)
+                            val inExclusion = overlapsHorizontally(x, hintTextWidth) || y > exclusionTop
 
-                        HintGridPosition.TOP_RIGHT ->
-                            Triple(rect.right - paddingX, rect.top + paddingY - fm.ascent, Paint.Align.RIGHT)
+                            val adjustedY = if (inExclusion) {
+                                // Move to bottom with spacing
+                                rect.bottom - paddingY - fm.descent
+                            } else {
+                                y
+                            }
+                            Triple(x, adjustedY, Paint.Align.LEFT)
+                        }
 
-                        HintGridPosition.CENTER_LEFT ->
-                            Triple(
-                                rect.left + paddingX,
-                                rect.centerY() + textHeight / 2f - fm.descent,
-                                Paint.Align.LEFT,
-                            )
+                        HintGridPosition.TOP_CENTER -> {
+                            val x = rect.centerX()
+                            val y = rect.top + paddingY - fm.ascent
+                            val hintTextWidth = hintPaint.measureText(text)
 
-                        HintGridPosition.CENTER ->
-                            Triple(
-                                rect.centerX(),
-                                rect.centerY() + textHeight / 2f - fm.descent,
-                                Paint.Align.CENTER,
-                            )
+                            // Check if hint would overlap with exclusion zone
+                            val inExclusion = overlapsHorizontally(x, hintTextWidth) || y > exclusionTop
 
-                        HintGridPosition.CENTER_RIGHT ->
-                            Triple(
-                                rect.right - paddingX,
-                                rect.centerY() + textHeight / 2f - fm.descent,
-                                Paint.Align.RIGHT,
-                            )
+                            val adjustedY = if (inExclusion) {
+                                // Move to bottom with spacing
+                                rect.bottom - paddingY - fm.descent
+                            } else {
+                                y
+                            }
+                            Triple(x, adjustedY, Paint.Align.CENTER)
+                        }
 
-                        HintGridPosition.BOTTOM_LEFT ->
-                            Triple(rect.left + paddingX, rect.bottom - paddingY - fm.descent, Paint.Align.LEFT)
+                        HintGridPosition.TOP_RIGHT -> {
+                            val x = rect.right - paddingX
+                            val y = rect.top + paddingY - fm.ascent
 
-                        HintGridPosition.BOTTOM_CENTER ->
-                            Triple(rect.centerX(), rect.bottom - paddingY - fm.descent, Paint.Align.CENTER)
+                            // Check if hint would be in exclusion zone
+                            val hintTextWidth = hintPaint.measureText(text)
+                            val inExclusion = overlapsHorizontally(x, hintTextWidth) || y > exclusionTop
 
-                        HintGridPosition.BOTTOM_RIGHT ->
-                            Triple(rect.right - paddingX, rect.bottom - paddingY - fm.descent, Paint.Align.RIGHT)
+                            val adjustedY = if (inExclusion) {
+                                // Move to bottom with spacing
+                                rect.bottom - paddingY - fm.descent
+                            } else {
+                                y
+                            }
+                            Triple(x, adjustedY, Paint.Align.RIGHT)
+                        }
+
+                        HintGridPosition.CENTER_LEFT -> {
+                            val x = rect.left + paddingX
+                            val hintTextWidth = hintPaint.measureText(text)
+
+                            // Check horizontal overlap
+                            val inExclusion = overlapsHorizontally(x, hintTextWidth)
+
+                            val y = if (inExclusion) {
+                                // Place at top or bottom based on available space
+                                val topSpace = exclusionTop - rect.top
+                                val bottomSpace = rect.bottom - exclusionBottom
+
+                                if (topSpace >= bottomSpace) {
+                                    rect.top + paddingY - fm.ascent
+                                } else {
+                                    rect.bottom - paddingY - fm.descent
+                                }
+                            } else {
+                                // Center vertically within left safe zone
+                                val safeTop = rect.top + paddingY - fm.ascent
+                                val safeBottom = exclusionTop - paddingY - fm.descent
+                                ((safeTop + safeBottom) / 2f).coerceIn(safeTop, safeBottom)
+                            }
+                            Triple(x, y, Paint.Align.LEFT)
+                        }
+
+                        HintGridPosition.CENTER -> {
+                            val hintTextWidth = hintPaint.measureText(text)
+                            val x = rect.centerX()
+
+                            // Always use top or bottom for CENTER hints to avoid exclusion zone
+                            val topSpace = exclusionTop - rect.top
+                            val bottomSpace = rect.bottom - exclusionBottom
+
+                            val y = if (topSpace >= bottomSpace) {
+                                // Place at top with spacing
+                                rect.top + paddingY - fm.ascent
+                            } else {
+                                // Place at bottom with spacing
+                                rect.bottom - paddingY - fm.descent
+                            }
+                            Triple(x, y, Paint.Align.CENTER)
+                        }
+
+                        HintGridPosition.CENTER_RIGHT -> {
+                            val x = rect.right - paddingX
+                            val hintTextWidth = hintPaint.measureText(text)
+
+                            // Check horizontal overlap
+                            val inExclusion = overlapsHorizontally(x, hintTextWidth)
+
+                            val y = if (inExclusion) {
+                                // Place at top or bottom based on available space
+                                val topSpace = exclusionTop - rect.top
+                                val bottomSpace = rect.bottom - exclusionBottom
+
+                                if (topSpace >= bottomSpace) {
+                                    rect.top + paddingY - fm.ascent
+                                } else {
+                                    rect.bottom - paddingY - fm.descent
+                                }
+                            } else {
+                                // Center vertically within right safe zone
+                                val safeTop = rect.top + paddingY - fm.ascent
+                                val safeBottom = exclusionTop - paddingY - fm.descent
+                                ((safeTop + safeBottom) / 2f).coerceIn(safeTop, safeBottom)
+                            }
+                            Triple(x, y, Paint.Align.RIGHT)
+                        }
+
+                        HintGridPosition.BOTTOM_LEFT -> {
+                            val x = rect.left + paddingX
+                            val hintTextWidth = hintPaint.measureText(text)
+
+                            // Check if hint would be in exclusion zone
+                            val inExclusion = overlapsHorizontally(x, hintTextWidth)
+
+                            val y = if (inExclusion) {
+                                // Move to top with spacing
+                                rect.top + paddingY - fm.ascent
+                            } else {
+                                // Use bottom with spacing
+                                val safeTop = exclusionBottom + paddingY - fm.ascent
+                                val safeBottom = rect.bottom - paddingY - fm.descent
+                                ((safeTop + safeBottom) / 2f).coerceIn(safeTop, safeBottom)
+                            }
+                            Triple(x, y, Paint.Align.LEFT)
+                        }
+
+                        HintGridPosition.BOTTOM_CENTER -> {
+                            val x = rect.centerX()
+                            val hintTextWidth = hintPaint.measureText(text)
+
+                            // Check if hint would overlap with exclusion zone
+                            val inExclusion = overlapsHorizontally(x, hintTextWidth)
+
+                            val y = if (inExclusion) {
+                                // Move to top with spacing
+                                rect.top + paddingY - fm.ascent
+                            } else {
+                                // Use bottom with spacing
+                                val safeTop = exclusionBottom + paddingY - fm.ascent
+                                val safeBottom = rect.bottom - paddingY - fm.descent
+                                ((safeTop + safeBottom) / 2f).coerceIn(safeTop, safeBottom)
+                            }
+                            Triple(x, y, Paint.Align.CENTER)
+                        }
+
+                        HintGridPosition.BOTTOM_RIGHT -> {
+                            val x = rect.right - paddingX
+                            val hintTextWidth = hintPaint.measureText(text)
+
+                            // Check if hint would be in exclusion zone
+                            val inExclusion = overlapsHorizontally(x, hintTextWidth)
+
+                            val y = if (inExclusion) {
+                                // Move to top with spacing
+                                rect.top + paddingY - fm.ascent
+                            } else {
+                                // Use bottom with spacing
+                                val safeTop = exclusionBottom + paddingY - fm.ascent
+                                val safeBottom = rect.bottom - paddingY - fm.descent
+                                ((safeTop + safeBottom) / 2f).coerceIn(safeTop, safeBottom)
+                            }
+                            Triple(x, y, Paint.Align.RIGHT)
+                        }
                     }
             }
 
