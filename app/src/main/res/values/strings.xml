@@ -347,4 +347,28 @@
     <string name="ime_picker_channel_name">Input method</string>
     <string name="ime_picker_channel_desc">Input method picker notification.</string>
 
+    <!-- Input mode settings -->
+    <string name="settings_section_input_mode">Input mode</string>
+    <string name="settings_input_mode_title">Select input mode</string>
+    <string name="settings_input_mode_normal">Normal tap input</string>
+    <string name="settings_input_mode_swype">Swype (gesture typing)</string>
+    <string name="settings_input_mode_handwriting">Handwriting</string>
+    <string name="settings_swype_enable">Enable swype input</string>
+    <string name="settings_swype_enable_desc">Slide your finger across keys to type words</string>
+    <string name="settings_swype_show_trail">Show swype trail</string>
+    <string name="settings_swype_show_trail_desc">Display a trail line while swiping</string>
+    <string name="settings_handwriting_enable">Enable handwriting input</string>
+    <string name="settings_handwriting_enable_desc">Draw characters directly on the keyboard</string>
+    <string name="settings_handwriting_auto_recognize">Auto recognize handwriting</string>
+    <string name="settings_handwriting_auto_recognize_desc">Automatically recognize after pausing</string>
+    <string name="settings_handwriting_layout_mode">Handwriting panel layout</string>
+    <string name="settings_handwriting_layout_full_screen">Full screen</string>
+    <string name="settings_handwriting_layout_half_screen">Half screen</string>
+    <string name="settings_handwriting_layout_overlay">Overlay on keyboard</string>
+    <string name="settings_handwriting_position">Panel position</string>
+    <string name="settings_handwriting_position_top">Top</string>
+    <string name="settings_handwriting_position_bottom">Bottom</string>
+
+    <string name="handwriting_title">Handwriting Input</string>
+
 </resources>

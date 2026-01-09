@@ -38,6 +38,7 @@ import xyz.xiao6.myboard.ui.theme.ThemeRuntime
 import android.os.SystemClock
 import xyz.xiao6.myboard.util.DebugInputLatency
 import xyz.xiao6.myboard.util.MLog
+import xyz.xiao6.myboard.controller.SwypePathTracker
 import kotlin.math.abs
 import kotlin.math.hypot
 import java.io.File
@@ -70,6 +71,18 @@ class KeyboardSurfaceView @JvmOverloads constructor(
 
     var onTrigger: ((keyId: String, trigger: GestureType) -> Unit)? = null
     var onAction: ((KeyAction) -> Unit)? = null
+    var onSwypePath: ((List<String>) -> Unit)? = null
+
+    // Input mode settings
+    var inputMode: String = "NORMAL"
+        set(value) {
+            field = value
+            // Cancel any ongoing swype when mode changes
+            if (value != "SWYPE") {
+                swypeTracker?.cancel()
+            }
+        }
+    var swypeShowTrail: Boolean = true
 
     private val previewDelayMs = 0L
     private val longPressTimeoutMs = ViewConfiguration.getLongPressTimeout().toLong()
@@ -92,6 +105,17 @@ class KeyboardSurfaceView @JvmOverloads constructor(
     private var decorationsEnabled: Boolean = true
     private var labelsEnabled: Boolean = true
     private var debugTouchLoggingEnabled: Boolean = false
+
+    // Swype input
+    private var swypeTracker: SwypePathTracker? = null
+    private val swypeTrailPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE
+        color = 0x80000000.toInt()
+        strokeWidth = 12f
+        strokeCap = Paint.Cap.ROUND
+        strokeJoin = Paint.Join.ROUND
+    }
+
     private val previewRunnable = Runnable {
         val popup = popupView ?: return@Runnable
         val keyId = activeKeyId ?: return@Runnable

@@ -42,6 +42,14 @@
             android:label="@string/benchmark_input_title" />
 
         <activity
+            android:name=".ui.handwriting.HandwritingActivity"
+            android:exported="false"
+            android:label="@string/handwriting_title"
+            android:windowSoftInputMode="stateAlwaysHidden"
+            android:excludeFromRecents="true"
+            android:taskAffinity="" />
+
+        <activity
             android:name=".ui.ImePickerActivity"
             android:exported="false"
             android:label="@string/ime_picker_title"

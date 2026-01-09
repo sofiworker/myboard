@@ -6,6 +6,7 @@ import xyz.xiao6.myboard.ui.settings.AppearanceSettings
 import xyz.xiao6.myboard.ui.settings.DictionariesSettings
 import xyz.xiao6.myboard.ui.settings.FeedbackSettings
 import xyz.xiao6.myboard.ui.settings.InputBehaviorSettings
+import xyz.xiao6.myboard.ui.settings.InputModeSettings
 import xyz.xiao6.myboard.ui.settings.KeyboardSizeSettings
 import xyz.xiao6.myboard.ui.settings.LanguageLayoutSettings
 import xyz.xiao6.myboard.ui.settings.SuggestionsSettings
@@ -223,6 +224,7 @@ private sealed interface SettingsRoute {
     data object LanguageLayout : SettingsRoute
     data object Feedback : SettingsRoute
     data object InputBehavior : SettingsRoute
+    data object InputMode : SettingsRoute
     data object Toolbar : SettingsRoute
     data object Suggestions : SettingsRoute
     data object Dictionaries : SettingsRoute
@@ -295,6 +297,7 @@ private fun SettingsScreen(
         SettingsRoute.LanguageLayout -> R.string.settings_language_layout
         SettingsRoute.Feedback -> R.string.settings_feedback
         SettingsRoute.InputBehavior -> R.string.settings_input_behavior
+        SettingsRoute.InputMode -> R.string.settings_section_input_mode
         SettingsRoute.Toolbar -> R.string.settings_toolbar
         SettingsRoute.Suggestions -> R.string.settings_suggestions
         SettingsRoute.Dictionaries -> R.string.settings_dictionaries
@@ -401,6 +404,7 @@ private fun SettingsScreen(
                     onOpenAppearance = { route = SettingsRoute.Appearance },
                     onOpenFeedback = { route = SettingsRoute.Feedback },
                     onOpenInputBehavior = { route = SettingsRoute.InputBehavior },
+                    onOpenInputMode = { route = SettingsRoute.InputMode },
                     onOpenToolbar = { route = SettingsRoute.Toolbar },
                     onOpenSuggestions = { route = SettingsRoute.Suggestions },
                     onOpenDictionaries = { route = SettingsRoute.Dictionaries },
@@ -440,6 +444,11 @@ private fun SettingsScreen(
                 )
 
                 SettingsRoute.InputBehavior -> InputBehaviorSettings(
+                    modifier = Modifier.fillMaxSize().padding(padding),
+                    prefs = prefs,
+                )
+
+                SettingsRoute.InputMode -> InputModeSettings(
                     modifier = Modifier.fillMaxSize().padding(padding),
                     prefs = prefs,
                 )
@@ -580,6 +589,7 @@ private fun SettingsMainList(
     onOpenAppearance: () -> Unit,
     onOpenFeedback: () -> Unit,
     onOpenInputBehavior: () -> Unit,
+    onOpenInputMode: () -> Unit,
     onOpenToolbar: () -> Unit,
     onOpenSuggestions: () -> Unit,
     onOpenDictionaries: () -> Unit,
@@ -651,6 +661,13 @@ private fun SettingsMainList(
                 titleRes = R.string.settings_input_behavior,
                 summary = summary,
                 onClick = onOpenInputBehavior,
+            )
+        }
+        item {
+            SettingItem(
+                titleRes = R.string.settings_section_input_mode,
+                summaryRes = R.string.settings_input_mode_title,
+                onClick = onOpenInputMode,
             )
         }
         item {

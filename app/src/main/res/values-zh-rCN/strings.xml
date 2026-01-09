@@ -305,4 +305,29 @@
     <string name="settings_language_layout_disable">禁用</string>
     <string name="settings_language_layout_no_enabled">暂无已启用语言。</string>
     <string name="settings_language_layout_enabled_layout">布局：%1$s</string>
+
+    <!-- Input mode settings -->
+    <string name="settings_section_input_mode">输入模式</string>
+    <string name="settings_input_mode_title">选择输入模式</string>
+    <string name="settings_input_mode_normal">普通点击输入</string>
+    <string name="settings_input_mode_swype">滑行输入</string>
+    <string name="settings_input_mode_handwriting">手写输入</string>
+    <string name="settings_swype_enable">启用滑行输入</string>
+    <string name="settings_swype_enable_desc">在键盘上滑动手指输入单词</string>
+    <string name="settings_swype_show_trail">显示滑行轨迹</string>
+    <string name="settings_swype_show_trail_desc">滑动时显示轨迹线</string>
+    <string name="settings_handwriting_enable">启用手写输入</string>
+    <string name="settings_handwriting_enable_desc">直接在键盘上书写字符</string>
+    <string name="settings_handwriting_auto_recognize">自动识别手写</string>
+    <string name="settings_handwriting_auto_recognize_desc">暂停后自动识别</string>
+    <string name="settings_handwriting_layout_mode">手写面板布局</string>
+    <string name="settings_handwriting_layout_full_screen">全屏</string>
+    <string name="settings_handwriting_layout_half_screen">半屏</string>
+    <string name="settings_handwriting_layout_overlay">键盘覆盖</string>
+    <string name="settings_handwriting_position">面板位置</string>
+    <string name="settings_handwriting_position_top">顶部</string>
+    <string name="settings_handwriting_position_bottom">底部</string>
+
+    <string name="handwriting_title">手写输入</string>
+
 </resources>

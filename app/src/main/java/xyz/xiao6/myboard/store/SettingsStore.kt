@@ -249,6 +249,49 @@ class SettingsStore(context: Context) {
             writeInt(KEY_CANDIDATE_FONT_WEIGHT, value.coerceIn(100, 900))
         }
 
+    // Input mode settings
+    var inputMode: String
+        get() = readString(KEY_INPUT_MODE) ?: "NORMAL"
+        set(value) {
+            writeString(KEY_INPUT_MODE, value.trim())
+        }
+
+    var swypeEnabled: Boolean
+        get() = readBoolean(KEY_SWYPE_ENABLED) ?: false
+        set(value) {
+            writeBoolean(KEY_SWYPE_ENABLED, value)
+        }
+
+    var swypeShowTrail: Boolean
+        get() = readBoolean(KEY_SWYPE_SHOW_TRAIL) ?: true
+        set(value) {
+            writeBoolean(KEY_SWYPE_SHOW_TRAIL, value)
+        }
+
+    var handwritingEnabled: Boolean
+        get() = readBoolean(KEY_HANDWRITING_ENABLED) ?: false
+        set(value) {
+            writeBoolean(KEY_HANDWRITING_ENABLED, value)
+        }
+
+    var handwritingAutoRecognize: Boolean
+        get() = readBoolean(KEY_HANDWRITING_AUTO_RECOGNIZE) ?: true
+        set(value) {
+            writeBoolean(KEY_HANDWRITING_AUTO_RECOGNIZE, value)
+        }
+
+    var handwritingLayoutMode: String
+        get() = readString(KEY_HANDWRITING_LAYOUT_MODE) ?: "HALF_SCREEN"
+        set(value) {
+            writeString(KEY_HANDWRITING_LAYOUT_MODE, value.trim())
+        }
+
+    var handwritingPosition: String
+        get() = readString(KEY_HANDWRITING_POSITION) ?: "BOTTOM"
+        set(value) {
+            writeString(KEY_HANDWRITING_POSITION, value.trim())
+        }
+
     fun getPreferredLayoutId(localeTag: String): String? {
         val key = KEY_PREFERRED_LAYOUT_PREFIX + normalizeLocaleTag(localeTag)
         return readString(key)?.trim()?.takeIf { it.isNotBlank() }
@@ -388,6 +431,15 @@ class SettingsStore(context: Context) {
         private const val KEY_KEYBOARD_THEME_ID = "keyboard_theme_id"
         private const val KEY_CANDIDATE_FONT_SIZE_SP = "candidate_font_size_sp"
         private const val KEY_CANDIDATE_FONT_WEIGHT = "candidate_font_weight"
+
+        // Input mode settings
+        private const val KEY_INPUT_MODE = "input_mode"
+        private const val KEY_SWYPE_ENABLED = "swype_enabled"
+        private const val KEY_SWYPE_SHOW_TRAIL = "swype_show_trail"
+        private const val KEY_HANDWRITING_ENABLED = "handwriting_enabled"
+        private const val KEY_HANDWRITING_AUTO_RECOGNIZE = "handwriting_auto_recognize"
+        private const val KEY_HANDWRITING_LAYOUT_MODE = "handwriting_layout_mode"
+        private const val KEY_HANDWRITING_POSITION = "handwriting_position"
     }
 
     private fun readString(key: String): String? = cache[key]
