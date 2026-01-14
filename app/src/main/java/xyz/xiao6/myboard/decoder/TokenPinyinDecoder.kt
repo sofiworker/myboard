@@ -14,7 +14,7 @@ class TokenPinyinDecoder(
     private val dictionary: DictionaryLookup,
     private val candidateLimit: Int = 50,
 ) : Decoder, TokenDecoder, ReplaceComposingDecoder {
-    private val slots: MutableList<List<String>> = ArrayList()
+    private val tokenStack = TokenStack()
     private var fixedPrefix: String = ""
 
     private var bestGuessLetters: String = ""
@@ -35,8 +35,8 @@ class TokenPinyinDecoder(
         if (text.isEmpty()) return currentUpdate()
 
         if (text == "\b") {
-            if (slots.isNotEmpty()) {
-                slots.removeLast()
+            if (!tokenStack.isEmpty()) {
+                tokenStack.pop()
                 recompute()
                 return currentUpdate()
             }
@@ -48,7 +48,7 @@ class TokenPinyinDecoder(
         }
 
         if (text == " ") {
-            if (slots.isEmpty() && fixedPrefix.isEmpty()) {
+            if (tokenStack.isEmpty() && fixedPrefix.isEmpty()) {
                 return DecodeUpdate(commitTexts = listOf(" "), composingText = "")
             }
             val commit = buildCommitText()
@@ -61,7 +61,7 @@ class TokenPinyinDecoder(
             return onToken(Token.Literal(text))
         }
 
-        if (slots.isNotEmpty() || fixedPrefix.isNotEmpty()) {
+        if (!tokenStack.isEmpty() || fixedPrefix.isNotEmpty()) {
             val commit = buildCommitText()
             clearAll()
             return DecodeUpdate(commitTexts = listOf(commit, text), composingText = "")
@@ -89,7 +89,7 @@ class TokenPinyinDecoder(
             val ch = String(Character.toChars(cp))
             val c = ch.singleOrNull()
             if (c != null && c.isLetter()) {
-                slots.add(listOf(c.lowercaseChar().toString()))
+                tokenStack.push(Token.Literal(c.lowercaseChar().toString()))
             }
         }
         recompute()
@@ -119,7 +119,7 @@ class TokenPinyinDecoder(
             val ch = String(Character.toChars(cp))
             val c = ch.singleOrNull()
             if (c != null && c.isLetter() && c.isLowerCase()) {
-                slots.add(listOf(c.lowercaseChar().toString()))
+                tokenStack.push(Token.Literal(c.lowercaseChar().toString()))
                 continue
             }
 
@@ -128,7 +128,7 @@ class TokenPinyinDecoder(
             // - append the uppercase letter into the prefix
             // - keep composing for the next segment (no editor commit here)
             if (c != null && c.isLetter() && c.isUpperCase()) {
-                if (slots.isNotEmpty()) {
+                if (!tokenStack.isEmpty()) {
                     val commit = lastCandidates.firstOrNull()?.takeIf(String::isNotBlank) ?: bestGuessLetters
                     if (commit.isNotBlank()) fixedPrefix += commit
                     clearSegment()
@@ -145,7 +145,7 @@ class TokenPinyinDecoder(
                 continue
             }
 
-            if (slots.isNotEmpty() || fixedPrefix.isNotEmpty()) {
+            if (!tokenStack.isEmpty() || fixedPrefix.isNotEmpty()) {
                 val commit = buildCommitText()
                 clearAll()
                 if (commit.isNotBlank()) {
@@ -169,18 +169,21 @@ class TokenPinyinDecoder(
                 .distinct()
         if (options.isEmpty()) return currentUpdate()
 
-        slots.add(options)
+        tokenStack.push(Token.SymbolSet(options))
         recompute()
         return currentUpdate()
     }
 
     private fun recompute() {
-        if (slots.isEmpty()) {
+        if (tokenStack.isEmpty()) {
             bestGuessLetters = ""
             lastCandidates = emptyList()
             lastOptions = emptyList()
             return
         }
+
+        // Extract letter options from tokens in the stack
+        val slots = tokenStack.extractLetterOptions()
 
         val isDeterministic = slots.all { it.size == 1 && it[0].length == 1 }
         if (isDeterministic) {
@@ -242,7 +245,7 @@ class TokenPinyinDecoder(
     }
 
     private fun buildCommitText(): String {
-        if (slots.isEmpty()) return fixedPrefix
+        if (tokenStack.isEmpty()) return fixedPrefix
         val seg = lastCandidates.firstOrNull()?.takeIf(String::isNotBlank) ?: bestGuessLetters
         return fixedPrefix + seg
     }
@@ -253,7 +256,7 @@ class TokenPinyinDecoder(
     }
 
     private fun clearSegment() {
-        slots.clear()
+        tokenStack.clear()
         bestGuessLetters = ""
         lastCandidates = emptyList()
         lastOptions = emptyList()
