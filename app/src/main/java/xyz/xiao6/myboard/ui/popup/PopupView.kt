@@ -44,15 +44,19 @@ class PopupView(
         this.theme = theme?.let { ThemeRuntime(it) }
 
         val runtime = this.theme
-        val surfaceBg = runtime?.resolveColor(theme?.keyPopup?.surface?.background?.color, Color.parseColor("#CC000000"))
-            ?: Color.parseColor("#CC000000")
-        val strokeColor = runtime?.resolveColor(theme?.keyPopup?.surface?.stroke?.color, Color.parseColor("#55FFFFFF"))
-            ?: Color.parseColor("#55FFFFFF")
-        val textColor = runtime?.resolveColor(theme?.keyPopup?.text?.color, Color.WHITE) ?: Color.WHITE
+        
+        // Modern popup styling with larger corner radius
+        val surfaceBg = runtime?.resolveColor(theme?.keyPopup?.surface?.background?.color, Color.parseColor("#FFFFFFFF"))
+            ?: Color.parseColor("#FFFFFFFF")
+        val strokeColor = runtime?.resolveColor(theme?.keyPopup?.surface?.stroke?.color, Color.parseColor("#FFE2E8F0"))
+            ?: Color.parseColor("#FFE2E8F0")
+        val textColor = runtime?.resolveColor(theme?.keyPopup?.text?.color, Color.parseColor("#FF1A1C1E")) 
+            ?: Color.parseColor("#FF1A1C1E")
+            
         previewTextView.setTextColor(textColor)
         (previewTextView.background as? GradientDrawable)?.apply {
             setColor(surfaceBg)
-            setStroke(dpInt(theme?.keyPopup?.surface?.stroke?.widthDp ?: 1f), strokeColor)
+            setStroke(dpInt(theme?.keyPopup?.surface?.stroke?.widthDp ?: 0f), strokeColor)
         }
 
         candidatesContainer.applyTheme(theme, runtime)
@@ -98,7 +102,7 @@ class PopupView(
             keyRectInAnchor = keyRectInAnchor,
             popupWidth = w,
             popupHeight = h,
-            preferAbovePadding = dpInt(6f),
+            preferAbovePadding = dpInt(8f),
             forceAbove = forceAbove,
         )
 
@@ -142,7 +146,7 @@ class PopupView(
             keyRectInAnchor = keyRectInAnchor,
             popupWidth = w,
             popupHeight = h,
-            preferAbovePadding = dpInt(10f),
+            preferAbovePadding = dpInt(12f),
         )
 
         (candidatesContainer.layoutParams as? FrameLayout.LayoutParams)?.let { lp ->
@@ -197,16 +201,18 @@ class PopupView(
 
     private fun buildPreviewTextView(): TextView {
         return TextView(context).apply {
-            setTextColor(Color.WHITE)
-            textSize = 28f
+            setTextColor(Color.parseColor("#FF1A1C1E"))
+            textSize = 32f
             applyAppFont(bold = true)
             gravity = Gravity.CENTER
-            setPadding(dpInt(18f), dpInt(12f), dpInt(18f), dpInt(12f))
+            setPadding(dpInt(24f), dpInt(16f), dpInt(24f), dpInt(16f))
             background = GradientDrawable().apply {
                 shape = GradientDrawable.RECTANGLE
-                cornerRadius = dp(12f)
-                setColor(Color.parseColor("#CC000000"))
-                setStroke(dpInt(1f), Color.parseColor("#55FFFFFF"))
+                // Larger corner radius for modern look
+                cornerRadius = dp(16f)
+                setColor(Color.parseColor("#FFFFFFFF"))
+                setStroke(dpInt(0f), Color.parseColor("#FFE2E8F0"))
+                // Add subtle shadow effect through padding
             }
         }
     }
@@ -258,22 +264,22 @@ class PopupView(
     }
 
     private fun clampX(desiredX: Int, popupWidth: Int): Int {
-        val minX = dpInt(4f)
-        val maxX = host.width - popupWidth - dpInt(4f)
+        val minX = dpInt(8f)
+        val maxX = host.width - popupWidth - dpInt(8f)
         return desiredX.coerceIn(minX, max(minX, maxX))
     }
 
     private fun clampYPreferAbove(aboveY: Int, belowY: Int, popupHeight: Int): Int {
-        val minY = dpInt(4f)
-        val maxY = host.height - popupHeight - dpInt(4f)
+        val minY = dpInt(8f)
+        val maxY = host.height - popupHeight - dpInt(8f)
         val clampedAbove = aboveY.coerceIn(minY, max(minY, maxY))
         if (aboveY >= minY) return clampedAbove
         return belowY.coerceIn(minY, max(minY, maxY))
     }
 
     private fun clampYAboveOnly(aboveY: Int, popupHeight: Int): Int {
-        val minY = dpInt(4f)
-        val maxY = host.height - popupHeight - dpInt(4f)
+        val minY = dpInt(8f)
+        val maxY = host.height - popupHeight - dpInt(8f)
         return aboveY.coerceIn(minY, max(minY, maxY))
     }
 
@@ -283,35 +289,38 @@ class PopupView(
         private var candidates: List<String> = emptyList()
         private var selectedIndex: Int = 0
         private var hasTouchedSelection: Boolean = false
-        private var itemTextColor: Int = Color.WHITE
-        private var itemSelectedBg: Int = Color.parseColor("#FF3A7AFE")
+        private var itemTextColor: Int = Color.parseColor("#FF1A1C1E")
+        private var itemSelectedBg: Int = Color.parseColor("#FF3B82F6")
         private var itemSelectedText: Int = Color.WHITE
 
         init {
             orientation = HORIZONTAL
-            setPadding(dpInt(8f), dpInt(8f), dpInt(8f), dpInt(8f))
+            setPadding(dpInt(10f), dpInt(10f), dpInt(10f), dpInt(10f))
             background = GradientDrawable().apply {
                 shape = GradientDrawable.RECTANGLE
-                cornerRadius = dp(12f)
-                setColor(Color.parseColor("#EE1F1F1F"))
-                setStroke(dpInt(1f), Color.parseColor("#55FFFFFF"))
+                // Larger corner radius for modern look
+                cornerRadius = dp(20f)
+                setColor(Color.parseColor("#FFFFFFFF"))
+                setStroke(dpInt(1f), Color.parseColor("#FFE2E8F0"))
             }
             isClickable = true
         }
 
         fun applyTheme(theme: ThemeSpec?, runtime: ThemeRuntime?) {
-            val surfaceBg = runtime?.resolveColor(theme?.keyPopup?.surface?.background?.color, Color.parseColor("#EE1F1F1F"))
-                ?: Color.parseColor("#EE1F1F1F")
-            val strokeColor = runtime?.resolveColor(theme?.keyPopup?.surface?.stroke?.color, Color.parseColor("#55FFFFFF"))
-                ?: Color.parseColor("#55FFFFFF")
+            val surfaceBg = runtime?.resolveColor(theme?.keyPopup?.surface?.background?.color, Color.parseColor("#FFFFFFFF"))
+                ?: Color.parseColor("#FFFFFFFF")
+            val strokeColor = runtime?.resolveColor(theme?.keyPopup?.surface?.stroke?.color, Color.parseColor("#FFE2E8F0"))
+                ?: Color.parseColor("#FFE2E8F0")
             val strokeWidth = dpInt(theme?.keyPopup?.surface?.stroke?.widthDp ?: 1f)
             (background as? GradientDrawable)?.apply {
                 setColor(surfaceBg)
                 setStroke(strokeWidth, strokeColor)
             }
-            itemTextColor = runtime?.resolveColor(theme?.keyPopup?.text?.color, Color.WHITE) ?: Color.WHITE
+            itemTextColor = runtime?.resolveColor(theme?.keyPopup?.text?.color, Color.parseColor("#FF1A1C1E")) 
+                ?: Color.parseColor("#FF1A1C1E")
             itemSelectedText = runtime?.resolveColor(theme?.keyPopup?.textSelected?.color, Color.WHITE) ?: Color.WHITE
-            itemSelectedBg = runtime?.resolveColor("colors.accent", Color.parseColor("#FF3A7AFE")) ?: Color.parseColor("#FF3A7AFE")
+            itemSelectedBg = runtime?.resolveColor("colors.accent", Color.parseColor("#FF3B82F6")) 
+                ?: Color.parseColor("#FF3B82F6")
             refreshSelection()
         }
 
@@ -385,18 +394,19 @@ class PopupView(
             return TextView(context).apply {
                 layoutParams =
                     LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT).apply {
-                        marginEnd = if (index == candidates.lastIndex) 0 else dpInt(6f)
+                        marginEnd = if (index == candidates.lastIndex) 0 else dpInt(8f)
                     }
-                minWidth = dpInt(44f)
-                setPadding(dpInt(12f), dpInt(10f), dpInt(12f), dpInt(10f))
+                minWidth = dpInt(48f)
+                setPadding(dpInt(14f), dpInt(12f), dpInt(14f), dpInt(12f))
                 gravity = Gravity.CENTER
-                textSize = 18f
+                textSize = 20f
                 setTextColor(itemTextColor)
                 this.text = text
-                applyAppFont()
+                applyAppFont(bold = false)
                 background = GradientDrawable().apply {
                     shape = GradientDrawable.RECTANGLE
-                    cornerRadius = dp(10f)
+                    // Modern rounded corners for each item
+                    cornerRadius = dp(14f)
                     setColor(Color.parseColor("#00000000"))
                 }
             }

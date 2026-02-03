@@ -19,11 +19,27 @@
       "rightDp": 6
     }
   },
+  "metadata": {
+    "layoutType": "qwerty",
+    "defaultEngine": "EN_DIRECT",
+    "description": "Standard QWERTY layout with number hints"
+  },
+  "features": {
+    "showHints": true,
+    "showLabels": true,
+    "showIcons": true,
+    "enableLongPress": true,
+    "enableGestures": true,
+    "enableKeyPreview": true,
+    "enableHapticFeedback": true,
+    "enableSoundFeedback": false
+  },
   "rows": [
     {
       "rowId": "row_1_alpha",
       "heightRatio": 0.25,
       "alignment": "JUSTIFY",
+      "rowType": "ALPHA",
       "keys": [
         {
           "keyId": "key_q",
@@ -361,6 +377,7 @@
       "rowId": "row_2_alpha",
       "heightRatio": 0.25,
       "alignment": "CENTER",
+      "rowType": "ALPHA",
       "keys": [
         {
           "keyId": "key_a",
@@ -559,7 +576,7 @@
                   "doActions": [
                     {
                       "type": "COMMIT_TEXT",
-                      "text": "“"
+                      "text": "\""
                     }
                   ]
                 }
@@ -605,7 +622,7 @@
                   "doActions": [
                     {
                       "type": "COMMIT_TEXT",
-                      "text": "”"
+                      "text": "\""
                     }
                   ]
                 }
@@ -691,6 +708,7 @@
       "rowId": "row_3_alpha",
       "heightRatio": 0.25,
       "alignment": "JUSTIFY",
+      "rowType": "ALPHA",
       "keys": [
         {
           "keyId": "key_shift",
@@ -991,6 +1009,7 @@
       "rowId": "row_4_function",
       "heightRatio": 0.25,
       "alignment": "JUSTIFY",
+      "rowType": "FUNCTION",
       "keys": [
         {
           "keyId": "key_symbols",

@@ -134,6 +134,7 @@ fun AppearanceSettings(
         val manager = ThemeManager(context).loadAll()
         val names =
             mapOf(
+                "modern" to context.getString(R.string.settings_theme_modern),
                 "default" to context.getString(R.string.settings_theme_default),
                 "sand" to context.getString(R.string.settings_theme_sand),
                 "slate" to context.getString(R.string.settings_theme_slate),

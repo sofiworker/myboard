@@ -67,7 +67,8 @@
     <string name="settings_theme_import">导入自定义主题</string>
     <string name="settings_theme_import_desc">导入主题 JSON 文件</string>
     <string name="settings_theme_import_failed">导入失败，请检查 JSON 文件。</string>
-    <string name="settings_theme_default">默认</string>
+    <string name="settings_theme_modern">现代</string>
+    <string name="settings_theme_default">经典</string>
     <string name="settings_theme_sand">暖沙</string>
     <string name="settings_theme_slate">蓝石板</string>
     <string name="settings_dictionaries">字典</string>

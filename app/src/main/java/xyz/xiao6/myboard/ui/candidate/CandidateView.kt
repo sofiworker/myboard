@@ -29,17 +29,18 @@ class CandidateView @JvmOverloads constructor(
     defStyleAttr: Int = 0,
 ) : FrameLayout(context, attrs, defStyleAttr) {
 
-    private var textColor: Int = Color.BLACK
-    private var surfaceBackground: Int = Color.parseColor("#F2F2F7")
-    private var surfaceStroke: Int = Color.parseColor("#14000000")
+    private var textColor: Int = Color.parseColor("#FF1A1C1E")
+    private var surfaceBackground: Int = Color.parseColor("#FFFFFFFF")
+    private var surfaceStroke: Int = Color.parseColor("#FFE2E8F0")
     private var embeddedInToolbar: Boolean = false
-    private var fontSizeSp: Float = 16f
+    private var fontSizeSp: Float = 18f
     private var fontWeight: Int = 400
+    private var itemSelectedColor: Int = Color.parseColor("#FF3B82F6")
 
     private val surfaceDrawable =
         GradientDrawable().apply {
             shape = GradientDrawable.RECTANGLE
-            cornerRadius = dp(10f)
+            cornerRadius = dp(20f)
             setColor(surfaceBackground)
             setStroke(dp(1f).toInt(), surfaceStroke)
         }
@@ -54,6 +55,10 @@ class CandidateView @JvmOverloads constructor(
     init {
         settingsStore = SettingsStore(context)
         background = surfaceDrawable
+        
+        // Add padding for modern look
+        setPadding(dp(6f).toInt(), dp(4f).toInt(), dp(6f).toInt(), dp(4f).toInt())
+        
         recyclerView = RecyclerView(context).apply {
             layoutParams = LayoutParams(
                 LayoutParams.MATCH_PARENT,
@@ -63,11 +68,14 @@ class CandidateView @JvmOverloads constructor(
             layoutManager = LinearLayoutManager(context, LinearLayoutManager.HORIZONTAL, false)
             itemAnimator = null
             setHasFixedSize(true)
+            // Add padding for items
+            setPaddingRelative(dp(8f).toInt(), 0, dp(8f).toInt(), 0)
         }
         adapter = CandidateAdapter(
             resolveTextColor = { textColor },
             resolveFontSize = { fontSizeSp },
             resolveFontWeight = { fontWeight },
+            resolveSelectedColor = { itemSelectedColor },
             onClick = { text -> onCandidateClick?.invoke(text) },
             onLongClick = { anchor, text -> onCandidateLongPress?.invoke(anchor, text) },
         )
@@ -87,6 +95,7 @@ class CandidateView @JvmOverloads constructor(
         surfaceBackground = runtime?.resolveColor(theme?.candidates?.surface?.background?.color, surfaceBackground) ?: surfaceBackground
         surfaceStroke = runtime?.resolveColor(theme?.candidates?.surface?.stroke?.color, surfaceStroke) ?: surfaceStroke
         textColor = runtime?.resolveColor(theme?.candidates?.candidateText?.color, textColor) ?: textColor
+        itemSelectedColor = runtime?.resolveColor("colors.accent", itemSelectedColor) ?: itemSelectedColor
         fontSizeSp = settingsStore.candidateFontSizeSp
         fontWeight = settingsStore.candidateFontWeight
         surfaceDrawable.apply {
@@ -105,6 +114,7 @@ class CandidateView @JvmOverloads constructor(
         private val resolveTextColor: () -> Int,
         private val resolveFontSize: () -> Float,
         private val resolveFontWeight: () -> Int,
+        private val resolveSelectedColor: () -> Int,
         private val onClick: (String) -> Unit,
         private val onLongClick: (View, String) -> Unit,
     ) : ListAdapter<String, CandidateViewHolder>(DIFF) {
@@ -115,13 +125,13 @@ class CandidateView @JvmOverloads constructor(
                     ViewGroup.LayoutParams.WRAP_CONTENT,
                     ViewGroup.LayoutParams.MATCH_PARENT,
                 )
-                minWidth = (parent.context.resources.displayMetrics.density * 48f).toInt()
+                minWidth = (parent.context.resources.displayMetrics.density * 52f).toInt()
                 gravity = Gravity.CENTER
                 setPaddingRelative(
-                    (parent.context.resources.displayMetrics.density * 12f).toInt(),
-                    0,
-                    (parent.context.resources.displayMetrics.density * 12f).toInt(),
-                    0,
+                    (parent.context.resources.displayMetrics.density * 14f).toInt(),
+                    (parent.context.resources.displayMetrics.density * 8f).toInt(),
+                    (parent.context.resources.displayMetrics.density * 14f).toInt(),
+                    (parent.context.resources.displayMetrics.density * 8f).toInt(),
                 )
                 applyAppFont()
             }
@@ -133,7 +143,8 @@ class CandidateView @JvmOverloads constructor(
                 getItem(position),
                 resolveTextColor(),
                 resolveFontSize(),
-                resolveFontWeight()
+                resolveFontWeight(),
+                position == 0 // First item is considered selected/default
             )
         }
 
@@ -152,15 +163,25 @@ class CandidateView @JvmOverloads constructor(
         private val onLongClick: (View, String) -> Unit,
     ) : RecyclerView.ViewHolder(textView) {
 
-        fun bind(text: String, textColor: Int, fontSizeSp: Float, fontWeight: Int) {
+        fun bind(text: String, textColor: Int, fontSizeSp: Float, fontWeight: Int, isFirst: Boolean) {
             textView.text = text
             textView.setTextColor(textColor)
             textView.textSize = fontSizeSp
             textView.setTypeface(null, when {
-                fontWeight >= 700 -> Typeface.BOLD
+                fontWeight >= 700 || isFirst -> Typeface.BOLD
                 fontWeight >= 500 -> Typeface.BOLD
                 else -> Typeface.NORMAL
             })
+            // Add rounded background for first item
+            if (isFirst) {
+                textView.background = GradientDrawable().apply {
+                    shape = GradientDrawable.RECTANGLE
+                    cornerRadius = textView.context.resources.displayMetrics.density * 12f
+                    setColor(Color.parseColor("#103B82F6")) // Subtle accent background
+                }
+            } else {
+                textView.background = null
+            }
             textView.setOnClickListener { onClick(text) }
             textView.setOnLongClickListener {
                 onLongClick(textView, text)

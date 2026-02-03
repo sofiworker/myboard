@@ -19,11 +19,27 @@
       "rightDp": 8
     }
   },
+  "metadata": {
+    "layoutType": "t9",
+    "defaultEngine": "ZH_PINYIN",
+    "description": "T9 keypad layout with symbol quick access row"
+  },
+  "features": {
+    "showHints": true,
+    "showLabels": true,
+    "showIcons": true,
+    "enableLongPress": true,
+    "enableGestures": true,
+    "enableKeyPreview": true,
+    "enableHapticFeedback": true,
+    "enableSoundFeedback": false
+  },
   "rows": [
     {
       "rowId": "row_1",
       "heightRatio": 0.25,
       "alignment": "JUSTIFY",
+      "rowType": "ALPHA",
       "keys": [
         {
           "keyId": "key_comma",
@@ -201,6 +217,7 @@
       "rowId": "row_2",
       "heightRatio": 0.25,
       "alignment": "JUSTIFY",
+      "rowType": "ALPHA",
       "keys": [
         {
           "keyId": "key_period",
@@ -375,6 +392,7 @@
       "rowId": "row_3",
       "heightRatio": 0.25,
       "alignment": "JUSTIFY",
+      "rowType": "ALPHA",
       "keys": [
         {
           "keyId": "key_question",
@@ -561,6 +579,7 @@
       "rowId": "row_4",
       "heightRatio": 0.25,
       "alignment": "JUSTIFY",
+      "rowType": "FUNCTION",
       "keys": [
         {
           "keyId": "key_symbols",

@@ -232,7 +232,7 @@ class SettingsStore(context: Context) {
         }
 
     var keyboardThemeId: String?
-        get() = readString(KEY_KEYBOARD_THEME_ID)
+        get() = readString(KEY_KEYBOARD_THEME_ID) ?: DEFAULT_KEYBOARD_THEME_ID
         set(value) {
             writeString(KEY_KEYBOARD_THEME_ID, value?.trim())
         }
@@ -389,6 +389,7 @@ class SettingsStore(context: Context) {
     }
 
     private companion object {
+        private const val DEFAULT_KEYBOARD_THEME_ID = "modern"
         private const val KEY_ONBOARDING_COMPLETED = "onboarding_completed"
         private const val KEY_USER_LOCALE_TAG = "user_locale_tag"
         private const val KEY_ENABLED_LOCALES = "enabled_locale_tags"

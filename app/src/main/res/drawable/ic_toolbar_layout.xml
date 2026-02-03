@@ -1,10 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp"
     android:height="24dp"
     android:viewportWidth="24"
     android:viewportHeight="24">
+    <!-- Modern keyboard layout icon -->
     <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M7,10L3,14l4,4v-3h10v3l4,-4l-4,-4v3H7z" />
+        android:fillColor="#000000"
+        android:pathData="M20,4H4C2.9,4 2,4.9 2,6V18C2,19.1 2.9,20 4,20H20C21.1,20 22,19.1 22,18V6C22,4.9 21.1,4 20,4ZM20,18H4V6H20V18ZM6,10H8V12H6V10ZM6,14H8V16H6V14ZM10,10H12V12H10V10ZM10,14H12V16H10V14ZM14,10H16V12H14V10ZM14,14H16V16H14V14ZM18,10H20V12H18V10ZM18,14H20V16H18V14Z" />
 </vector>
-

@@ -60,11 +60,12 @@ class ToolbarView @JvmOverloads constructor(
     private var maxVisibleCount: Int = 0
 
     init {
+        // Modern toolbar styling with larger corner radius and subtle elevation
         background = GradientDrawable().apply {
             shape = GradientDrawable.RECTANGLE
-            cornerRadius = dp(context, 12f)
-            setColor(Color.parseColor("#EE1F1F1F"))
-            setStroke(dp(context, 1f).toInt(), Color.parseColor("#55FFFFFF"))
+            cornerRadius = dp(context, 20f)
+            setColor(Color.parseColor("#FFFFFFFF"))
+            setStroke(dp(context, 1f).toInt(), Color.parseColor("#FFE2E8F0"))
         }
         recyclerView = RecyclerView(context).apply {
             layoutParams = LayoutParams(

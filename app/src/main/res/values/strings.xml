@@ -182,7 +182,8 @@
     <string name="settings_theme_import">Import custom theme</string>
     <string name="settings_theme_import_desc">Import a theme JSON file</string>
     <string name="settings_theme_import_failed">Import failed. Please check the JSON file.</string>
-    <string name="settings_theme_default">Default</string>
+    <string name="settings_theme_modern">Modern</string>
+    <string name="settings_theme_default">Classic</string>
     <string name="settings_theme_sand">Warm Sand</string>
     <string name="settings_theme_slate">Blue Slate</string>
     <string name="settings_theme_preview_title">Theme preview</string>
