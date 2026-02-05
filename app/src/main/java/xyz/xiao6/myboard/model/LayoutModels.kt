@@ -2,50 +2,6 @@ package xyz.xiao6.myboard.model
 
 import kotlinx.serialization.Serializable
 
-/**
- * 布局功能开关配置，控制整个布局的显示和行为特性。
- */
-@Serializable
-data class LayoutFeatures(
-    /** 是否显示 hints（所有键的提示文字） */
-    val showHints: Boolean = true,
-    /** 是否显示 labels（键的主标签） */
-    val showLabels: Boolean = true,
-    /** 是否显示图标 */
-    val showIcons: Boolean = true,
-    /** 是否启用长按功能 */
-    val enableLongPress: Boolean = true,
-    /** 是否启用手势功能 */
-    val enableGestures: Boolean = true,
-    /** 是否启用预览气泡 */
-    val enableKeyPreview: Boolean = true,
-    /** 是否启用震动反馈 */
-    val enableHapticFeedback: Boolean = true,
-    /** 是否启用声音反馈 */
-    val enableSoundFeedback: Boolean = false,
-    /** 自定义功能开关 */
-    val customFlags: Map<String, Boolean> = emptyMap(),
-)
-
-@Serializable
-/**
- * 布局元数据，描述布局的特性和能力。
- */
-data class LayoutMetadata(
-    /** 布局类型（如 "qwerty", "t9", "numeric"） */
-    val layoutType: String? = null,
-    /** 默认输入引擎 */
-    val defaultEngine: String? = null,
-    /** 布局描述 */
-    val description: String? = null,
-    /** 作者 */
-    val author: String? = null,
-    /** 版本 */
-    val version: String? = null,
-    /** 自定义属性 */
-    val properties: Map<String, String> = emptyMap(),
-)
-
 @Serializable
 /**
  * 键盘布局（结构 + 几何参数），用于从 JSON 驱动渲染与交互。
@@ -83,14 +39,6 @@ data class KeyboardLayout(
      * 全局默认值（间距、内边距等）。
      */
     val defaults: LayoutDefaults = LayoutDefaults(),
-    /**
-     * 布局元数据。
-     */
-    val metadata: LayoutMetadata = LayoutMetadata(),
-    /**
-     * 布局功能开关。
-     */
-    val features: LayoutFeatures = LayoutFeatures(),
     /**
      * 行列表（从上到下）。
      */

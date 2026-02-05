@@ -89,6 +89,18 @@
             android:layout_height="match_parent"
             android:visibility="gone" />
 
+        <xyz.xiao6.myboard.ui.handwriting.ModernHandwritingContainerView
+            android:id="@+id/handwritingView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="gone" />
+
+        <xyz.xiao6.myboard.ui.voice.VoiceInputView
+            android:id="@+id/voiceInputView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="gone" />
+
         <!-- Popup overlay above keyboard (key preview + long-press candidates). -->
         <FrameLayout
             android:id="@+id/popupHost"

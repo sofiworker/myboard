@@ -19,6 +19,7 @@ import xyz.xiao6.myboard.R
 import xyz.xiao6.myboard.model.ThemeSpec
 import xyz.xiao6.myboard.ui.candidate.CandidateView
 import xyz.xiao6.myboard.ui.theme.ThemeRuntime
+import xyz.xiao6.myboard.ui.theme.DesignTokens
 
 /**
  * 工具栏/功能栏（固定高度，横向滚动）。
@@ -60,12 +61,11 @@ class ToolbarView @JvmOverloads constructor(
     private var maxVisibleCount: Int = 0
 
     init {
-        // Modern toolbar styling with larger corner radius and subtle elevation
         background = GradientDrawable().apply {
             shape = GradientDrawable.RECTANGLE
-            cornerRadius = dp(context, 20f)
+            cornerRadius = dp(context, 24f)
             setColor(Color.parseColor("#FFFFFFFF"))
-            setStroke(dp(context, 1f).toInt(), Color.parseColor("#FFE2E8F0"))
+            setStroke(0, Color.TRANSPARENT)
         }
         recyclerView = RecyclerView(context).apply {
             layoutParams = LayoutParams(
@@ -106,10 +106,12 @@ class ToolbarView @JvmOverloads constructor(
         overflowButton = ImageButton(context).apply {
             layoutParams = LayoutParams(overflowButtonWidthPx, LayoutParams.MATCH_PARENT, Gravity.END or Gravity.CENTER_VERTICAL)
             setBackgroundResource(android.R.color.transparent)
-            setImageResource(R.drawable.arrow_down_s_fill)
+            setImageResource(R.drawable.arrow_down_wide_line)
             contentDescription = "More"
             imageTintList = iconTint
-            scaleType = ImageView.ScaleType.CENTER
+            scaleType = ImageView.ScaleType.CENTER_INSIDE
+            val p = dp(context, 10f).toInt()
+            setPadding(p, p, p, p)
             setOnClickListener { onOverflowClick?.invoke() }
             setOnLongClickListener {
                 onOverflowLongClick?.invoke()
@@ -249,8 +251,9 @@ class ToolbarView @JvmOverloads constructor(
                 val width = itemWidthPx ?: dp(parent.context, 48f).toInt()
                 layoutParams = RecyclerView.LayoutParams(width, ViewGroup.LayoutParams.MATCH_PARENT)
                 setBackgroundResource(android.R.color.transparent)
-                scaleType = ImageView.ScaleType.CENTER
-                adjustViewBounds = true
+                scaleType = ImageView.ScaleType.CENTER_INSIDE
+                val padding = dp(parent.context, 10f).toInt()
+                setPadding(padding, padding, padding, padding)
                 imageTintList = tintProvider?.invoke() ?: ColorStateList.valueOf(Color.WHITE)
             }
             return ToolbarViewHolder(button, onClick, onLongClick)

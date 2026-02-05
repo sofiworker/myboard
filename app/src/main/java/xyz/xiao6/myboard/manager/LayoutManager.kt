@@ -31,11 +31,12 @@ class LayoutManager(
      * 一次性加载 assets/layouts 与用户自定义布局。
      * Loads built-in layouts and user-defined layouts.
      */
+    @Synchronized
     fun loadAll(): LayoutManager {
         if (loaded) return this
-        loaded = true
         loadBuiltInFromAssets()
         loadUserDefinedFromFiles()
+        loaded = true
         return this
     }
 
@@ -43,13 +44,15 @@ class LayoutManager(
      * 一次性加载 assets/layouts 目录下所有 .json 作为候选布局。
      * Loads all *.json under assets/layouts as available layouts.
      */
+    @Synchronized
     fun loadAllFromAssets(): LayoutManager {
         if (loaded) return this
-        loaded = true
         loadBuiltInFromAssets()
+        loaded = true
         return this
     }
 
+    @Synchronized
     fun reloadAll(): LayoutManager {
         loaded = false
         layoutsById.clear()
@@ -61,14 +64,13 @@ class LayoutManager(
      * 通过 layoutId 获取布局。
      * Get a layout by layoutId.
      */
-    fun getLayout(layoutId: String): KeyboardLayout {
-        ensureLoaded()
+    fun getLayout(layoutId: String): KeyboardLayout? {
+        loadAll()
         return layoutsById[layoutId]
-            ?: error("Layout not found: $layoutId (available=${layoutsById.keys})")
     }
 
     fun listLayoutIds(): List<String> {
-        ensureLoaded()
+        loadAll()
         return layoutsById.keys.toList()
     }
 

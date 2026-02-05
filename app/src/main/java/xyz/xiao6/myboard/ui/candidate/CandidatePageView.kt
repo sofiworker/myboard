@@ -1,6 +1,7 @@
 package xyz.xiao6.myboard.ui.candidate
 
 import android.content.Context
+import android.content.res.ColorStateList
 import android.graphics.Color
 import android.graphics.Canvas
 import android.graphics.Paint
@@ -13,6 +14,8 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
+import android.widget.ImageButton
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.recyclerview.widget.DiffUtil
@@ -20,6 +23,7 @@ import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
+import xyz.xiao6.myboard.R
 import xyz.xiao6.myboard.model.ThemeSpec
 import xyz.xiao6.myboard.ui.theme.AppFont
 import xyz.xiao6.myboard.ui.theme.applyAppFont
@@ -28,10 +32,10 @@ import kotlin.math.ceil
 import kotlin.math.max
 
 /**
- * Expanded candidate page overlay (does not change IME window height):
+ * Expanded candidate page overlay:
  * - Left: vertical scroll pinyin segments
- * - Center: grid candidates
- * - Right: actions (back/delete/retype placeholders)
+ * - Center: grid candidates (card style)
+ * - Right: actions (back/delete/retype with modern icons)
  */
 class CandidatePageView @JvmOverloads constructor(
     context: Context,
@@ -62,13 +66,13 @@ class CandidatePageView @JvmOverloads constructor(
             textSize = sp(26f)
             applyAppFont(context)
         }
-    private val leftDividerDecoration = SimpleDividerDecoration(Color.parseColor("#14000000"), dp(1f))
-    private val gridDividerDecoration = ExcelGridDecoration(Color.parseColor("#22000000"), dp(1f))
+    private val leftDividerDecoration = SimpleDividerDecoration(Color.TRANSPARENT, 0f)
+    private val gridDividerDecoration = ExcelGridDecoration(Color.TRANSPARENT, 0f)
 
     init {
         background = GradientDrawable().apply {
             shape = GradientDrawable.RECTANGLE
-            setColor(Color.parseColor("#F2F2F7"))
+            setColor(Color.parseColor("#F1F3F4"))
         }
 
         val root = LinearLayout(context).apply {
@@ -81,7 +85,7 @@ class CandidatePageView @JvmOverloads constructor(
             overScrollMode = OVER_SCROLL_NEVER
             layoutManager = LinearLayoutManager(context, LinearLayoutManager.VERTICAL, false)
             adapter = pinyinAdapter
-            setBackgroundColor(Color.parseColor("#FAFAFA"))
+            setBackgroundColor(Color.parseColor("#08000000"))
             addItemDecoration(leftDividerDecoration)
         }
 
@@ -104,28 +108,49 @@ class CandidatePageView @JvmOverloads constructor(
                     onLongPress = { anchor, text -> onCandidateLongPress?.invoke(anchor, text) }
                     onPreviewDismiss = { onCandidatePreviewDismiss?.invoke() }
                 }
-            setBackgroundColor(Color.WHITE)
+            setBackgroundColor(Color.TRANSPARENT)
             itemAnimator = null
+            setPadding(dp(4f).toInt(), dp(4f).toInt(), dp(4f).toInt(), dp(4f).toInt())
+            clipToPadding = false
             addItemDecoration(gridDividerDecoration)
         }
 
         rightActions = LinearLayout(context).apply {
-            layoutParams = LinearLayout.LayoutParams(dp(84f).toInt(), LayoutParams.MATCH_PARENT)
+            layoutParams = LinearLayout.LayoutParams(dp(64f).toInt(), LayoutParams.MATCH_PARENT)
             orientation = LinearLayout.VERTICAL
-            setBackgroundColor(Color.parseColor("#FAFAFA"))
-            addView(actionButton("返回") { onBack?.invoke() })
-            addView(actionSpacer())
-            addView(actionButton("⌫") { onBackspace?.invoke() })
-            addView(actionSpacer())
-            addView(actionButton("重输") { onRetype?.invoke() })
+            gravity = Gravity.CENTER_HORIZONTAL
+            setPadding(dp(8f).toInt(), dp(8f).toInt(), dp(8f).toInt(), dp(8f).toInt())
+            setBackgroundColor(Color.parseColor("#08000000"))
+            
+            addView(actionIconButton(R.drawable.arrow_down_wide_line) { onBack?.invoke() })
+            addView(View(context).apply { layoutParams = LinearLayout.LayoutParams(1, 0, 1f) })
+            addView(actionIconButton(R.drawable.delete_back_2_line) { onBackspace?.invoke() })
+            addView(actionIconButton(R.drawable.ic_symbols_back) { onRetype?.invoke() })
         }
 
         root.addView(leftList)
-        root.addView(dividerVertical())
         root.addView(centerGrid)
-        root.addView(dividerVertical())
         root.addView(rightActions)
         addView(root)
+    }
+
+    private fun actionIconButton(@androidx.annotation.DrawableRes id: Int, onClick: () -> Unit): View {
+        return ImageButton(context).apply {
+            layoutParams = LinearLayout.LayoutParams(dp(48f).toInt(), dp(48f).toInt()).apply {
+                topMargin = dp(4f).toInt()
+                bottomMargin = dp(4f).toInt()
+            }
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = dp(12f)
+                setColor(Color.parseColor("#DEE3EB"))
+            }
+            setImageResource(id)
+            imageTintList = ColorStateList.valueOf(Color.parseColor("#3C4043"))
+            scaleType = ImageView.ScaleType.CENTER_INSIDE
+            setPadding(dp(12f).toInt(), dp(12f).toInt(), dp(12f).toInt(), dp(12f).toInt())
+            setOnClickListener { onClick() }
+        }
     }
 
     fun submitPinyinSegments(segments: List<String>, selectedIndex: Int = 0) {
@@ -138,7 +163,6 @@ class CandidatePageView @JvmOverloads constructor(
     }
 
     fun submitCandidates(candidates: List<String>) {
-        // If called before layout, fallback to a reasonable width guess; GridLayout will relayout later anyway.
         val contentWidthPx = (centerGrid.width - centerGrid.paddingLeft - centerGrid.paddingRight).takeIf { it > 0 }
             ?: (resources.displayMetrics.widthPixels * 0.65f).toInt()
         val packed = packCandidates(candidates, availableWidthPx = contentWidthPx)
@@ -148,42 +172,28 @@ class CandidatePageView @JvmOverloads constructor(
 
     fun applyTheme(theme: ThemeSpec?) {
         val runtime = theme?.let { ThemeRuntime(it) }
-        val bg = runtime?.resolveColor(theme?.colors?.get("background"), Color.parseColor("#F2F2F7")) ?: Color.parseColor("#F2F2F7")
+        val bg = runtime?.resolveColor(theme?.layout?.background?.color, Color.parseColor("#F1F3F4")) ?: Color.parseColor("#F1F3F4")
         (background as? GradientDrawable)?.setColor(bg)
-        val divider = theme?.candidates?.divider
-        val fallbackLeft = Color.parseColor("#14000000")
-        val fallbackGrid = Color.parseColor("#22000000")
-        val dividerColor = runtime?.resolveColor(divider?.color, fallbackGrid) ?: fallbackGrid
-        val dividerWidth = dp(divider?.widthDp ?: 1f)
-        leftDividerDecoration.updateStyle(
-            color = runtime?.resolveColor(divider?.color, fallbackLeft) ?: fallbackLeft,
-            heightPx = dividerWidth,
-        )
-        gridDividerDecoration.updateStyle(color = dividerColor, widthPx = dividerWidth)
+        
+        val fnBg = runtime?.resolveColor("colors.key_bg_function", Color.parseColor("#DEE3EB")) ?: Color.parseColor("#DEE3EB")
+        val fgColor = runtime?.resolveColor("colors.key_text", Color.parseColor("#3C4043")) ?: Color.parseColor("#3C4043")
+        val accentColor = runtime?.resolveColor("colors.accent", Color.parseColor("#1A73E8")) ?: Color.parseColor("#1A73E8")
+        
+        for (i in 0 until rightActions.childCount) {
+            val child = rightActions.getChildAt(i)
+            if (child is ImageButton) {
+                (child.background as? GradientDrawable)?.setColor(fnBg)
+                child.imageTintList = ColorStateList.valueOf(fgColor)
+            }
+        }
+        
+        val cellBg = runtime?.resolveColor("colors.key_bg", Color.WHITE) ?: Color.WHITE
+        candidateAdapter.setColors(cellBg, fgColor, accentColor)
+        
+        gridDividerDecoration.updateStyle(Color.TRANSPARENT, 0f)
+        leftDividerDecoration.updateStyle(Color.TRANSPARENT, 0f)
         leftList.invalidateItemDecorations()
         centerGrid.invalidateItemDecorations()
-    }
-
-    private fun actionButton(text: String, onClick: () -> Unit): View {
-        return TextView(context).apply {
-            layoutParams = LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, dp(56f).toInt())
-            gravity = Gravity.CENTER
-            textSize = 18f
-            setTextColor(Color.parseColor("#3C3C43"))
-            this.text = text
-            applyAppFont(bold = true)
-            setOnClickListener { onClick() }
-        }
-    }
-
-    private fun actionSpacer(): View = View(context).apply {
-        layoutParams = LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, dp(1f).toInt())
-        setBackgroundColor(Color.parseColor("#14000000"))
-    }
-
-    private fun dividerVertical(): View = View(context).apply {
-        layoutParams = LinearLayout.LayoutParams(dp(1f).toInt(), LayoutParams.MATCH_PARENT)
-        setBackgroundColor(Color.parseColor("#14000000"))
     }
 
     data class CandidateCell(
@@ -210,9 +220,9 @@ class CandidatePageView @JvmOverloads constructor(
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): PinyinVH {
             val tv = TextView(parent.context).apply {
-                layoutParams = RecyclerView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(parent.context, 56f).toInt())
+                layoutParams = RecyclerView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(parent.context, 52f).toInt())
                 gravity = Gravity.CENTER
-                textSize = 22f
+                textSize = 18f
                 applyAppFont()
             }
             return PinyinVH(tv, onClick)
@@ -234,7 +244,8 @@ class CandidatePageView @JvmOverloads constructor(
     ) : RecyclerView.ViewHolder(tv) {
         fun bind(text: String, index: Int, selected: Boolean) {
             tv.text = text
-            tv.setTextColor(if (selected) Color.parseColor("#007AFF") else Color.parseColor("#3C3C43"))
+            val accent = Color.parseColor("#1A73E8")
+            tv.setTextColor(if (selected) accent else Color.parseColor("#3C4043"))
             tv.typeface = if (selected) AppFont.bold(tv.context) else AppFont.regular(tv.context)
             tv.setOnClickListener { onClick(index) }
         }
@@ -245,28 +256,51 @@ class CandidatePageView @JvmOverloads constructor(
     ) : ListAdapter<CandidateCell, CandidateVH>(DIFF) {
         var onLongPress: ((anchor: View, text: String) -> Unit)? = null
         var onPreviewDismiss: (() -> Unit)? = null
+        private var cellBgColor: Int = Color.WHITE
+        private var textColor: Int = Color.BLACK
+        private var accentColor: Int = Color.parseColor("#1A73E8")
+
+        fun setColors(bg: Int, text: Int, accent: Int) {
+            cellBgColor = bg
+            textColor = text
+            accentColor = accent
+            notifyDataSetChanged()
+        }
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): CandidateVH {
-            val tv = TextView(parent.context).apply {
+            val root = FrameLayout(parent.context).apply {
                 layoutParams = RecyclerView.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
-                    dp(parent.context, 64f).toInt(),
-                )
+                    dp(parent.context, 56f).toInt(),
+                ).apply {
+                    val m = dp(parent.context, 2f).toInt()
+                    setMargins(m, m, m, m)
+                }
+                background = GradientDrawable().apply {
+                    shape = GradientDrawable.RECTANGLE
+                    cornerRadius = dp(parent.context, 8f)
+                    setColor(cellBgColor)
+                }
+            }
+            val tv = TextView(parent.context).apply {
+                layoutParams = FrameLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT)
                 gravity = Gravity.CENTER
-                textSize = 26f
-                setTextColor(Color.BLACK)
-                setBackgroundColor(Color.WHITE)
+                textSize = 22f
+                setTextColor(textColor)
                 maxLines = 1
                 isSingleLine = true
                 ellipsize = null
-                val hp = dp(parent.context, 10f).toInt()
+                val hp = dp(parent.context, 8f).toInt()
                 setPadding(hp, 0, hp, 0)
                 applyAppFont()
             }
-            return CandidateVH(tv, onClick)
+            root.addView(tv)
+            return CandidateVH(root, tv, onClick)
         }
 
         override fun onBindViewHolder(holder: CandidateVH, position: Int) {
+            (holder.itemView.background as? GradientDrawable)?.setColor(cellBgColor)
+            holder.tv.setTextColor(if (position == 0) accentColor else textColor)
             holder.bind(getItem(position), onLongPress, onPreviewDismiss)
         }
 
@@ -282,16 +316,17 @@ class CandidatePageView @JvmOverloads constructor(
     }
 
     private class CandidateVH(
-        private val tv: TextView,
+        private val root: View,
+        val tv: TextView,
         private val onClick: (String) -> Unit,
-    ) : RecyclerView.ViewHolder(tv) {
+    ) : RecyclerView.ViewHolder(root) {
         fun bind(cell: CandidateCell, onLongPress: ((View, String) -> Unit)?, onPreviewDismiss: (() -> Unit)?) {
             tv.text = cell.text
             tv.ellipsize = if (cell.ellipsize) TextUtils.TruncateAt.END else null
-            tv.setOnClickListener { onClick(cell.text) }
+            root.setOnClickListener { onClick(cell.text) }
 
             var previewShown = false
-            tv.setOnTouchListener { _, ev ->
+            root.setOnTouchListener { _, ev ->
                 if (!previewShown) return@setOnTouchListener false
                 when (ev.actionMasked) {
                     MotionEvent.ACTION_UP,
@@ -306,7 +341,7 @@ class CandidatePageView @JvmOverloads constructor(
                     else -> false
                 }
             }
-            tv.setOnLongClickListener {
+            root.setOnLongClickListener {
                 val available = (tv.width - tv.paddingLeft - tv.paddingRight).toFloat().coerceAtLeast(0f)
                 val needed = tv.paint.measureText(cell.text)
                 if (needed > available + 1f) {
@@ -344,8 +379,6 @@ class CandidatePageView @JvmOverloads constructor(
             if (remaining == 0) return
 
             var rem = remaining
-            // First, use remaining spans to satisfy items that would otherwise truncate.
-            // neededSpan = ceil((textWidth + padding*2) / colWidth)
             while (rem > 0) {
                 var bestIndex = -1
                 var bestDeficit = 0
@@ -362,7 +395,6 @@ class CandidatePageView @JvmOverloads constructor(
                 rem -= 1
             }
 
-            // Then, spread any leftover evenly to keep rows visually "filled".
             if (rem > 0) {
                 val n = row.size
                 val each = rem / n
@@ -430,14 +462,6 @@ class CandidatePageView @JvmOverloads constructor(
         }
 
         override fun onDraw(c: Canvas, parent: RecyclerView, state: RecyclerView.State) {
-            val left = parent.paddingLeft.toFloat()
-            val right = (parent.width - parent.paddingRight).toFloat()
-            for (i in 0 until parent.childCount) {
-                val child = parent.getChildAt(i)
-                val params = child.layoutParams as? RecyclerView.LayoutParams ?: continue
-                val bottom = child.bottom + params.bottomMargin
-                c.drawRect(left, bottom.toFloat(), right, bottom + h, paint)
-            }
         }
     }
 
@@ -457,41 +481,6 @@ class CandidatePageView @JvmOverloads constructor(
         }
 
         override fun onDrawOver(c: Canvas, parent: RecyclerView, state: RecyclerView.State) {
-            val lm = parent.layoutManager as? GridLayoutManager ?: return
-            val spanCount = lm.spanCount.coerceAtLeast(1)
-            for (i in 0 until parent.childCount) {
-                val child = parent.getChildAt(i)
-                val params = child.layoutParams as? RecyclerView.LayoutParams ?: continue
-                val position = parent.getChildAdapterPosition(child)
-                if (position == RecyclerView.NO_POSITION) continue
-
-                val spanSize = lm.spanSizeLookup.getSpanSize(position).coerceAtLeast(1)
-                val spanIndex = lm.spanSizeLookup.getSpanIndex(position, spanCount)
-                val groupIndex = lm.spanSizeLookup.getSpanGroupIndex(position, spanCount)
-                val endsRow = (spanIndex + spanSize) >= spanCount
-
-                val left = (child.left - params.leftMargin).toFloat()
-                val right = (child.right + params.rightMargin).toFloat()
-                val top = (child.top - params.topMargin).toFloat()
-                val bottom = (child.bottom + params.bottomMargin).toFloat()
-
-                if (spanIndex == 0) {
-                    c.drawRect(left, top, left + w, bottom, paint)
-                }
-                if (groupIndex == 0) {
-                    c.drawRect(left, top, right, top + w, paint)
-                }
-
-                // Always draw right/bottom edges; this creates internal lines once (neighbor doesn't draw left/top).
-                c.drawRect(right, top, right + w, bottom, paint)
-                c.drawRect(left, bottom, right, bottom + w, paint)
-
-                // Outer border for the row end: already covered by the right edge above.
-                // Note: for merged cells (spanSize>1), internal lines are intentionally not drawn.
-                if (endsRow) {
-                    // no-op; kept for readability
-                }
-            }
         }
     }
 }

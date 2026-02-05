@@ -67,17 +67,17 @@ class EmojiLayoutView @JvmOverloads constructor(
     private val categoryList: RecyclerView
     private val categoryAdapter: CategoryAdapter
 
-    private var iconTint: ColorStateList = ColorStateList.valueOf(Color.WHITE)
-    private var surfaceColor: Int = Color.parseColor("#F2F2F7")
-    private var pillColor: Int = Color.parseColor("#1F000000")
-    private var toolbarTextColor: Int = Color.WHITE
-    private var toolbarTextDimColor: Int = Color.parseColor("#E5FFFFFF")
+    private var iconTint: ColorStateList = ColorStateList.valueOf(Color.parseColor("#3C4043"))
+    private var surfaceColor: Int = Color.parseColor("#F1F3F4")
+    private var pillColor: Int = Color.parseColor("#DEE3EB")
+    private var toolbarTextColor: Int = Color.parseColor("#3C4043")
+    private var toolbarTextDimColor: Int = Color.parseColor("#803C4043")
     private var searchBoxBackgroundColor: Int = Color.WHITE
-    private var searchBoxBorderColor: Int = Color.parseColor("#22000000")
-    private var searchBoxTextColor: Int = Color.BLACK
-    private var searchBoxHintColor: Int = Color.parseColor("#80000000")
-    private var gridDividerColor: Int = Color.parseColor("#22000000")
-    private var gridDividerWidthPx: Float = dp(1f)
+    private var searchBoxBorderColor: Int = Color.parseColor("#E0E0E0")
+    private var searchBoxTextColor: Int = Color.parseColor("#3C4043")
+    private var searchBoxHintColor: Int = Color.parseColor("#803C4043")
+    private var gridDividerColor: Int = Color.TRANSPARENT
+    private var gridDividerWidthPx: Float = 0f
     private var useEmojiImages: Boolean = false
     private var lastCategoryIndex: Int = -1
     private var lastMenu: EmojiMenu? = null
@@ -95,52 +95,56 @@ class EmojiLayoutView @JvmOverloads constructor(
         }
 
         val topBar = LinearLayout(context).apply {
-            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(48f).toInt())
+            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(52f).toInt())
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
             setPadding(dp(8f).toInt(), 0, dp(8f).toInt(), 0)
         }
 
-        btnBack =
-            ImageButton(context).apply {
-                layoutParams = LinearLayout.LayoutParams(dp(40f).toInt(), dp(40f).toInt())
-                setBackgroundResource(android.R.color.transparent)
-                setImageResource(R.drawable.ic_symbols_back)
+        fun toolbarButton(@androidx.annotation.DrawableRes id: Int, desc: String): ImageButton {
+            return ImageButton(context).apply {
+                layoutParams = LinearLayout.LayoutParams(dp(44f).toInt(), dp(44f).toInt())
+                background = GradientDrawable().apply {
+                    shape = GradientDrawable.OVAL
+                    setColor(Color.TRANSPARENT)
+                }
+                setImageResource(id)
                 imageTintList = iconTint
-                contentDescription = "Back"
-                setOnClickListener { onBack?.invoke() }
+                contentDescription = desc
+                scaleType = ImageView.ScaleType.CENTER_INSIDE
+                setPadding(dp(8f).toInt(), dp(8f).toInt(), dp(8f).toInt(), dp(8f).toInt())
             }
+        }
 
-        btnSearch =
-            ImageButton(context).apply {
-                layoutParams = LinearLayout.LayoutParams(dp(40f).toInt(), dp(40f).toInt())
-                setBackgroundResource(android.R.color.transparent)
-                setImageResource(R.drawable.search_line)
-                imageTintList = iconTint
-                contentDescription = "Search"
-                setOnClickListener { toggleSearch() }
-            }
+        btnBack = toolbarButton(R.drawable.arrow_down_wide_line, "Back")
+        btnSearch = toolbarButton(R.drawable.search_line, "Search")
 
         btnDelete =
             ImageButton(context).apply {
                 layoutParams =
-                    LayoutParams(dp(40f).toInt(), dp(40f).toInt()).apply {
+                    LayoutParams(dp(48f).toInt(), dp(48f).toInt()).apply {
                         gravity = Gravity.END or Gravity.TOP
-                        topMargin = dp(154f).toInt()
-                        rightMargin = dp(6f).toInt()
+                        topMargin = dp(150f).toInt()
+                        rightMargin = dp(12f).toInt()
                     }
-                setBackgroundResource(android.R.color.transparent)
-                setImageResource(R.drawable.delete_bin_2_line)
+                background = GradientDrawable().apply {
+                    shape = GradientDrawable.RECTANGLE
+                    cornerRadius = dp(12f)
+                    setColor(Color.parseColor("#DEE3EB"))
+                }
+                setImageResource(R.drawable.delete_back_2_line)
                 imageTintList = iconTint
                 contentDescription = context.getString(R.string.emoji_delete)
+                scaleType = ImageView.ScaleType.CENTER_INSIDE
+                setPadding(dp(12f).toInt(), dp(12f).toInt(), dp(12f).toInt(), dp(12f).toInt())
                 setOnClickListener { onDelete?.invoke() }
             }
 
         tabsContainer =
             LinearLayout(context).apply {
                 layoutParams = LinearLayout.LayoutParams(0, dp(36f).toInt(), 1f).apply {
-                    leftMargin = dp(10f).toInt()
-                    rightMargin = dp(10f).toInt()
+                    leftMargin = dp(12f).toInt()
+                    rightMargin = dp(12f).toInt()
                 }
                 orientation = LinearLayout.HORIZONTAL
                 gravity = Gravity.CENTER
@@ -170,10 +174,10 @@ class EmojiLayoutView @JvmOverloads constructor(
         searchField =
             EditText(context).apply {
                 layoutParams = LinearLayout.LayoutParams(0, dp(36f).toInt(), 1f).apply {
-                    leftMargin = dp(10f).toInt()
-                    rightMargin = dp(10f).toInt()
+                    leftMargin = dp(12f).toInt()
+                    rightMargin = dp(12f).toInt()
                 }
-                setPadding(dp(12f).toInt(), 0, dp(12f).toInt(), 0)
+                setPadding(dp(16f).toInt(), 0, dp(16f).toInt(), 0)
                 setSingleLine(true)
                 hint = "Search"
                 textSize = 14f
@@ -207,9 +211,11 @@ class EmojiLayoutView @JvmOverloads constructor(
             RecyclerView(context).apply {
                 layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f)
                 overScrollMode = View.OVER_SCROLL_NEVER
+                setPadding(dp(4f).toInt(), dp(4f).toInt(), dp(4f).toInt(), dp(4f).toInt())
+                clipToPadding = false
             }
         gridAdapter = GridAdapter(onClick = { item -> if (item.isNotBlank()) onCommit?.invoke(item) })
-        gridDecoration = GridDecoration(gridDividerColor, gridDividerWidthPx)
+        gridDecoration = GridDecoration(Color.TRANSPARENT, 0f)
         gridView.adapter = gridAdapter
         gridView.addItemDecoration(gridDecoration)
 
@@ -240,9 +246,11 @@ class EmojiLayoutView @JvmOverloads constructor(
 
         categoryList =
             RecyclerView(context).apply {
-                layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(44f).toInt())
+                layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(52f).toInt())
                 overScrollMode = OVER_SCROLL_NEVER
                 layoutManager = LinearLayoutManager(context, LinearLayoutManager.HORIZONTAL, false)
+                setPadding(dp(8f).toInt(), 0, dp(8f).toInt(), 0)
+                clipToPadding = false
             }
 
         categoryAdapter = CategoryAdapter(onClick = { idx -> controller.selectCategory(idx) })
@@ -259,24 +267,28 @@ class EmojiLayoutView @JvmOverloads constructor(
 
     fun applyTheme(theme: ThemeSpec?) {
         val runtime = theme?.let { ThemeRuntime(it) }
-        surfaceColor = runtime?.resolveColor(theme?.layout?.background?.color, Color.parseColor("#F2F2F7"))
-            ?: Color.parseColor("#F2F2F7")
-        pillColor = runtime?.resolveColor(theme?.toolbar?.surface?.background?.color, Color.parseColor("#1F000000"))
-            ?: Color.parseColor("#1F000000")
-        iconTint = ColorStateList.valueOf(runtime?.resolveColor(theme?.toolbar?.itemIcon?.tint, Color.WHITE) ?: Color.WHITE)
-        toolbarTextColor = runtime?.resolveColor(theme?.toolbar?.itemText?.color, Color.WHITE) ?: Color.WHITE
-        toolbarTextDimColor = toolbarTextColor.withAlpha(230)
-        searchBoxBackgroundColor = runtime?.resolveColor(theme?.toolbar?.surface?.background?.color, Color.WHITE)
-            ?: Color.WHITE
-        searchBoxBorderColor = runtime?.resolveColor(theme?.candidates?.divider?.color, Color.parseColor("#22000000"))
-            ?: Color.parseColor("#22000000")
-        searchBoxTextColor = runtime?.resolveColor("colors.key_text", Color.BLACK) ?: Color.BLACK
+        surfaceColor = runtime?.resolveColor(theme?.layout?.background?.color, Color.parseColor("#F1F3F4"))
+            ?: Color.parseColor("#F1F3F4")
+        pillColor = runtime?.resolveColor("colors.key_bg_function", Color.parseColor("#DEE3EB"))
+            ?: Color.parseColor("#DEE3EB")
+        val fgColor = runtime?.resolveColor("colors.key_text", Color.parseColor("#3C4043"))
+            ?: Color.parseColor("#3C4043")
+        
+        iconTint = ColorStateList.valueOf(fgColor)
+        toolbarTextColor = fgColor
+        toolbarTextDimColor = toolbarTextColor.withAlpha(128)
+        
+        searchBoxBackgroundColor = runtime?.resolveColor("colors.key_bg", Color.WHITE) ?: Color.WHITE
+        searchBoxBorderColor = runtime?.resolveColor("colors.stroke", Color.parseColor("#E0E0E0"))
+            ?: Color.parseColor("#E0E0E0")
+        searchBoxTextColor = fgColor
         searchBoxHintColor = searchBoxTextColor.withAlpha(128)
 
         (background as? GradientDrawable)?.setColor(surfaceColor)
         btnBack.imageTintList = iconTint
         btnSearch.imageTintList = iconTint
         btnDelete.imageTintList = iconTint
+        (btnDelete.background as? GradientDrawable)?.setColor(pillColor)
         (tabsContainer.background as? GradientDrawable)?.setColor(pillColor)
         (searchField.background as? GradientDrawable)?.apply {
             setColor(searchBoxBackgroundColor)
@@ -284,10 +296,12 @@ class EmojiLayoutView @JvmOverloads constructor(
         }
         searchField.setTextColor(searchBoxTextColor)
         searchField.setHintTextColor(searchBoxHintColor)
-        val divider = theme?.candidates?.divider
-        gridDividerColor = runtime?.resolveColor(divider?.color, gridDividerColor) ?: gridDividerColor
-        gridDividerWidthPx = dp(divider?.widthDp ?: 1f)
-        gridDecoration.updateStyle(gridDividerColor, gridDividerWidthPx)
+        
+        val cellBgColor = runtime?.resolveColor("colors.key_bg", Color.WHITE) ?: Color.WHITE
+        gridAdapter.setCellBackground(cellBgColor)
+        gridAdapter.setTextColor(fgColor)
+        
+        gridDecoration.updateStyle(Color.TRANSPARENT, 0f)
         gridView.invalidateItemDecorations()
         categoryAdapter.setTheme(runtime, theme)
         controller.refresh(keepPage = true)
@@ -349,6 +363,8 @@ class EmojiLayoutView @JvmOverloads constructor(
         private var items: List<EmojiItem> = emptyList()
         private var cfg: EmojiGridConfig = EmojiGridConfig(columns = 8, rows = 4, textSizeSp = 24f, cellHeightDp = 60f)
         private var useImages: Boolean = false
+        private var cellBgColor: Int = Color.WHITE
+        private var textColor: Int = Color.BLACK
 
         fun setConfig(cfg: EmojiGridConfig) {
             this.cfg = cfg
@@ -360,6 +376,16 @@ class EmojiLayoutView @JvmOverloads constructor(
             notifyDataSetChanged()
         }
 
+        fun setCellBackground(color: Int) {
+            this.cellBgColor = color
+            notifyDataSetChanged()
+        }
+
+        fun setTextColor(color: Int) {
+            this.textColor = color
+            notifyDataSetChanged()
+        }
+
         fun submit(items: List<EmojiItem>) {
             this.items = items
             notifyDataSetChanged()
@@ -367,8 +393,18 @@ class EmojiLayoutView @JvmOverloads constructor(
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): CellVH {
             val root = FrameLayout(parent.context).apply {
-                layoutParams = RecyclerView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(parent.context, cfg.cellHeightDp).toInt())
-                setBackgroundColor(Color.WHITE)
+                layoutParams = RecyclerView.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, 
+                    dp(parent.context, cfg.cellHeightDp).toInt()
+                ).apply {
+                    val m = dp(parent.context, 2f).toInt()
+                    setMargins(m, m, m, m)
+                }
+                background = GradientDrawable().apply {
+                    shape = GradientDrawable.RECTANGLE
+                    cornerRadius = dp(parent.context, 8f)
+                    setColor(cellBgColor)
+                }
             }
             val iv = ImageView(parent.context).apply {
                 layoutParams = FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
@@ -380,7 +416,7 @@ class EmojiLayoutView @JvmOverloads constructor(
                 layoutParams = FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
                 gravity = Gravity.CENTER
                 textSize = cfg.textSizeSp
-                setTextColor(Color.BLACK)
+                setTextColor(textColor)
                 typeface = AppFont.emoji(parent.context)
             }
             root.addView(iv)
@@ -389,6 +425,9 @@ class EmojiLayoutView @JvmOverloads constructor(
         }
 
         override fun onBindViewHolder(holder: CellVH, position: Int) {
+            (holder.itemView.background as? GradientDrawable)?.setColor(cellBgColor)
+            holder.tv.setTextColor(textColor)
+            
             if (useImages) {
                 val rv = holder.itemView.parent as? RecyclerView
                 val width = rv?.measuredWidth ?: rv?.width ?: 0
@@ -410,9 +449,9 @@ class EmojiLayoutView @JvmOverloads constructor(
     }
 
     private class CellVH(
-        private val root: View,
-        private val iv: ImageView,
-        private val tv: TextView,
+        val root: View,
+        val iv: ImageView,
+        val tv: TextView,
         private val onClick: (String) -> Unit,
     ) : RecyclerView.ViewHolder(root) {
         fun bind(item: EmojiItem?, useImages: Boolean) {
@@ -479,12 +518,13 @@ class EmojiLayoutView @JvmOverloads constructor(
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): CategoryVH {
             val tv = TextView(parent.context).apply {
                 layoutParams = RecyclerView.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.MATCH_PARENT).apply {
-                    leftMargin = dp(parent.context, 8f).toInt()
-                    topMargin = dp(parent.context, 6f).toInt()
-                    bottomMargin = dp(parent.context, 6f).toInt()
+                    leftMargin = dp(parent.context, 4f).toInt()
+                    rightMargin = dp(parent.context, 4f).toInt()
+                    topMargin = dp(parent.context, 8f).toInt()
+                    bottomMargin = dp(parent.context, 8f).toInt()
                 }
                 gravity = Gravity.CENTER
-                setPadding(dp(parent.context, 12f).toInt(), 0, dp(parent.context, 12f).toInt(), 0)
+                setPadding(dp(parent.context, 16f).toInt(), 0, dp(parent.context, 16f).toInt(), 0)
                 textSize = 14f
                 applyAppFont(bold = true)
             }
@@ -508,16 +548,16 @@ class EmojiLayoutView @JvmOverloads constructor(
             tv.text = text
             val bg = (tv.background as? GradientDrawable) ?: GradientDrawable().also { tv.background = it }
 
-            val surface = runtime?.resolveColor(theme?.toolbar?.surface?.background?.color, Color.parseColor("#EE1F1F1F"))
-                ?: Color.parseColor("#EE1F1F1F")
-            val selectedBg = runtime?.resolveColor("colors.accent", Color.parseColor("#007AFF")) ?: Color.parseColor("#007AFF")
-            val fg = runtime?.resolveColor(theme?.toolbar?.itemText?.color, Color.WHITE) ?: Color.WHITE
+            val unselectedBg = runtime?.resolveColor("colors.key_bg_function", Color.parseColor("#DEE3EB"))
+                ?: Color.parseColor("#DEE3EB")
+            val selectedBg = runtime?.resolveColor("colors.accent", Color.parseColor("#1A73E8")) ?: Color.parseColor("#1A73E8")
+            val unselectedFg = runtime?.resolveColor("colors.key_text", Color.parseColor("#3C4043")) ?: Color.parseColor("#3C4043")
+            val selectedFg = Color.WHITE
 
             bg.shape = GradientDrawable.RECTANGLE
-            bg.cornerRadius = tv.resources.displayMetrics.density * 12f
-            bg.setColor(if (selected) selectedBg else surface)
-            tv.setTextColor(fg)
-            tv.alpha = if (selected) 1f else 0.85f
+            bg.cornerRadius = tv.resources.displayMetrics.density * 20f
+            bg.setColor(if (selected) selectedBg else unselectedBg)
+            tv.setTextColor(if (selected) selectedFg else unselectedFg)
 
             tv.setOnClickListener {
                 val pos = adapterPosition

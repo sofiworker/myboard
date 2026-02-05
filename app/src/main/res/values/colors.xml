@@ -6,5 +6,9 @@
     <color name="teal_700">#018786</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+
+    <!-- App Icon Colors -->
+    <color name="icon_background">#3B82F6</color>
+    <color name="icon_foreground">#FFFFFF</color>
 </resources>
 

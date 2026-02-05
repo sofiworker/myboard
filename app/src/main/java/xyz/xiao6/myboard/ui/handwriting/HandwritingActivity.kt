@@ -15,10 +15,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import xyz.xiao6.myboard.manager.HandwritingRecognitionManager
 import xyz.xiao6.myboard.model.HandwritingLayoutMode
 import xyz.xiao6.myboard.model.HandwritingPosition
 import xyz.xiao6.myboard.store.SettingsStore
 import xyz.xiao6.myboard.ui.theme.MyBoardTheme
+import kotlinx.coroutines.launch
 
 /**
  * Activity for full-screen or half-screen handwriting input
@@ -27,11 +29,15 @@ import xyz.xiao6.myboard.ui.theme.MyBoardTheme
 class HandwritingActivity : ComponentActivity() {
 
     private lateinit var settingsStore: SettingsStore
+    private lateinit var recognitionManager: HandwritingRecognitionManager
+    private lateinit var handwritingLayoutManager: HandwritingLayoutManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         settingsStore = SettingsStore(this)
+        recognitionManager = HandwritingRecognitionManager(this)
+        handwritingLayoutManager = HandwritingLayoutManager(this).loadAll()
 
         // Get layout mode from intent or settings
         val layoutModeStr = intent.getStringExtra(EXTRA_LAYOUT_MODE)
@@ -42,11 +48,50 @@ class HandwritingActivity : ComponentActivity() {
         val position = positionStr?.let { HandwritingPosition.valueOf(it) }
             ?: settingsStore.handwritingPosition.let { HandwritingPosition.valueOf(it) }
 
+        // Get layout spec from manager
+        val layoutId = when (layoutMode) {
+            HandwritingLayoutMode.FULL_SCREEN -> "fullscreen"
+            HandwritingLayoutMode.OVERLAY -> "overlay"
+            else -> "default"
+        }
+        
+        val fallbackSpec = HandwritingLayoutSpec(
+            layoutId = "default",
+            name = "Default",
+            mode = HandwritingLayoutMode.HALF_SCREEN
+        )
+
+        val rawSpec = handwritingLayoutManager.getLayout(layoutId)
+            ?: handwritingLayoutManager.getDefaultLayout()
+            ?: fallbackSpec
+
+        // Apply user settings overrides
+        val userStrokeWidth = settingsStore.handwritingStrokeWidth
+        val userStrokeColor = settingsStore.handwritingStrokeColor
+        val userDelay = settingsStore.handwritingRecognitionDelayMs
+        val userAutoRecognize = settingsStore.handwritingAutoRecognize
+
+        // Format color to #AARRGGBB
+        val colorHex = String.format("#%08X", userStrokeColor)
+
+        val effectiveLayoutSpec = rawSpec.copy(
+            canvas = rawSpec.canvas.copy(
+                strokeWidth = userStrokeWidth,
+                strokeColor = colorHex
+            ),
+            recognition = rawSpec.recognition.copy(
+                autoRecognize = userAutoRecognize,
+                autoRecognizeDelayMs = userDelay
+            )
+        )
+
         setContent {
             MyBoardTheme {
                 HandwritingScreen(
                     layoutMode = layoutMode,
                     position = position,
+                    layoutSpec = effectiveLayoutSpec,
+                    recognitionManager = recognitionManager,
                     onClose = { finish() },
                     onCommitText = { text ->
                         commitText(text)
@@ -55,6 +100,11 @@ class HandwritingActivity : ComponentActivity() {
                 )
             }
         }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        recognitionManager.cleanup()
     }
 
     private fun commitText(text: String) {
@@ -90,6 +140,8 @@ class HandwritingActivity : ComponentActivity() {
 fun HandwritingScreen(
     layoutMode: HandwritingLayoutMode,
     position: HandwritingPosition,
+    layoutSpec: HandwritingLayoutSpec?,
+    recognitionManager: HandwritingRecognitionManager,
     onClose: () -> Unit,
     onCommitText: (String) -> Unit,
     modifier: Modifier = Modifier,
@@ -97,17 +149,21 @@ fun HandwritingScreen(
     val context = LocalContext.current
     val settingsStore = remember { SettingsStore(context) }
 
-    var recognizedText by remember { mutableStateOf("") }
+    // Initialize recognition manager on first composition
+    LaunchedEffect(Unit) {
+        recognitionManager.initializeForLanguage(settingsStore.userLocaleTag ?: "en-US")
+    }
 
     HandwritingPanel(
         mode = layoutMode,
         position = position,
+        layoutSpec = layoutSpec,
+        recognitionManager = recognitionManager,
         onBack = onClose,
-        onRecognize = {
-            // Simulate recognition - in real implementation, use HandwritingRecognitionManager
-            recognizedText = "Recognized text"
+        onCandidateSelected = { text ->
+            onCommitText(text)
         },
-        onClear = { recognizedText = "" },
+        onClear = { /* Handled internally */ },
         modifier = modifier,
     )
 }

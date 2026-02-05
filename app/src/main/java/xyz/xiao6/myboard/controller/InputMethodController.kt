@@ -148,9 +148,12 @@ class InputMethodController(
             onShowSymbols?.invoke()
             return
         }
-        layoutManager.loadAll()
         val layout = layoutManager.getLayout(layoutId)
-        applyNewLayout(layout, pushToHistory = pushToHistory)
+        if (layout != null) {
+            applyNewLayout(layout, pushToHistory = pushToHistory)
+        } else {
+            MLog.e(logTag, "Layout not found: $layoutId")
+        }
     }
 
     /**

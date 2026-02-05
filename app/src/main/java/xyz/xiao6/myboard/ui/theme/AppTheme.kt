@@ -1,7 +1,11 @@
 package xyz.xiao6.myboard.ui.theme
 
 import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
+import android.inputmethodservice.InputMethodService
 import android.os.Build
+import android.view.Window
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Typography
@@ -131,11 +135,13 @@ fun MyBoardTheme(
     val view = LocalView.current
     if (!view.isInEditMode) {
         SideEffect {
-            val window = (view.context as Activity).window
-            window.statusBarColor = colorScheme.background.toArgb()
-            window.navigationBarColor = colorScheme.background.toArgb()
-            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
-            WindowCompat.getInsetsController(window, view).isAppearanceLightNavigationBars = !darkTheme
+            val window = findWindow(view.context)
+            window?.let { win ->
+                win.statusBarColor = colorScheme.background.toArgb()
+                win.navigationBarColor = colorScheme.background.toArgb()
+                WindowCompat.getInsetsController(win, view).isAppearanceLightStatusBars = !darkTheme
+                WindowCompat.getInsetsController(win, view).isAppearanceLightNavigationBars = !darkTheme
+            }
         }
     }
 
@@ -144,4 +150,14 @@ fun MyBoardTheme(
         typography = AppTypography,
         content = content,
     )
+}
+
+private fun findWindow(context: Context): Window? {
+    var ctx = context
+    while (ctx is ContextWrapper) {
+        if (ctx is Activity) return ctx.window
+        if (ctx is InputMethodService) return ctx.window?.window
+        ctx = ctx.baseContext ?: return null
+    }
+    return null
 }

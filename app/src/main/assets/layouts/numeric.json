@@ -110,7 +110,7 @@
         },
         {
           "keyId": "key_enter",
-          "label": "↵",
+          "label": "",
           "primaryCode": 10,
           "ui": { "styleId": "style_function_key_important", "gridPosition": { "startCol": 3, "startRow": 2, "spanCols": 1 }, "icons": [], "accessibilityLabel": "enter" },
           "actions": { "TAP": { "actionType": "COMMAND", "default": [ { "type": "COMMAND", "commandType": "ENTER" } ] } }

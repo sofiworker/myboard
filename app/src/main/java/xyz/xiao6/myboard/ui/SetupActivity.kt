@@ -2,7 +2,6 @@ package xyz.xiao6.myboard.ui
 
 import android.os.Bundle
 import android.content.Intent
-import android.content.ComponentName
 import android.database.ContentObserver
 import android.os.Handler
 import android.os.Looper
@@ -12,47 +11,42 @@ import android.view.inputmethod.InputMethodManager
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.padding
+import androidx.compose.animation.*
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.layout.Box
-import androidx.compose.material3.Button
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.RadioButton
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.Checkbox
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Keyboard
+import androidx.compose.material.icons.filled.Language
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Done
+import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import com.google.accompanist.pager.ExperimentalPagerApi
@@ -66,7 +60,14 @@ import xyz.xiao6.myboard.manager.SubtypeManager
 import xyz.xiao6.myboard.model.LocaleLayoutProfile
 import xyz.xiao6.myboard.store.SettingsStore
 import xyz.xiao6.myboard.ui.theme.MyBoardTheme
+import xyz.xiao6.myboard.ui.theme.DesignTokens
 import java.util.Locale
+
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.core.content.ContextCompat
 
 /** 首次安装引导（Setup Wizard Activity）。 */
 class SetupActivity : AppCompatActivity() {
@@ -109,16 +110,14 @@ class SetupActivity : AppCompatActivity() {
     private fun isMyBoardSelectedAsDefault(): Boolean {
         val imm = getSystemService(INPUT_METHOD_SERVICE) as? InputMethodManager ?: return false
         val myId = resolveMyBoardImeId(imm) ?: return false
-        val current =
-            Secure.getString(contentResolver, Secure.DEFAULT_INPUT_METHOD)?.trim().orEmpty()
+        val current = Secure.getString(contentResolver, Secure.DEFAULT_INPUT_METHOD)?.trim().orEmpty()
         return current == myId
     }
 
     private fun resolveMyBoardImeId(imm: InputMethodManager): String? {
         val expectedPackage = packageName
         val expectedServiceName = MyBoardImeService::class.java.name
-        val info =
-            imm.inputMethodList.firstOrNull { imi ->
+        val info = imm.inputMethodList.firstOrNull { imi ->
                 val si = imi.serviceInfo
                 val className = if (si.name.startsWith(".")) si.packageName + si.name else si.name
                 si.packageName == expectedPackage && className == expectedServiceName
@@ -130,22 +129,14 @@ class SetupActivity : AppCompatActivity() {
         runCatching {
             startActivity(Intent(Settings.ACTION_INPUT_METHOD_SETTINGS))
         }.onFailure {
-            Toast.makeText(
-                this,
-                getString(R.string.onboarding_error_open_settings_failed),
-                Toast.LENGTH_SHORT
-            ).show()
+            Toast.makeText(this, getString(R.string.onboarding_error_open_settings_failed), Toast.LENGTH_SHORT).show()
         }
     }
 
     private fun showImePicker() {
         val imm = getSystemService(INPUT_METHOD_SERVICE) as? InputMethodManager
         if (imm == null) {
-            Toast.makeText(
-                this,
-                getString(R.string.onboarding_error_imm_unavailable),
-                Toast.LENGTH_SHORT
-            ).show()
+            Toast.makeText(this, getString(R.string.onboarding_error_imm_unavailable), Toast.LENGTH_SHORT).show()
             return
         }
         imm.showInputMethodPicker()
@@ -153,10 +144,12 @@ class SetupActivity : AppCompatActivity() {
 }
 
 private enum class WizardStep {
+    WELCOME,
     ENABLE_IME,
     PICK_IME,
-    LOCALE,
-    LAYOUT,
+    PERMISSIONS,
+    CONFIGURATION,
+    READY
 }
 
 @OptIn(ExperimentalPagerApi::class, ExperimentalMaterial3Api::class)
@@ -172,7 +165,6 @@ private fun OnboardingWizard(
     finishActivity: () -> Unit,
 ) {
     val context = LocalContext.current
-    val snackbarHostState = remember { SnackbarHostState() }
     val steps = remember { WizardStep.entries.toList() }
     val pagerState = rememberPagerState()
     val scope = rememberCoroutineScope()
@@ -180,19 +172,26 @@ private fun OnboardingWizard(
     var imeEnabled by remember { mutableStateOf(false) }
     var imeSelected by remember { mutableStateOf(false) }
     var selectedLocaleTag by remember { mutableStateOf<String?>(null) }
-    var selectedLayoutId by remember { mutableStateOf<String?>(null) }
     var enabledLayoutIds by remember { mutableStateOf<List<String>>(emptyList()) }
 
     fun refreshImeState() {
+        val oldEnabled = imeEnabled
+        val oldSelected = imeSelected
         imeEnabled = isImeEnabled()
         imeSelected = isImeSelected()
+        
+        // Auto-advance logic for smoother flow
+        if (pagerState.currentPage == 1 && imeEnabled && !oldEnabled) {
+            scope.launch { pagerState.animateScrollToPage(2) }
+        } else if (pagerState.currentPage == 2 && imeSelected && !oldSelected) {
+            scope.launch { pagerState.animateScrollToPage(3) }
+        }
     }
 
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
         refreshImeState()
-        val obs =
-            LifecycleEventObserver { _, event ->
+        val obs = LifecycleEventObserver { _, event ->
                 if (event == Lifecycle.Event.ON_RESUME) refreshImeState()
             }
         lifecycleOwner.lifecycle.addObserver(obs)
@@ -202,46 +201,33 @@ private fun OnboardingWizard(
     DisposableEffect(context) {
         val resolver = context.contentResolver
         val handler = Handler(Looper.getMainLooper())
-        val observer =
-            object : ContentObserver(handler) {
+        val observer = object : ContentObserver(handler) {
                 override fun onChange(selfChange: Boolean) {
                     refreshImeState()
                 }
             }
 
-        resolver.registerContentObserver(
-            Secure.getUriFor(Secure.DEFAULT_INPUT_METHOD),
-            false,
-            observer,
-        )
-        resolver.registerContentObserver(
-            Secure.getUriFor(Secure.ENABLED_INPUT_METHODS),
-            false,
-            observer,
-        )
+        resolver.registerContentObserver(Secure.getUriFor(Secure.DEFAULT_INPUT_METHOD), false, observer)
+        resolver.registerContentObserver(Secure.getUriFor(Secure.ENABLED_INPUT_METHODS), false, observer)
         onDispose { resolver.unregisterContentObserver(observer) }
     }
 
     fun ensureInitialSelections() {
         if (selectedLocaleTag.isNullOrBlank()) {
-            selectedLocaleTag =
-                prefs.userLocaleTag
+            selectedLocaleTag = prefs.userLocaleTag
                     ?: subtypeManager.resolve(Locale.getDefault())?.localeTag
                     ?: subtypeManager.listAll().firstOrNull()?.localeTag
         }
         val localeTag = selectedLocaleTag ?: return
         val profile = subtypeManager.get(localeTag) ?: return
-        val enabled =
-            prefs.getEnabledLayoutIds(localeTag).takeIf { it.isNotEmpty() }
-                ?: profile.layoutIds
+        val enabled = prefs.getEnabledLayoutIds(localeTag).takeIf { it.isNotEmpty() } ?: profile.layoutIds
         enabledLayoutIds = enabled.filter { it in profile.layoutIds }
 
-        val preferred =
-            prefs.getPreferredLayoutId(localeTag)
+        val preferred = prefs.getPreferredLayoutId(localeTag)
                 ?.takeIf { it in enabledLayoutIds }
                 ?: profile.defaultLayoutId?.takeIf { it in enabledLayoutIds }
                 ?: enabledLayoutIds.firstOrNull()
-        selectedLayoutId = preferred
+        
         prefs.userLocaleTag = localeTag
         prefs.setEnabledLocaleTags(listOf(localeTag))
         prefs.setEnabledLayoutIds(localeTag, enabledLayoutIds)
@@ -258,34 +244,20 @@ private fun OnboardingWizard(
         prefs.userLocaleTag = localeTag
         prefs.setEnabledLocaleTags(listOf(localeTag))
         val profile = subtypeManager.get(localeTag) ?: return@LaunchedEffect
-        val enabled =
-            prefs.getEnabledLayoutIds(localeTag).takeIf { it.isNotEmpty() }
-                ?: profile.layoutIds
+        val enabled = prefs.getEnabledLayoutIds(localeTag).takeIf { it.isNotEmpty() } ?: profile.layoutIds
         enabledLayoutIds = enabled.filter { it in profile.layoutIds }
         prefs.setEnabledLayoutIds(localeTag, enabledLayoutIds)
 
-        val preferred =
-            prefs.getPreferredLayoutId(localeTag)
+        val preferred = prefs.getPreferredLayoutId(localeTag)
                 ?.takeIf { it in enabledLayoutIds }
                 ?: profile.defaultLayoutId?.takeIf { it in enabledLayoutIds }
                 ?: enabledLayoutIds.firstOrNull()
-        selectedLayoutId = preferred
         if (!preferred.isNullOrBlank()) prefs.setPreferredLayoutId(localeTag, preferred)
-    }
-
-    fun canGoNext(step: WizardStep): Boolean {
-        return when (step) {
-            WizardStep.ENABLE_IME -> imeEnabled
-            WizardStep.PICK_IME -> imeSelected
-            WizardStep.LOCALE -> !selectedLocaleTag.isNullOrBlank()
-            WizardStep.LAYOUT -> !selectedLocaleTag.isNullOrBlank() && !selectedLayoutId.isNullOrBlank()
-        }
     }
 
     fun goNextOrFinish() {
         val step = steps[pagerState.currentPage]
-        if (!canGoNext(step)) return
-        if (step == WizardStep.LAYOUT) {
+        if (step == WizardStep.READY) {
             prefs.onboardingCompleted = true
             finishActivity()
             return
@@ -295,22 +267,61 @@ private fun OnboardingWizard(
     }
 
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = stringResource(
-                            R.string.onboarding_step_indicator,
-                            pagerState.currentPage + 1,
-                            steps.size,
-                        ),
-                    )
-                },
-            )
-        },
-        snackbarHost = { SnackbarHost(snackbarHostState) },
+        bottomBar = {
+            val step = steps[pagerState.currentPage]
+            Surface(
+                tonalElevation = 2.dp,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier
+                        .padding(horizontal = 24.dp, vertical = 16.dp)
+                        .navigationBarsPadding(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    if (step != WizardStep.WELCOME && step != WizardStep.READY) {
+                        TextButton(
+                            onClick = {
+                                val prev = (pagerState.currentPage - 1).coerceAtLeast(0)
+                                scope.launch { pagerState.animateScrollToPage(prev) }
+                            }
+                        ) {
+                            Text(stringResource(R.string.onboarding_back))
+                        }
+                    } else {
+                        Spacer(modifier = Modifier.width(1.dp))
+                    }
+
+                    Button(
+                        onClick = { goNextOrFinish() },
+                        shape = RoundedCornerShape(12.dp),
+                        contentPadding = PaddingValues(horizontal = 32.dp, vertical = 12.dp),
+                        enabled = when(step) {
+                            WizardStep.ENABLE_IME -> imeEnabled
+                            WizardStep.PICK_IME -> imeSelected
+                            else -> true
+                        }
+                    ) {
+                        Text(
+                            text = if (step == WizardStep.WELCOME) "Get Started"
+                                   else if (step == WizardStep.READY) "Finish"
+                                   else stringResource(R.string.onboarding_next),
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
+        }
     ) { padding ->
-        Column(modifier = Modifier.fillMaxSize().padding(padding)) {
+        Column(modifier = Modifier.fillMaxSize().padding(padding).background(MaterialTheme.colorScheme.background)) {
+            // Progress Indicator
+            StepIndicator(
+                currentIndex = pagerState.currentPage,
+                totalSteps = steps.size,
+                modifier = Modifier.padding(top = 24.dp, start = 24.dp, end = 24.dp)
+            )
+
             HorizontalPager(
                 count = steps.size,
                 state = pagerState,
@@ -318,98 +329,63 @@ private fun OnboardingWizard(
                 modifier = Modifier.weight(1f),
             ) { page ->
                 when (steps[page]) {
-                    WizardStep.ENABLE_IME -> StepEnableIme(
-                        enabled = imeEnabled,
-                        onOpenSettings = openImeSettings,
+                    WizardStep.WELCOME -> StepWelcome()
+                    
+                    WizardStep.ENABLE_IME -> StepAction(
+                        title = stringResource(R.string.onboarding_enable_title),
+                        desc = stringResource(R.string.onboarding_enable_desc),
+                        icon = Icons.Default.Settings,
+                        actionLabel = stringResource(R.string.onboarding_open_ime_settings),
+                        completed = imeEnabled,
+                        onAction = openImeSettings
                     )
 
-                    WizardStep.PICK_IME -> StepPickIme(
-                        selected = imeSelected,
-                        onPickIme = showImePicker,
+                    WizardStep.PICK_IME -> StepAction(
+                        title = stringResource(R.string.onboarding_pick_title),
+                        desc = stringResource(R.string.onboarding_pick_desc),
+                        icon = Icons.Default.Check,
+                        actionLabel = stringResource(R.string.onboarding_show_ime_picker),
+                        completed = imeSelected,
+                        onAction = showImePicker
                     )
 
-                    WizardStep.LOCALE -> StepSelectLocale(
-                        enabled = imeEnabled,
-                        selected = imeSelected,
-                        profiles = subtypeManager.listAll()
-                            .filter { it.enabled && it.localeTag.isNotBlank() },
-                        selectedLocaleTag = selectedLocaleTag,
-                        onSelect = { tag -> selectedLocaleTag = tag },
-                    )
-
-                    WizardStep.LAYOUT -> {
-                        val localeTag = selectedLocaleTag
-                        val profile = localeTag?.let { subtypeManager.get(it) }
-                        StepSelectLayout(
-                            localeTag = localeTag,
-                            profile = profile,
-                            layoutManager = layoutManager,
-                            enabledLayoutIds = enabledLayoutIds,
-                            onSelect = { layoutId ->
-                                val tag = localeTag ?: return@StepSelectLayout
-                                val ordered = profile?.layoutIds.orEmpty()
-                                val current = enabledLayoutIds.toMutableSet()
-                                if (layoutId in current) current.remove(layoutId) else current.add(layoutId)
-                                val nextEnabled = ordered.filter { it in current }.distinct()
-                                enabledLayoutIds = nextEnabled
-                                prefs.setEnabledLayoutIds(tag, nextEnabled)
-
-                                val preferred = prefs.getPreferredLayoutId(tag)
-                                val nextPreferred =
-                                    preferred?.takeIf { it in nextEnabled }
-                                        ?: nextEnabled.firstOrNull()
-                                selectedLayoutId = nextPreferred
-                                prefs.setPreferredLayoutId(tag, nextPreferred)
-                            },
+                    WizardStep.PERMISSIONS -> {
+                        val hasMicPermission = ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
+                        val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
+                            if (isGranted) {
+                                scope.launch { pagerState.animateScrollToPage(4) }
+                            }
+                        }
+                        
+                        StepAction(
+                            title = "Microphone Access",
+                            desc = "Needed for 100% offline voice-to-text input on the keyboard.",
+                            icon = Icons.Default.Settings, // Using Settings icon as placeholder
+                            actionLabel = "Grant Permission",
+                            completed = hasMicPermission,
+                            onAction = { launcher.launch(Manifest.permission.RECORD_AUDIO) }
                         )
                     }
-                }
-            }
 
-            val step = steps[pagerState.currentPage]
-            val nextEnabled = canGoNext(step)
-
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(16.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                OutlinedButton(
-                    onClick = {
-                        val prev = (pagerState.currentPage - 1).coerceAtLeast(0)
-                        scope.launch { pagerState.animateScrollToPage(prev) }
-                    },
-                    enabled = pagerState.currentPage > 0,
-                    modifier = Modifier.weight(1f),
-                ) {
-                    Text(stringResource(R.string.onboarding_back))
-                }
-                Button(
-                    onClick = {
-                        if (!nextEnabled) {
-                            val msg = when (step) {
-                                WizardStep.ENABLE_IME -> R.string.onboarding_error_enable_first
-                                WizardStep.PICK_IME -> R.string.onboarding_error_pick_first
-                                WizardStep.LOCALE -> R.string.onboarding_error_select_language
-                                WizardStep.LAYOUT -> R.string.onboarding_error_select_layout
-                            }
-                            scope.launch {
-                                snackbarHostState.showSnackbar(
-                                    message = context.getString(
-                                        msg
-                                    )
-                                )
-                            }
-                            return@Button
+                    WizardStep.CONFIGURATION -> StepConfiguration(
+                        profiles = subtypeManager.listAll().filter { it.enabled && it.localeTag.isNotBlank() },
+                        selectedLocaleTag = selectedLocaleTag,
+                        enabledLayoutIds = enabledLayoutIds,
+                        layoutManager = layoutManager,
+                        onLocaleSelect = { tag -> selectedLocaleTag = tag },
+                        onLayoutToggle = { layoutId ->
+                            val tag = selectedLocaleTag ?: return@StepConfiguration
+                            val profile = subtypeManager.get(tag)
+                            val ordered = profile?.layoutIds.orEmpty()
+                            val current = enabledLayoutIds.toMutableSet()
+                            if (layoutId in current) current.remove(layoutId) else current.add(layoutId)
+                            val nextEnabled = ordered.filter { it in current }.distinct()
+                            enabledLayoutIds = nextEnabled
+                            prefs.setEnabledLayoutIds(tag, nextEnabled)
                         }
-                        goNextOrFinish()
-                    },
-                    modifier = Modifier.weight(1f),
-                ) {
-                    Text(
-                        if (step == WizardStep.LAYOUT) stringResource(R.string.onboarding_finish)
-                        else stringResource(R.string.onboarding_next),
                     )
+
+                    WizardStep.READY -> StepReady()
                 }
             }
         }
@@ -417,134 +393,211 @@ private fun OnboardingWizard(
 }
 
 @Composable
-private fun StepEnableIme(
-    enabled: Boolean,
-    onOpenSettings: () -> Unit,
-) {
-    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        Text(
-            text = stringResource(R.string.onboarding_enable_title),
-            style = MaterialTheme.typography.headlineSmall
-        )
-        Spacer(modifier = Modifier.height(12.dp))
-        Text(
-            text = stringResource(
-                R.string.onboarding_status_enabled,
-                if (enabled) stringResource(R.string.common_yes) else stringResource(R.string.common_no),
-            ),
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-        Text(text = stringResource(R.string.onboarding_enable_desc))
-        Spacer(modifier = Modifier.height(16.dp))
-        Button(onClick = onOpenSettings) {
-            Text(stringResource(R.string.onboarding_open_ime_settings))
+private fun StepIndicator(currentIndex: Int, totalSteps: Int, modifier: Modifier = Modifier) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        repeat(totalSteps) { index ->
+            val color = if (index <= currentIndex) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(4.dp)
+                    .clip(CircleShape)
+                    .background(color)
+            )
         }
     }
 }
 
 @Composable
-private fun StepPickIme(
-    selected: Boolean,
-    onPickIme: () -> Unit,
-) {
-    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        Text(
-            text = stringResource(R.string.onboarding_pick_title),
-            style = MaterialTheme.typography.headlineSmall
-        )
-        Spacer(modifier = Modifier.height(12.dp))
-        Text(
-            text = stringResource(
-                R.string.onboarding_status_selected,
-                if (selected) stringResource(R.string.common_yes) else stringResource(R.string.common_no),
-            ),
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-        Text(text = stringResource(R.string.onboarding_pick_desc))
-        Spacer(modifier = Modifier.height(16.dp))
-        Button(onClick = onPickIme) {
-            Text(stringResource(R.string.onboarding_show_ime_picker))
+private fun StepWelcome() {
+    Column(
+        modifier = Modifier.fillMaxSize().padding(32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Surface(
+            modifier = Modifier.size(120.dp),
+            shape = CircleShape,
+            color = MaterialTheme.colorScheme.primaryContainer
+        ) {
+            Icon(
+                painter = painterResource(id = R.drawable.ic_launcher_foreground),
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(24.dp)
+            )
         }
+        Spacer(modifier = Modifier.height(32.dp))
+        Text(
+            text = "Welcome to MyBoard",
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Bold,
+            textAlign = TextAlign.Center
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(
+            text = "A modern, customizable keyboard designed for speed and elegance.",
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center
+        )
     }
 }
 
 @Composable
-private fun StepSelectLocale(
-    enabled: Boolean,
-    selected: Boolean,
+private fun StepAction(
+    title: String,
+    desc: String,
+    icon: ImageVector,
+    actionLabel: String,
+    completed: Boolean,
+    onAction: () -> Unit
+) {
+    Column(
+        modifier = Modifier.fillMaxSize().padding(32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Surface(
+                modifier = Modifier.size(100.dp),
+                shape = CircleShape,
+                color = if (completed) Color(0xFF4CAF50).copy(alpha = 0.1f) else MaterialTheme.colorScheme.secondaryContainer
+            ) {
+                Icon(
+                    imageVector = if (completed) Icons.Default.Check else icon,
+                    contentDescription = null,
+                    tint = if (completed) Color(0xFF4CAF50) else MaterialTheme.colorScheme.secondary,
+                    modifier = Modifier.padding(28.dp)
+                )
+            }
+        }
+        
+        Spacer(modifier = Modifier.height(32.dp))
+        Text(
+            text = title,
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold,
+            textAlign = TextAlign.Center
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(
+            text = desc,
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center
+        )
+        Spacer(modifier = Modifier.height(48.dp))
+        
+        if (!completed) {
+            Button(
+                onClick = onAction,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text(actionLabel)
+            }
+        } else {
+            Surface(
+                color = Color(0xFF4CAF50).copy(alpha = 0.1f),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier.padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Icon(Icons.Default.Check, contentDescription = null, tint = Color(0xFF4CAF50))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Completed", color = Color(0xFF4CAF50), fontWeight = FontWeight.Medium)
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun StepConfiguration(
     profiles: List<LocaleLayoutProfile>,
     selectedLocaleTag: String?,
-    onSelect: (String) -> Unit,
+    enabledLayoutIds: List<String>,
+    layoutManager: LayoutManager,
+    onLocaleSelect: (String) -> Unit,
+    onLayoutToggle: (String) -> Unit
 ) {
-    val canSelect = enabled && selected
-    var expanded by remember { mutableStateOf(false) }
-    val selectedLabel =
-        selectedLocaleTag
-            ?.takeIf { it.isNotBlank() }
-            ?.let { formatLocaleLabelComposable(it) }
-            ?: ""
-    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+    Column(
+        modifier = Modifier.fillMaxSize().padding(24.dp)
+    ) {
         Text(
-            text = stringResource(R.string.onboarding_language_title),
-            style = MaterialTheme.typography.headlineSmall
+            text = "Personalize",
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold
         )
+        Text(
+            text = "Select your language and preferred layouts.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        
+        Spacer(modifier = Modifier.height(24.dp))
+        
+        Text("Primary Language", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
         Spacer(modifier = Modifier.height(12.dp))
-        Text(
-            text = stringResource(
-                R.string.onboarding_status_ready_for_language,
-                if (enabled) stringResource(R.string.common_yes) else stringResource(R.string.common_no),
-                if (selected) stringResource(R.string.common_yes) else stringResource(R.string.common_no),
-            ),
-        )
-        if (!canSelect) {
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(text = stringResource(R.string.onboarding_language_locked_hint))
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Text(text = stringResource(R.string.onboarding_language_dropdown_label))
-        Spacer(modifier = Modifier.height(8.dp))
-
-        Box(modifier = Modifier.fillMaxWidth()) {
-            OutlinedButton(
-                onClick = { if (canSelect) expanded = true },
-                enabled = canSelect,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        text = selectedLabel.ifBlank { stringResource(R.string.onboarding_language_dropdown_placeholder) },
-                        modifier = Modifier.weight(1f),
-                    )
-                    Text(text = "▼")
-                }
+        
+        // Language Selection Chips
+        Row(
+            modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            profiles.forEach { profile ->
+                val selected = profile.localeTag == selectedLocaleTag
+                FilterChip(
+                    selected = selected,
+                    onClick = { onLocaleSelect(profile.localeTag) },
+                    label = { Text(formatLocaleLabelComposable(profile.localeTag)) },
+                    leadingIcon = if (selected) {
+                        { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp)) }
+                    } else null
+                )
             }
-
-            DropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false },
-                modifier = Modifier.fillMaxWidth(),
+        }
+        
+        Spacer(modifier = Modifier.height(24.dp))
+        
+        Text("Layouts", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+        Spacer(modifier = Modifier.height(12.dp))
+        
+        val currentProfile = selectedLocaleTag?.let { tag -> profiles.find { it.localeTag == tag } }
+        if (currentProfile != null) {
+            LazyColumn(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                val sorted = profiles.sortedBy { it.localeTag }
-                val scrollState = rememberScrollState()
-                Column(
-                    modifier = Modifier
-                        .heightIn(max = 320.dp)
-                        .verticalScroll(scrollState),
-                ) {
-                    sorted.forEach { p ->
-                        val tag = p.localeTag
-                        DropdownMenuItem(
-                            text = { Text(formatLocaleLabelComposable(tag)) },
-                            onClick = {
-                                expanded = false
-                                onSelect(tag)
-                            },
-                        )
+                items(currentProfile.layoutIds.distinct()) { id ->
+                    val layoutName = runCatching { layoutManager.getLayout(id)?.name }.getOrNull() ?: id
+                    val isEnabled = id in enabledLayoutIds
+                    
+                    Surface(
+                        onClick = { onLayoutToggle(id) },
+                        shape = RoundedCornerShape(12.dp),
+                        color = if (isEnabled) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                        border = BorderStroke(1.dp, if (isEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(layoutName, fontWeight = FontWeight.Bold)
+                                Text(id, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            Checkbox(checked = isEnabled, onCheckedChange = { onLayoutToggle(id) })
+                        }
                     }
                 }
             }
@@ -553,53 +606,38 @@ private fun StepSelectLocale(
 }
 
 @Composable
-private fun StepSelectLayout(
-    localeTag: String?,
-    profile: LocaleLayoutProfile?,
-    layoutManager: LayoutManager,
-    enabledLayoutIds: List<String>,
-    onSelect: (String) -> Unit,
-) {
-    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        Text(
-            text = stringResource(R.string.onboarding_layout_title),
-            style = MaterialTheme.typography.headlineSmall
-        )
-        Spacer(modifier = Modifier.height(12.dp))
-
-        if (localeTag.isNullOrBlank() || profile == null) {
-            Text(text = stringResource(R.string.onboarding_layout_missing_language))
-            return
-        }
-
-        Text(
-            text = stringResource(
-                R.string.onboarding_layout_for_language,
-                formatLocaleLabelComposable(localeTag)
+private fun StepReady() {
+    Column(
+        modifier = Modifier.fillMaxSize().padding(32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Surface(
+            modifier = Modifier.size(120.dp),
+            shape = CircleShape,
+            color = Color(0xFF4CAF50).copy(alpha = 0.1f)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Done,
+                contentDescription = null,
+                tint = Color(0xFF4CAF50),
+                modifier = Modifier.padding(32.dp)
             )
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(text = stringResource(R.string.onboarding_layout_multi_select_hint))
-        Spacer(modifier = Modifier.height(16.dp))
-
-        val ids = profile.layoutIds.distinct()
-        LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            items(ids) { id ->
-                val layoutName =
-                    runCatching { layoutManager.getLayout(id).name }.getOrNull()
-                        ?.takeIf { it.isNotBlank() } ?: id
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Checkbox(
-                        checked = id in enabledLayoutIds,
-                        onCheckedChange = { onSelect(id) },
-                    )
-                    Text(text = stringResource(R.string.onboarding_layout_item, layoutName, id))
-                }
-            }
         }
+        Spacer(modifier = Modifier.height(32.dp))
+        Text(
+            text = "You're all set!",
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Bold,
+            textAlign = TextAlign.Center
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(
+            text = "MyBoard is ready to use. You can always change your settings later.",
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center
+        )
     }
 }
 
@@ -607,7 +645,7 @@ private fun StepSelectLayout(
 private fun formatLocaleLabelComposable(localeTag: String): String {
     val tag = normalizeLocaleTagComposable(localeTag)
     val display = Locale.forLanguageTag(tag).getDisplayName(Locale.getDefault()).ifBlank { tag }
-    return "$display ($tag)"
+    return display
 }
 
 @Composable

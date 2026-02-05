@@ -19,21 +19,6 @@
       "rightDp": 8
     }
   },
-  "metadata": {
-    "layoutType": "t9",
-    "defaultEngine": "ZH_PINYIN",
-    "description": "T9 keypad layout with symbol quick access row"
-  },
-  "features": {
-    "showHints": true,
-    "showLabels": true,
-    "showIcons": true,
-    "enableLongPress": true,
-    "enableGestures": true,
-    "enableKeyPreview": true,
-    "enableHapticFeedback": true,
-    "enableSoundFeedback": false
-  },
   "rows": [
     {
       "rowId": "row_1",
@@ -635,7 +620,7 @@
         },
         {
           "keyId": "key_space",
-          "label": "space",
+          "label": "",
           "primaryCode": 32,
           "ui": {
             "styleId": "style_function_key_important",
@@ -662,7 +647,7 @@
         },
         {
           "keyId": "key_lang_toggle",
-          "label": "中",
+          "label": "",
           "primaryCode": -99,
           "hints": {
             "BOTTOM_RIGHT": "/英"

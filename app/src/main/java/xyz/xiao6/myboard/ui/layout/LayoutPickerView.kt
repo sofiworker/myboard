@@ -17,6 +17,8 @@ import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
+import xyz.xiao6.myboard.R
+import androidx.core.content.ContextCompat
 import xyz.xiao6.myboard.model.KeyboardLayout
 import xyz.xiao6.myboard.model.ThemeSpec
 import xyz.xiao6.myboard.ui.theme.AppFont
@@ -290,7 +292,7 @@ class LayoutPickerView @JvmOverloads constructor(
             title.text = option.name
             title.setTextColor(textColor)
             title.typeface = if (option.selected) AppFont.bold(title.context) else AppFont.regular(title.context)
-            thumbnail.setLayout(option.layout, keyColor, keyStroke, keyText)
+            thumbnail.setLayout(option.layout, option.layoutId, keyColor, keyStroke, keyText)
 
             val bg = root.background as? GradientDrawable
             bg?.setStroke(
@@ -305,6 +307,7 @@ class LayoutPickerView @JvmOverloads constructor(
 
     private class LayoutThumbnailView(context: Context) : View(context) {
         private var layout: KeyboardLayout? = null
+        private var layoutId: String? = null
         private var keyColor: Int = Color.WHITE
         private var keyStrokeColor: Int = Color.parseColor("#14000000")
         private var keyTextColor: Int = Color.parseColor("#3C3C43")
@@ -317,8 +320,9 @@ class LayoutPickerView @JvmOverloads constructor(
                 applyAppFont(context)
             }
 
-        fun setLayout(layout: KeyboardLayout?, keyColor: Int, keyStrokeColor: Int, keyTextColor: Int) {
+        fun setLayout(layout: KeyboardLayout?, layoutId: String?, keyColor: Int, keyStrokeColor: Int, keyTextColor: Int) {
             this.layout = layout
+            this.layoutId = layoutId
             this.keyColor = keyColor
             this.keyStrokeColor = keyStrokeColor
             this.keyTextColor = keyTextColor
@@ -327,7 +331,21 @@ class LayoutPickerView @JvmOverloads constructor(
 
         override fun onDraw(canvas: Canvas) {
             super.onDraw(canvas)
-            val layout = layout ?: return
+
+            if (layoutId == "handwriting") {
+                drawSpecialIcon(canvas, R.drawable.quill_pen_line)
+                return
+            }
+            if (layoutId == "voice") {
+                drawSpecialIcon(canvas, R.drawable.mic_line)
+                return
+            }
+
+            val layout = layout
+            if (layout == null) {
+                drawSpecialIcon(canvas, R.drawable.keyboard_line)
+                return
+            }
 
             val pad = dp(6f)
             val left = pad
@@ -379,6 +397,16 @@ class LayoutPickerView @JvmOverloads constructor(
                     canvas.drawText(label, (rectLeft + rectRight) / 2f, cy, textPaint)
                 }
             }
+        }
+
+        private fun drawSpecialIcon(canvas: Canvas, resId: Int) {
+            val drawable = ContextCompat.getDrawable(context, resId) ?: return
+            val iconSize = (height * 0.4f).toInt()
+            val cx = width / 2
+            val cy = height / 2
+            drawable.setBounds(cx - iconSize / 2, cy - iconSize / 2, cx + iconSize / 2, cy + iconSize / 2)
+            drawable.setTint(keyTextColor)
+            drawable.draw(canvas)
         }
 
         private fun dp(value: Float): Float = value * resources.displayMetrics.density

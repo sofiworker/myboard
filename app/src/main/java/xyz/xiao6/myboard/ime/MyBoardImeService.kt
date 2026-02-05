@@ -29,8 +29,10 @@ import xyz.xiao6.myboard.R
 import xyz.xiao6.myboard.controller.InputMethodController
 import xyz.xiao6.myboard.decoder.DecoderFactory
 import xyz.xiao6.myboard.manager.DictionaryManager
+import xyz.xiao6.myboard.manager.HandwritingRecognitionManager
 import xyz.xiao6.myboard.manager.LayoutManager
 import xyz.xiao6.myboard.manager.RuntimeDictionaryManager
+import xyz.xiao6.myboard.ui.handwriting.HandwritingLayoutManager
 import xyz.xiao6.myboard.manager.SubtypeManager
 import xyz.xiao6.myboard.manager.ThemeManager
 import xyz.xiao6.myboard.manager.ToolbarManager
@@ -46,6 +48,8 @@ import xyz.xiao6.myboard.ui.candidate.CandidatePageView
 import xyz.xiao6.myboard.ui.layout.LayoutPickerView
 import xyz.xiao6.myboard.ui.symbols.SymbolsLayoutView
 import xyz.xiao6.myboard.ui.emoji.EmojiLayoutView
+import xyz.xiao6.myboard.ui.voice.VoiceInputView
+import xyz.xiao6.myboard.ui.handwriting.ModernHandwritingContainerView
 import xyz.xiao6.myboard.ui.ime.KeyboardResizeOverlayView
 import xyz.xiao6.myboard.util.MLog
 import xyz.xiao6.myboard.util.KeyboardSizeConstraints
@@ -77,9 +81,35 @@ import xyz.xiao6.myboard.ui.popup.CandidateActionPopup
 import xyz.xiao6.myboard.ui.ImePickerActivity
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.LifecycleRegistry
+import androidx.lifecycle.setViewTreeLifecycleOwner
+import androidx.savedstate.SavedStateRegistry
+import androidx.savedstate.SavedStateRegistryController
+import androidx.savedstate.SavedStateRegistryOwner
+import androidx.savedstate.setViewTreeSavedStateRegistryOwner
+import androidx.lifecycle.ViewModelStore
+import androidx.lifecycle.ViewModelStoreOwner
+import androidx.lifecycle.setViewTreeViewModelStoreOwner
+
+import xyz.xiao6.myboard.manager.VoiceInputManager
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.core.content.ContextCompat
 
 class MyBoardImeService : InputMethodService() {
     private val logTag = "ImeService"
+    // scope is already defined in the file above, no need to redefine if it's there.
+    // Wait, the file snippet showed `val scope = ...` in imports? No.
+    // Ah, I see `val scope = ...` was added by me in the previous turn inside the class, but maybe it was already there?
+    // Let's remove the one I added if it conflicts.
+    // The error says "Conflicting declarations: val scope: CoroutineScope".
+    // Let's remove my added `private val scope ...` line.
+    
+    private var voiceInputManager: VoiceInputManager? = null
+    private var isVoiceInputActive = false
+    private var voiceInputView: VoiceInputView? = null
 
     private var isCandidatePageExpanded: Boolean = false
     private var lastCandidates: List<String> = emptyList()
@@ -96,6 +126,10 @@ class MyBoardImeService : InputMethodService() {
     private var runtimeDicts: RuntimeDictionaryManager? = null
     private var decoderFactory: DecoderFactory? = null
     private var subtypeManager: SubtypeManager? = null
+    private var layoutManager: LayoutManager? = null
+    private var dictionaryManager: DictionaryManager? = null
+    private var toolbarManager: ToolbarManager? = null
+    private var handwritingLayoutManager: HandwritingLayoutManager? = null
     private var prefs: SettingsStore? = null
     private var themeSpec: ThemeSpec? = null
     private var themeManager: ThemeManager? = null
@@ -119,6 +153,7 @@ class MyBoardImeService : InputMethodService() {
     private var symbolsView: SymbolsLayoutView? = null
     private var emojiView: EmojiLayoutView? = null
     private var clipboardView: ClipboardLayoutView? = null
+    private var handwritingView: ModernHandwritingContainerView? = null
     private var resizeOverlay: KeyboardResizeOverlayView? = null
     private var resizeBaselineWidthDpOffset: Float? = null
     private var resizeBaselineHeightDpOffset: Float? = null
@@ -140,20 +175,98 @@ class MyBoardImeService : InputMethodService() {
     private var candidateActionPopup: CandidateActionPopup? = null
     private val commitLatenciesMs = ArrayList<Long>(2048)
     private var imePickerNotificationShown: Boolean = false
+    private var imeLifecycleOwner: ImeLifecycleOwner? = null
 
     override fun onCreate() {
         super.onCreate()
-        MLog.d(logTag, "onCreate")
-        decoderFactory = DecoderFactory(this)
-        subtypeManager = SubtypeManager(this).loadAll()
+        MLog.d(logTag, "onCreate start")
         prefs = SettingsStore(this)
+        
+        // Initialize managers immediately (no-op until loadAll)
+        subtypeManager = SubtypeManager(this)
+        layoutManager = LayoutManager(this)
+        dictionaryManager = DictionaryManager(this)
+        toolbarManager = ToolbarManager(this)
+        handwritingLayoutManager = HandwritingLayoutManager(this)
+        themeManager = ThemeManager(this)
+        
+        // Async loading of everything
+        scope.launch(Dispatchers.IO) {
+            val t1 = System.currentTimeMillis()
+            // Order matters slightly for dependencies, but they are mostly independent
+            subtypeManager?.loadAll()
+            layoutManager?.loadAll()
+            dictionaryManager?.loadAll()
+            toolbarManager?.loadAllFromAssets()
+            handwritingLayoutManager?.loadAll()
+            themeManager?.loadAll()
+            
+            withContext(Dispatchers.Main) {
+                themeSpec = resolveThemeFromPrefs(forceReload = true)
+                toolbarSpec = toolbarManager?.getDefaultToolbar()
+                
+                // If views exist (unlikely in onCreate, but good for consistency), update them
+                keyboardView?.setTheme(themeSpec)
+                toolbarView?.applyTheme(themeSpec)
+                composingPopup?.applyTheme(themeSpec)
+                
+                MLog.d(logTag, "All managers background loaded in ${System.currentTimeMillis() - t1}ms")
+            }
+        }
+
+        decoderFactory = DecoderFactory(this)
         suggestionManager = SuggestionManager(this, prefs!!)
-        themeManager = ThemeManager(this).loadAll()
-        themeSpec = resolveThemeFromPrefs(forceReload = true)
-        toolbarSpec = ToolbarManager(this).loadAllFromAssets().getDefaultToolbar()
         clipboardManager = getSystemService(ClipboardManager::class.java)
         registerClipboardListener()
         ensureImePickerChannel()
+
+        voiceInputManager = xyz.xiao6.myboard.manager.VoiceInputManager(this).apply {
+            onPartialResult = { text ->
+                if (isVoiceInputActive) {
+                    controller?.replaceComposing(text)
+                    voiceInputView?.updateStatus(text)
+                }
+            }
+            onResult = { text ->
+                if (isVoiceInputActive) {
+                    commitTextToEditor(text)
+                    controller?.resetComposing()
+                    voiceInputView?.updateStatus("")
+                }
+            }
+            onError = { e ->
+                xyz.xiao6.myboard.util.MLog.e(logTag, "Voice error", e)
+                voiceInputView?.setError("Error: ${e.message}")
+                stopVoiceInput()
+            }
+        }
+        voiceInputManager?.initialize(scope) { success ->
+            xyz.xiao6.myboard.util.MLog.d(logTag, "Voice init: $success")
+        }
+    }
+
+    private fun startVoiceInput() {
+        if (prefs?.voiceInputEnabled == false) {
+            showImeHint("语音输入已在设置中禁用")
+            return
+        }
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+            showImeHint("请授予录音权限以使用语音输入")
+            return
+        }
+        if (voiceInputManager?.isModelLoaded() == false) {
+            showImeHint("语音模型加载中，请稍后...")
+            return
+        }
+        isVoiceInputActive = true
+        voiceInputView?.startListening()
+        voiceInputManager?.startListening()
+    }
+
+    private fun stopVoiceInput() {
+        isVoiceInputActive = false
+        voiceInputManager?.stopListening()
+        voiceInputView?.stopListening()
     }
 
     override fun onDestroy() {
@@ -165,6 +278,7 @@ class MyBoardImeService : InputMethodService() {
         candidateActionPopup?.dismiss()
         unregisterClipboardListener()
         scope.cancel()
+        imeLifecycleOwner?.onDestroy()
     }
 
     override fun onCreateInputView(): View {
@@ -172,8 +286,25 @@ class MyBoardImeService : InputMethodService() {
 
         val view = LayoutInflater.from(this).inflate(R.layout.ime_view, null, false)
         rootView = view
+        val lifecycleOwner = imeLifecycleOwner ?: ImeLifecycleOwner().also { imeLifecycleOwner = it }
+        lifecycleOwner.onCreate()
+        
+        // Attach to the local view root
+        view.setViewTreeLifecycleOwner(lifecycleOwner)
+        view.setViewTreeViewModelStoreOwner(lifecycleOwner)
+        view.setViewTreeSavedStateRegistryOwner(lifecycleOwner)
+
+        // Attach to the window decor view (Required for Compose WindowRecomposer)
+        window?.window?.decorView?.let { decorView ->
+            decorView.setViewTreeLifecycleOwner(lifecycleOwner)
+            decorView.setViewTreeViewModelStoreOwner(lifecycleOwner)
+            decorView.setViewTreeSavedStateRegistryOwner(lifecycleOwner)
+        }
+
+        lifecycleOwner.onStart()
 
         val imeRoot = view.findViewById<View>(R.id.imeRoot)
+        imeRoot.setViewTreeLifecycleOwner(lifecycleOwner)
         val imePanel = view.findViewById<ImePanelView>(R.id.imePanel)
         imePanelView = imePanel
         val topBarSlot = view.findViewById<View>(R.id.topBarSlot)
@@ -191,6 +322,10 @@ class MyBoardImeService : InputMethodService() {
         val symbolsView = view.findViewById<SymbolsLayoutView>(R.id.symbolsView)
         val emojiView = view.findViewById<EmojiLayoutView>(R.id.emojiView)
         val clipboardView = view.findViewById<ClipboardLayoutView>(R.id.clipboardView)
+        val handwritingView = view.findViewById<ModernHandwritingContainerView>(R.id.handwritingView)
+        this.handwritingView = handwritingView
+        val voiceInputView = view.findViewById<VoiceInputView>(R.id.voiceInputView)
+        this.voiceInputView = voiceInputView
         val resizeOverlay = view.findViewById<KeyboardResizeOverlayView>(R.id.resizeOverlay)
         val popupHost = view.findViewById<FrameLayout>(R.id.popupHost)
         val popupView = PopupView(popupHost).apply { applyTheme(themeSpec) }
@@ -209,6 +344,8 @@ class MyBoardImeService : InputMethodService() {
         this.emojiView = emojiView
         clipboardView.applyTheme(themeSpec)
         this.clipboardView = clipboardView
+        handwritingView.visibility = GONE
+        this.handwritingView = handwritingView
         resizeOverlay.target = imePanel
         resizeOverlay.visibility = GONE
         this.resizeOverlay = resizeOverlay
@@ -236,16 +373,15 @@ class MyBoardImeService : InputMethodService() {
             }
         this.candidateActionPopup = candidateActionPopup
 
-        val layoutManager = LayoutManager(this).loadAll()
-        val dictionaryManager = DictionaryManager(this).loadAll()
-
         fun hideOverlays() {
             isCandidatePageExpanded = false
             candidatePageView.visibility = GONE
             layoutPickerView.visibility = GONE
+            symbolsView.visibility = GONE
             emojiView.visibility = GONE
             clipboardView.visibility = GONE
             clipboardView.clearSelection()
+            handwritingView.visibility = GONE
             resizeOverlay.visibility = GONE
             toolbarView.clearCandidates()
             wordPreviewPopup.dismiss()
@@ -327,6 +463,88 @@ class MyBoardImeService : InputMethodService() {
             )
         }
 
+        fun showHandwriting() {
+            hideOverlays()
+            composingPopup.dismiss()
+            toolbarView.visibility = View.INVISIBLE
+            keyboardView.visibility = View.INVISIBLE
+            handwritingView.visibility = VISIBLE
+
+            // Get layout configuration from settings
+            val layoutModeStr = prefs?.handwritingLayoutMode ?: "HALF_SCREEN"
+            val layoutMode = xyz.xiao6.myboard.model.HandwritingLayoutMode.valueOf(layoutModeStr)
+            val positionStr = prefs?.handwritingPosition ?: "BOTTOM"
+            val position = xyz.xiao6.myboard.model.HandwritingPosition.valueOf(positionStr)
+
+            handwritingView?.setLayoutMode(layoutMode)
+            
+            val layoutId = when (layoutMode) {
+                xyz.xiao6.myboard.model.HandwritingLayoutMode.FULL_SCREEN -> "fullscreen"
+                xyz.xiao6.myboard.model.HandwritingLayoutMode.OVERLAY -> "overlay"
+                else -> "default"
+            }
+            
+            val baseLayoutSpec =
+                handwritingLayoutManager?.getLayout(layoutId)
+                    ?: handwritingLayoutManager?.getDefaultLayout()
+                    ?: xyz.xiao6.myboard.ui.handwriting.HandwritingLayoutSpec(
+                        layoutId = "default",
+                        name = "Default",
+                        mode = xyz.xiao6.myboard.model.HandwritingLayoutMode.HALF_SCREEN
+                    )
+
+            // Apply user settings overrides
+            val userStrokeWidth = prefs?.handwritingStrokeWidth ?: 12f
+            val userStrokeColor = prefs?.handwritingStrokeColor ?: -16777216 // BLACK
+            val userDelay = prefs?.handwritingRecognitionDelayMs ?: 500L
+            val userAutoRecognize = prefs?.handwritingAutoRecognize ?: true
+            
+            // Format color to #AARRGGBB
+            val colorHex = String.format("#%08X", userStrokeColor)
+
+            val layoutSpec = baseLayoutSpec.copy(
+                position = position,
+                canvas = baseLayoutSpec.canvas.copy(
+                    strokeWidth = userStrokeWidth,
+                    strokeColor = colorHex
+                ),
+                recognition = baseLayoutSpec.recognition.copy(
+                    autoRecognize = userAutoRecognize,
+                    autoRecognizeDelayMs = userDelay
+                )
+            )
+            
+            handwritingView?.setLayoutSpec(layoutSpec)
+
+            val locale = activeLocaleTag ?: Locale.getDefault().toLanguageTag()
+            scope.launch {
+                val manager = HandwritingRecognitionManager(this@MyBoardImeService)
+                val initialized = manager.initializeForLanguage(locale)
+                if (initialized) {
+                    handwritingView?.setRecognitionManager(manager)
+                    MLog.d(logTag, "Handwriting recognition initialized for $locale with mode: $layoutMode")
+                } else {
+                    MLog.e(logTag, "Failed to initialize handwriting recognition for $locale")
+                }
+            }
+        }
+
+        fun hideHandwriting() {
+            if (handwritingView.visibility != VISIBLE) return
+            handwritingView.visibility = GONE
+            handwritingView.clearCanvas()
+            toolbarView.visibility = VISIBLE
+            keyboardView.visibility = VISIBLE
+            renderCandidatesUi(
+                candidates = lastCandidates,
+                composing = lastComposing,
+                composingOptions = lastComposingOptions,
+                toolbarView = toolbarView,
+                keyboardView = keyboardView,
+                candidatePageView = candidatePageView,
+            )
+        }
+
         fun showResize() {
             // Only applies to the main keyboard panel; close other overlays.
             symbolsView.visibility = GONE
@@ -356,6 +574,47 @@ class MyBoardImeService : InputMethodService() {
         fun hideResize() {
             if (resizeOverlay.visibility != VISIBLE) return
             resizeOverlay.visibility = GONE
+        }
+
+        handwritingView.onBack = {
+            controller?.onAction(xyz.xiao6.myboard.model.KeyAction(xyz.xiao6.myboard.model.ActionType.BACK))
+        }
+        handwritingView.onSwitchToKeyboard = {
+            controller?.onAction(xyz.xiao6.myboard.model.KeyAction(xyz.xiao6.myboard.model.ActionType.BACK))
+        }
+        handwritingView.onClear = {
+            handwritingView.clearCanvas()
+        }
+        handwritingView.onCandidateSelected = { text ->
+            commitTextToEditor(text)
+            handwritingView.clearCanvas()
+        }
+        handwritingView.onLayoutPickerRequest = {
+            showLayoutPicker(
+                layoutManager = layoutManager!!,
+                toolbarView = toolbarView,
+                keyboardView = keyboardView,
+                candidatePageView = candidatePageView,
+                layoutPickerView = layoutPickerView,
+            )
+        }
+        handwritingView.onVoiceRequest = {
+            // Placeholder for voice
+        }
+        handwritingView.onEmojiRequest = {
+            showEmoji()
+        }
+        handwritingView.onResizeRequest = {
+            showResize()
+        }
+        handwritingView.onBackspaceRequest = {
+            commitTextToEditor("\b")
+        }
+        handwritingView.onSwitchLayoutRequest = { layoutId ->
+            controller?.loadLayout(layoutId)
+        }
+        handwritingView.onToggleLocaleRequest = {
+            toggleLocale()
         }
 
         resizeOverlay.onDismiss = { hideResize() }
@@ -451,7 +710,7 @@ class MyBoardImeService : InputMethodService() {
             when (item.itemId) {
                 "layout" -> {
                     showLayoutPicker(
-                        layoutManager = layoutManager,
+                        layoutManager = layoutManager!!,
                         toolbarView = toolbarView,
                         keyboardView = keyboardView,
                         candidatePageView = candidatePageView,
@@ -490,6 +749,7 @@ class MyBoardImeService : InputMethodService() {
                 symbolsView.visibility == VISIBLE -> hideSymbols()
                 emojiView.visibility == VISIBLE -> hideEmoji()
                 clipboardView.visibility == VISIBLE -> hideClipboard()
+                handwritingView.visibility == VISIBLE -> hideHandwriting()
                 resizeOverlay.visibility == VISIBLE -> hideResize()
                 lastCandidates.isNotEmpty() -> {
                     isCandidatePageExpanded = !isCandidatePageExpanded
@@ -575,11 +835,11 @@ class MyBoardImeService : InputMethodService() {
             controller?.resetComposing()
         }
 
-        val dicts = RuntimeDictionaryManager(dictionaryManager = dictionaryManager)
+        val dicts = RuntimeDictionaryManager(dictionaryManager = dictionaryManager!!)
         runtimeDicts = dicts
 
         val c = InputMethodController(
-            layoutManager = layoutManager,
+            layoutManager = layoutManager!!,
             scope = scope,
         ).apply {
             onCommitText = { text -> commitTextToEditor(text) }
@@ -601,6 +861,13 @@ class MyBoardImeService : InputMethodService() {
                 cancelPendingClearInput()
             }
             playKeyFeedback(keyboardView)
+            
+            // Voice Input: Space Long Press (Hold to talk)
+            if (keyId == KeyIds.SPACE && trigger == GestureType.LONG_PRESS) {
+                if (!isVoiceInputActive) startVoiceInput()
+                return@onTrigger
+            }
+
             if (keyId == KeyIds.BACKSPACE && trigger == GestureType.LONG_PRESS) {
                 handleBackspaceLongPress()
                 return@onTrigger
@@ -608,6 +875,11 @@ class MyBoardImeService : InputMethodService() {
             c.onKeyTriggered(keyId, trigger)
             if (keyId == KeyIds.BACKSPACE && trigger == GestureType.TAP) {
                 clearSuggestionsAfterDelete(keepToolbarHidden = false)
+            }
+        }
+        keyboardView.onRelease = { keyId ->
+            if (keyId == KeyIds.SPACE && isVoiceInputActive) {
+                stopVoiceInput()
             }
         }
         keyboardView.onAction = { action ->
@@ -712,6 +984,13 @@ class MyBoardImeService : InputMethodService() {
             .onEach { layout ->
                 val resolved = layout ?: return@onEach
                 val layoutId = resolved.layoutId
+
+                if (layoutId == "handwriting") {
+                    showHandwriting()
+                } else if (handwritingView?.visibility == VISIBLE) {
+                    hideHandwriting()
+                }
+
                 val sized = applyGlobalKeyboardSize(resolved)
                 imePanel.applyKeyboardLayoutSize(sized)
                 dicts.setLayoutId(layoutId)
@@ -876,6 +1155,7 @@ class MyBoardImeService : InputMethodService() {
         if (items.isEmpty()) {
             return listOf(
                 ToolbarView.Item("layout", R.drawable.layout_line, "Layout"),
+                ToolbarView.Item("handwriting", R.drawable.quill_pen_line, "Handwriting"),
                 ToolbarView.Item("voice", R.drawable.mic_line, "Voice"),
                 ToolbarView.Item("emoji", R.drawable.emotion_line, "Emoji"),
                 ToolbarView.Item("clipboard", R.drawable.clipboard_line, "Clipboard"),
@@ -887,10 +1167,11 @@ class MyBoardImeService : InputMethodService() {
         fun iconResId(icon: String): Int {
             return when (icon.lowercase()) {
                 "layout" -> R.drawable.layout_line
+                "handwriting", "quill_pen" -> R.drawable.quill_pen_line
                 "voice" -> R.drawable.mic_line
                 "emoji" -> R.drawable.emotion_line
                 "clipboard" -> R.drawable.clipboard_line
-                "kb_resize" -> R.drawable.custom_size
+                "kb_resize" -> R.drawable.aspect_ratio_line
                 "settings" -> R.drawable.settings_line
                 else -> R.drawable.settings_line
             }
@@ -1042,15 +1323,17 @@ class MyBoardImeService : InputMethodService() {
                 enabledLayoutIdsFiltered.isNotEmpty() -> enabledLayoutIdsFiltered.firstOrNull()
                 !profile?.defaultLayoutId.isNullOrBlank() -> profile?.defaultLayoutId
                 !profile?.layoutIds.isNullOrEmpty() -> profile?.layoutIds?.firstOrNull()
-                else -> runCatching { LayoutManager(this).loadAll().getDefaultLayout(locale).layoutId }.getOrNull()
+                else -> layoutManager?.getLayout("qwerty")?.layoutId ?: "qwerty"
             } ?: "qwerty"
 
         runtimeDicts?.setLocale(locale)
         runtimeDicts?.setLayoutId(layoutId)
         updateRuntimeDictionariesFromPrefs()
 
-        controller?.loadLayout(layoutId)
-        MLog.d(logTag, "IME loadLayout onStartInputView layoutId=$layoutId locale=${activeLocaleTag ?: locale.toLanguageTag()}")
+        if (controller?.currentLayout?.value?.layoutId != layoutId) {
+            controller?.loadLayout(layoutId)
+        }
+        MLog.d(logTag, "IME onStartInputView activeLayout=$layoutId locale=${activeLocaleTag ?: locale.toLanguageTag()}")
         swapDecoderAsync(controller, runtimeDicts?.activeList?.value.orEmpty())
         applyLocaleSymbolOverrides(activeLocaleTag ?: locale.toLanguageTag())
     }
@@ -1598,17 +1881,20 @@ class MyBoardImeService : InputMethodService() {
         super.onFinishInputView(finishingInput)
         dismissImePickerNotification()
         resetImeWindowState()
+        imeLifecycleOwner?.onStop()
     }
 
     override fun onWindowHidden() {
         super.onWindowHidden()
         dismissImePickerNotification()
         resetImeWindowState()
+        imeLifecycleOwner?.onStop()
     }
 
     override fun onWindowShown() {
         super.onWindowShown()
         showImePickerNotificationIfNeeded()
+        imeLifecycleOwner?.onStart()
     }
 
     private fun resetImeWindowState() {
@@ -2013,5 +2299,38 @@ class MyBoardImeService : InputMethodService() {
         private const val MAX_CLIPBOARD_ENTRIES = 50
         private const val IME_PICKER_CHANNEL_ID = "ime_picker"
         private const val IME_PICKER_NOTIFICATION_ID = 0x494D45
+    }
+}
+
+private class ImeLifecycleOwner : LifecycleOwner, ViewModelStoreOwner, SavedStateRegistryOwner {
+    private val lifecycleRegistry = LifecycleRegistry(this)
+    private val savedStateRegistryController = SavedStateRegistryController.create(this)
+    private val store = ViewModelStore()
+
+    override val lifecycle: Lifecycle
+        get() = lifecycleRegistry
+
+    override val savedStateRegistry: SavedStateRegistry
+        get() = savedStateRegistryController.savedStateRegistry
+
+    override val viewModelStore: ViewModelStore
+        get() = store
+
+    fun onCreate() {
+        savedStateRegistryController.performRestore(null)
+        lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_CREATE)
+    }
+
+    fun onStart() {
+        lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_START)
+    }
+
+    fun onStop() {
+        lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_STOP)
+    }
+
+    fun onDestroy() {
+        lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_DESTROY)
+        store.clear()
     }
 }

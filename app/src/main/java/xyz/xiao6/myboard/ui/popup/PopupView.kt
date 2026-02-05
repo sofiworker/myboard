@@ -202,16 +202,16 @@ class PopupView(
     private fun buildPreviewTextView(): TextView {
         return TextView(context).apply {
             setTextColor(Color.parseColor("#FF1A1C1E"))
-            textSize = 32f
+            textSize = 28f
             applyAppFont(bold = true)
             gravity = Gravity.CENTER
-            setPadding(dpInt(24f), dpInt(16f), dpInt(24f), dpInt(16f))
+            setPadding(dpInt(20f), dpInt(12f), dpInt(20f), dpInt(12f))
             background = GradientDrawable().apply {
                 shape = GradientDrawable.RECTANGLE
                 // Larger corner radius for modern look
-                cornerRadius = dp(16f)
-                setColor(Color.parseColor("#FFFFFFFF"))
-                setStroke(dpInt(0f), Color.parseColor("#FFE2E8F0"))
+                cornerRadius = dp(12f)
+                setColor(Color.WHITE)
+                setStroke(dpInt(0.5f), Color.parseColor("#E0E0E0"))
                 // Add subtle shadow effect through padding
             }
         }

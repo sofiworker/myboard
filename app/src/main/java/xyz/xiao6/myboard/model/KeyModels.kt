@@ -100,7 +100,6 @@ enum class TokenType {
 @Serializable
 enum class GestureType {
     TAP,
-    DOUBLE_TAP,
     LONG_PRESS,
     FLICK_UP,
     FLICK_DOWN,

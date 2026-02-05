@@ -7,20 +7,24 @@
       "qwerty",
       "numeric",
       "symbols",
-      "t9"
+      "t9",
+      "zh_cn_cluster"
     ],
     "layoutSchemaVersion": 1
   },
   "colors": {
-    "background": "#F2F2F7",
-    "key_text": "#000000",
-    "key_hint": "#8E8E93",
+    "background": "#F8F9FA",
+    "key_text": "#3C4043",
+    "key_hint": "#80868B",
     "key_bg": "#FFFFFF",
-    "key_bg_pressed": "#E5E5EA",
-    "key_bg_function": "#E5E5EA",
-    "key_bg_function_pressed": "#D1D1D6",
-    "stroke": "#14000000",
-    "accent": "#007AFF"
+    "key_bg_pressed": "#F1F3F4",
+    "key_bg_function": "#E8EAED",
+    "key_bg_function_pressed": "#DADCE0",
+    "key_bg_accent": "#E8F0FE",
+    "key_bg_accent_pressed": "#D2E3FC",
+    "stroke": "#DADCE0",
+    "accent": "#1A73E8",
+    "accent_text": "#1A73E8"
   },
   "global": {
     "font": {
@@ -33,13 +37,13 @@
       }
     },
     "fontSize": {
-      "labelSp": 22,
+      "labelSp": 20,
       "hintSp": 11,
       "candidateSp": 18,
       "toolbarSp": 14
     },
     "icon": {
-      "sizeDp": 20,
+      "sizeDp": 24,
       "tint": "colors.key_text",
       "alpha": 1.0,
       "scaleMode": "fit",
@@ -50,38 +54,47 @@
       "respectShift": true
     },
     "paint": {
-      "cornerRadiusDp": 10
+      "cornerRadiusDp": 12
     }
   },
   "icons": {
-    "shift": { "source": "res", "name": "ic_shift", "sizeDp": 20, "scaleMode": "fit" },
-    "backspace": { "source": "res", "name": "ic_backspace", "sizeDp": 20, "scaleMode": "fit" },
-    "enter": { "source": "res", "name": "ic_enter", "sizeDp": 20, "scaleMode": "fit" },
-    "space": { "source": "res", "name": "ic_space", "sizeDp": 20, "scaleMode": "fit" },
-    "lang": { "source": "res", "name": "ic_lang", "sizeDp": 20, "scaleMode": "fit" },
-    "symbols": { "source": "res", "name": "ic_symbols", "sizeDp": 20, "scaleMode": "fit" },
-    "voice": { "source": "url", "url": "https://example.com/icons/voice.png", "sizeDp": 20, "scaleMode": "fit" }
+    "shift": { "source": "res", "name": "ic_shift_filled", "sizeDp": 24, "scaleMode": "fit" },
+    "backspace": { "source": "res", "name": "delete_back_2_line", "sizeDp": 24, "scaleMode": "fit" },
+    "enter": { "source": "res", "name": "corner_down_left_line", "sizeDp": 24, "scaleMode": "fit" },
+    "space": { "source": "res", "name": "ic_space", "sizeDp": 24, "scaleMode": "fit" },
+    "lang_toggle": { "source": "res", "name": "global_line", "sizeDp": 24, "scaleMode": "fit" },
+    "symbols": { "source": "res", "name": "ic_symbols", "sizeDp": 24, "scaleMode": "fit" },
+    "voice": { "source": "res", "name": "mic_line", "sizeDp": 24, "scaleMode": "fit" },
+    "kb_resize": { "source": "res", "name": "aspect_ratio_line", "sizeDp": 24, "scaleMode": "fit" },
+    "layout": { "source": "res", "name": "layout_line", "sizeDp": 24, "scaleMode": "fit" },
+    "handwriting": { "source": "res", "name": "quill_pen_line", "sizeDp": 24, "scaleMode": "fit" },
+    "emoji": { "source": "res", "name": "emotion_line", "sizeDp": 24, "scaleMode": "fit" },
+    "clipboard": { "source": "res", "name": "clipboard_line", "sizeDp": 24, "scaleMode": "fit" },
+    "settings": { "source": "res", "name": "settings_line", "sizeDp": 24, "scaleMode": "fit" }
   },
   "layout": {
     "background": {
       "color": "colors.background"
     },
+    "paddingDp": 6,
+    "keySpacingDp": 6,
+    "rowSpacingDp": 10,
     "extendToToolbar": true,
     "extendToCandidates": false
   },
   "toolbar": {
     "surface": {
       "background": { "color": "colors.background" },
-      "stroke": { "color": "colors.stroke", "widthDp": 1 },
-      "cornerRadiusDp": 10
+      "stroke": { "color": "colors.stroke", "widthDp": 0 },
+      "cornerRadiusDp": 12
     },
-    "itemText": { "color": "#3C3C43", "sizeSp": 14 },
-    "itemIcon": { "tint": "#3C3C43", "sizeDp": 20 }
+    "itemText": { "color": "colors.key_text", "sizeSp": 14 },
+    "itemIcon": { "tint": "colors.key_text", "sizeDp": 24 }
   },
   "candidates": {
     "surface": {
       "background": { "color": "colors.background" },
-      "stroke": { "color": "colors.stroke", "widthDp": 1 }
+      "stroke": { "color": "colors.stroke", "widthDp": 0 }
     },
     "candidateText": { "color": "colors.key_text", "sizeSp": 18 },
     "candidateTextSelected": { "color": "colors.accent", "bold": true },
@@ -90,59 +103,69 @@
   "composingPopup": {
     "surface": {
       "background": { "color": "colors.key_bg" },
-      "stroke": { "color": "colors.stroke", "widthDp": 1 },
-      "cornerRadiusDp": 10
+      "stroke": { "color": "colors.stroke", "widthDp": 0.5 },
+      "cornerRadiusDp": 12,
+      "elevationDp": 2
     },
-    "text": { "color": "colors.key_text" },
+    "text": { "color": "colors.key_text", "sizeSp": 16 },
     "textSelected": { "color": "colors.accent", "bold": true }
   },
   "keyPopup": {
     "surface": {
       "background": { "color": "colors.key_bg" },
-      "stroke": { "color": "colors.stroke", "widthDp": 1 },
-      "cornerRadiusDp": 12
+      "stroke": { "color": "colors.stroke", "widthDp": 0.5 },
+      "cornerRadiusDp": 12,
+      "elevationDp": 6,
+      "shadowColor": "#40000000"
     },
-    "text": { "color": "colors.key_text" },
+    "text": { "color": "colors.key_text", "sizeSp": 26, "bold": true },
     "textSelected": { "color": "#FFFFFF" }
   },
   "styles": {
     "style_alpha_key": {
       "background": { "color": "colors.key_bg" },
       "backgroundPressed": { "color": "colors.key_bg_pressed" },
-      "stroke": { "color": "colors.stroke", "widthDp": 1 },
-      "shadow": { "color": "#22000000", "radiusDp": 2, "dxDp": 0, "dyDp": 1 },
-      "cornerRadiusDp": 10,
+      "stroke": { "color": "colors.stroke", "widthDp": 0.5 },
+      "shadow": { "color": "#08000000", "radiusDp": 1, "dxDp": 0, "dyDp": 1 },
+      "cornerRadiusDp": 8,
       "label": {
         "color": "colors.key_text",
-        "sizeSp": 22,
+        "sizeSp": 20,
         "bold": false,
-        "stroke": { "color": "#1A000000", "widthDp": 0.5 },
         "case": "AUTO"
       },
       "hint": {
         "color": "colors.key_hint",
-        "sizeSp": 11
+        "sizeSp": 10
       }
     },
     "style_function_key": {
       "background": { "color": "colors.key_bg_function" },
       "backgroundPressed": { "color": "colors.key_bg_function_pressed" },
-      "stroke": { "color": "colors.stroke", "widthDp": 1 },
-      "shadow": { "color": "#20000000", "radiusDp": 2, "dxDp": 0, "dyDp": 1 },
-      "cornerRadiusDp": 10,
-      "label": { "color": "#3C3C43", "sizeSp": 18 },
+      "stroke": { "color": "colors.stroke", "widthDp": 0 },
+      "shadow": { "color": "#05000000", "radiusDp": 1, "dxDp": 0, "dyDp": 1 },
+      "cornerRadiusDp": 8,
+      "label": { "color": "colors.key_text", "sizeSp": 16 },
       "hint": { "color": "colors.key_hint", "sizeSp": 10 },
-      "icon": { "sizeDp": 20, "tint": "#3C3C43", "alpha": 1.0, "scaleMode": "fit" }
+      "icon": { "sizeDp": 24, "tint": "colors.key_text", "alpha": 1.0, "scaleMode": "fit" }
     },
     "style_function_key_important": {
-      "background": { "color": "colors.key_bg_function" },
-      "backgroundPressed": { "color": "colors.key_bg_function_pressed" },
-      "stroke": { "color": "colors.stroke", "widthDp": 1 },
-      "shadow": { "color": "#20000000", "radiusDp": 2, "dxDp": 0, "dyDp": 1 },
-      "cornerRadiusDp": 10,
-      "label": { "color": "colors.key_text", "sizeSp": 18, "bold": true },
+      "background": { "color": "colors.key_bg_accent" },
+      "backgroundPressed": { "color": "colors.key_bg_accent_pressed" },
+      "stroke": { "color": "colors.stroke", "widthDp": 0 },
+      "shadow": { "color": "#101A73E8", "radiusDp": 2, "dxDp": 0, "dyDp": 1 },
+      "cornerRadiusDp": 8,
+      "label": { "color": "colors.accent_text", "sizeSp": 16, "bold": true },
       "hint": { "color": "colors.key_hint", "sizeSp": 10 },
-      "icon": { "sizeDp": 20, "tint": "colors.key_text", "alpha": 1.0, "scaleMode": "fit" }
+      "icon": { "sizeDp": 24, "tint": "colors.accent_text", "alpha": 1.0, "scaleMode": "fit" }
+    },
+     "style_space_key": {
+      "background": { "color": "colors.key_bg" },
+      "backgroundPressed": { "color": "colors.key_bg_pressed" },
+      "stroke": { "color": "colors.stroke", "widthDp": 0.5 },
+      "shadow": { "color": "#08000000", "radiusDp": 1, "dxDp": 0, "dyDp": 1 },
+      "cornerRadiusDp": 8,
+      "label": { "color": "colors.key_hint", "sizeSp": 14 }
     }
   },
   "styleDefaults": {
@@ -150,19 +173,23 @@
     "function": "style_function_key",
     "functionPrimary": "style_function_key_important",
     "functionDanger": "style_function_key",
-    "functionToggle": "style_function_key"
+    "functionToggle": "style_function_key",
+    "space": "style_space_key"
   },
   "dark": {
     "colors": {
-      "background": "#0F0F10",
-      "key_text": "#FFFFFF",
-      "key_hint": "#9EA0A6",
-      "key_bg": "#1B1C1E",
-      "key_bg_pressed": "#2A2C2F",
-      "key_bg_function": "#222326",
-      "key_bg_function_pressed": "#2D2F33",
-      "stroke": "#33000000",
-      "accent": "#0A84FF"
+      "background": "#202124",
+      "key_text": "#E8EAED",
+      "key_hint": "#9AA0A6",
+      "key_bg": "#3C4043",
+      "key_bg_pressed": "#4F5256",
+      "key_bg_function": "#303134",
+      "key_bg_function_pressed": "#3C4043",
+      "key_bg_accent": "#8AB4F8",
+      "key_bg_accent_pressed": "#AECBFA",
+      "stroke": "#5F6368",
+      "accent": "#8AB4F8",
+      "accent_text": "#202124"
     },
     "layout": {
       "background": { "color": "colors.background" }
@@ -170,15 +197,15 @@
     "toolbar": {
       "surface": {
         "background": { "color": "colors.background" },
-        "stroke": { "color": "colors.stroke", "widthDp": 1 }
+        "stroke": { "color": "colors.stroke", "widthDp": 0 }
       },
-      "itemText": { "color": "#D1D1D6" },
-      "itemIcon": { "tint": "#D1D1D6" }
+      "itemText": { "color": "colors.key_text" },
+      "itemIcon": { "tint": "colors.key_text", "sizeDp": 24 }
     },
     "candidates": {
       "surface": {
         "background": { "color": "colors.background" },
-        "stroke": { "color": "colors.stroke", "widthDp": 1 }
+        "stroke": { "color": "colors.stroke", "widthDp": 0 }
       },
       "candidateText": { "color": "colors.key_text", "sizeSp": 18 },
       "candidateTextSelected": { "color": "colors.accent", "bold": true },
@@ -188,24 +215,30 @@
       "style_alpha_key": {
         "background": { "color": "colors.key_bg" },
         "backgroundPressed": { "color": "colors.key_bg_pressed" },
-        "stroke": { "color": "colors.stroke", "widthDp": 1 },
-        "shadow": { "color": "#00000000", "radiusDp": 0, "dxDp": 0, "dyDp": 0 },
-        "label": { "color": "colors.key_text", "sizeSp": 22 },
-        "hint": { "color": "colors.key_hint", "sizeSp": 11 }
+        "stroke": { "color": "colors.stroke", "widthDp": 0 },
+        "shadow": { "color": "#40000000", "radiusDp": 2, "dxDp": 0, "dyDp": 1 },
+        "label": { "color": "colors.key_text", "sizeSp": 20 },
+        "hint": { "color": "colors.key_hint", "sizeSp": 10 }
       },
       "style_function_key": {
         "background": { "color": "colors.key_bg_function" },
         "backgroundPressed": { "color": "colors.key_bg_function_pressed" },
-        "stroke": { "color": "colors.stroke", "widthDp": 1 },
-        "label": { "color": "#D1D1D6", "sizeSp": 18 },
-        "icon": { "tint": "#D1D1D6" }
+        "stroke": { "color": "colors.stroke", "widthDp": 0 },
+        "label": { "color": "colors.key_text", "sizeSp": 16 },
+        "icon": { "tint": "colors.key_text", "sizeDp": 24 }
       },
       "style_function_key_important": {
-        "background": { "color": "colors.key_bg_function" },
-        "backgroundPressed": { "color": "colors.key_bg_function_pressed" },
-        "stroke": { "color": "colors.stroke", "widthDp": 1 },
-        "label": { "color": "colors.key_text", "sizeSp": 18, "bold": true },
-        "icon": { "tint": "colors.key_text" }
+        "background": { "color": "colors.key_bg_accent" },
+        "backgroundPressed": { "color": "colors.key_bg_accent_pressed" },
+        "stroke": { "color": "colors.stroke", "widthDp": 0 },
+        "label": { "color": "colors.accent_text", "sizeSp": 16, "bold": true },
+        "icon": { "tint": "colors.accent_text", "sizeDp": 24 }
+      },
+      "style_space_key": {
+        "background": { "color": "colors.key_bg" },
+        "backgroundPressed": { "color": "colors.key_bg_pressed" },
+        "stroke": { "color": "colors.stroke", "widthDp": 0 },
+        "label": { "color": "colors.key_hint", "sizeSp": 14 }
       }
     }
   }

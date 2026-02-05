@@ -1,0 +1,32 @@
+{
+  "layoutId": "handwriting",
+  "name": "手写输入",
+  "locale": [
+    "neutral",
+    "en_US",
+    "zh_CN"
+  ],
+  "totalWidthRatio": 1.0,
+  "totalHeightRatio": 0.4,
+  "rows": [
+    {
+      "rowId": "handwriting_row",
+      "heightRatio": 1.0,
+      "keys": [
+        {
+          "keyId": "handwriting_placeholder",
+          "label": "",
+          "primaryCode": 0,
+          "ui": {
+            "styleId": "style_alpha_key",
+            "gridPosition": {
+              "startCol": 0,
+              "startRow": 0,
+              "spanCols": 1
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

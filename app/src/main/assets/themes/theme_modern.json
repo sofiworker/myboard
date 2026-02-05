@@ -3,7 +3,7 @@
   "themeId": "modern",
   "name": "Modern",
   "support": {
-    "layouts": ["qwerty", "numeric", "symbols", "t9"],
+    "layouts": ["qwerty", "numeric", "symbols", "t9", "zh_cn_cluster"],
     "layoutSchemaVersion": 1
   },
   "colors": {
@@ -56,12 +56,12 @@
   },
   "icons": {
     "shift": { "source": "res", "name": "ic_shift_filled", "sizeDp": 22, "scaleMode": "fit" },
-    "backspace": { "source": "res", "name": "ic_backspace_modern", "sizeDp": 22, "scaleMode": "fit" },
-    "enter": { "source": "res", "name": "ic_enter_modern", "sizeDp": 22, "scaleMode": "fit" },
+    "backspace": { "source": "res", "name": "delete_back_2_line", "sizeDp": 22, "scaleMode": "fit" },
+    "enter": { "source": "res", "name": "corner_down_left_line", "sizeDp": 22, "scaleMode": "fit" },
     "space": { "source": "res", "name": "ic_space", "sizeDp": 22, "scaleMode": "fit" },
-    "lang": { "source": "res", "name": "ic_language_switch", "sizeDp": 22, "scaleMode": "fit" },
+    "lang": { "source": "res", "name": "global_line", "sizeDp": 22, "scaleMode": "fit" },
     "symbols": { "source": "res", "name": "ic_symbols", "sizeDp": 22, "scaleMode": "fit" },
-    "voice": { "source": "res", "name": "ic_voice_input", "sizeDp": 22, "scaleMode": "fit" }
+    "voice": { "source": "res", "name": "mic_line", "sizeDp": 22, "scaleMode": "fit" }
   },
   "layout": {
     "background": { "color": "colors.background" },
@@ -94,11 +94,11 @@
   "composingPopup": {
     "surface": {
       "background": { "color": "colors.surface" },
-      "stroke": { "color": "colors.stroke", "widthDp": 1 },
-      "cornerRadiusDp": 16,
-      "elevationDp": 4
+      "stroke": { "color": "colors.stroke", "widthDp": 0.5 },
+      "cornerRadiusDp": 12,
+      "elevationDp": 2
     },
-    "text": { "color": "colors.key_text" },
+    "text": { "color": "colors.key_text", "sizeSp": 16 },
     "textSelected": { "color": "colors.accent", "bold": true }
   },
   "keyPopup": {

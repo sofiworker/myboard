@@ -23,6 +23,10 @@ android {
         }
     }
 
+    androidResources {
+        noCompress += listOf("tflite", "anybdict", "mybdict", "conf", "am", "graph", "res", "ivector")
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
@@ -49,6 +53,9 @@ android {
         }
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
+            excludes += "com/sun/jna/**"
+            excludes += "com/sun/jna/ptr/**"
+            excludes += "com/sun/jna/win32/**"
         }
     }
 
@@ -167,6 +174,8 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
+    implementation("com.alphacephei:vosk-android:0.3.47")
+    implementation("androidx.compose.material:material-icons-extended")
     implementation(libs.kotlinx.serialization.json)
     
     implementation(libs.digital.ink.recognition)

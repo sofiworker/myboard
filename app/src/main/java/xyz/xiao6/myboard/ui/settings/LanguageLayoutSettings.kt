@@ -805,7 +805,7 @@ private fun EnabledLanguagesRow(
             val layoutId = preferredLayouts[tag]
             val layoutName =
                 layoutId?.let {
-                    runCatching { layoutManager.getLayout(it).name }.getOrNull()
+                    runCatching { layoutManager.getLayout(it)?.name }.getOrNull()
                         ?.takeIf { n -> n.isNotBlank() }
                         ?: it
                 }.orEmpty()

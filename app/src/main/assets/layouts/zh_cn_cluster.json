@@ -567,7 +567,7 @@
         },
         {
           "keyId": "key_backspace",
-          "label": "⌫",
+          "label": "",
           "primaryCode": -5,
           "ui": {
             "styleId": "style_function_key",
@@ -657,7 +657,7 @@
         },
         {
           "keyId": "key_space",
-          "label": "space",
+          "label": "",
           "primaryCode": 32,
           "ui": {
             "styleId": "style_function_key_important",

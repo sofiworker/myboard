@@ -292,6 +292,43 @@ class SettingsStore(context: Context) {
             writeString(KEY_HANDWRITING_POSITION, value.trim())
         }
 
+    // Voice Input settings
+    var voiceInputEnabled: Boolean
+        get() = readBoolean(KEY_VOICE_INPUT_ENABLED) ?: true
+        set(value) {
+            writeBoolean(KEY_VOICE_INPUT_ENABLED, value)
+        }
+
+    var voiceModelPath: String?
+        get() = readString(KEY_VOICE_MODEL_PATH)
+        set(value) {
+            writeString(KEY_VOICE_MODEL_PATH, value?.trim())
+        }
+
+    var voiceVadEnabled: Boolean
+        get() = readBoolean(KEY_VOICE_VAD_ENABLED) ?: true
+        set(value) {
+            writeBoolean(KEY_VOICE_VAD_ENABLED, value)
+        }
+
+    var handwritingStrokeWidth: Float
+        get() = readFloat(KEY_HANDWRITING_STROKE_WIDTH) ?: 12f
+        set(value) {
+            writeFloat(KEY_HANDWRITING_STROKE_WIDTH, value.coerceIn(1f, 50f))
+        }
+
+    var handwritingStrokeColor: Int
+        get() = readInt(KEY_HANDWRITING_STROKE_COLOR) ?: -16777216 // Color.BLACK
+        set(value) {
+            writeInt(KEY_HANDWRITING_STROKE_COLOR, value)
+        }
+
+    var handwritingRecognitionDelayMs: Long
+        get() = (readInt(KEY_HANDWRITING_RECOGNITION_DELAY_MS) ?: 500).toLong()
+        set(value) {
+            writeInt(KEY_HANDWRITING_RECOGNITION_DELAY_MS, value.toInt().coerceIn(100, 3000))
+        }
+
     fun getPreferredLayoutId(localeTag: String): String? {
         val key = KEY_PREFERRED_LAYOUT_PREFIX + normalizeLocaleTag(localeTag)
         return readString(key)?.trim()?.takeIf { it.isNotBlank() }
@@ -441,6 +478,15 @@ class SettingsStore(context: Context) {
         private const val KEY_HANDWRITING_AUTO_RECOGNIZE = "handwriting_auto_recognize"
         private const val KEY_HANDWRITING_LAYOUT_MODE = "handwriting_layout_mode"
         private const val KEY_HANDWRITING_POSITION = "handwriting_position"
+        
+        // Voice Input settings keys
+        private const val KEY_VOICE_INPUT_ENABLED = "voice_input_enabled"
+        private const val KEY_VOICE_MODEL_PATH = "voice_model_path"
+        private const val KEY_VOICE_VAD_ENABLED = "voice_vad_enabled"
+
+        private const val KEY_HANDWRITING_STROKE_WIDTH = "handwriting_stroke_width"
+        private const val KEY_HANDWRITING_STROKE_COLOR = "handwriting_stroke_color"
+        private const val KEY_HANDWRITING_RECOGNITION_DELAY_MS = "handwriting_recognition_delay_ms"
     }
 
     private fun readString(key: String): String? = cache[key]

@@ -25,6 +25,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -69,10 +70,28 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.Button
+import androidx.compose.material3.Surface
+import androidx.compose.ui.graphics.Color
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Language
+import androidx.compose.material.icons.filled.VolumeUp
+import androidx.compose.material.icons.filled.TouchApp
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Build
+import androidx.compose.material.icons.filled.Lightbulb
+import androidx.compose.material.icons.filled.Book
+import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.filled.AspectRatio
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Error
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -126,6 +145,7 @@ import xyz.xiao6.myboard.model.ThemeSpec
 import xyz.xiao6.myboard.model.validate
 import xyz.xiao6.myboard.store.SettingsStore
 import xyz.xiao6.myboard.ui.theme.MyBoardTheme
+import xyz.xiao6.myboard.ui.theme.DesignTokens
 import xyz.xiao6.myboard.util.KeyboardSizeConstraints
 import java.io.File
 import java.util.Locale
@@ -222,17 +242,17 @@ class SettingsActivity : AppCompatActivity() {
     }
 }
 
-private sealed interface SettingsRoute {
-    data object Main : SettingsRoute
-    data object LanguageLayout : SettingsRoute
-    data object Feedback : SettingsRoute
-    data object InputBehavior : SettingsRoute
-    data object InputMode : SettingsRoute
-    data object Toolbar : SettingsRoute
-    data object Suggestions : SettingsRoute
-    data object Dictionaries : SettingsRoute
-    data object Appearance : SettingsRoute
-    data object KeyboardSize : SettingsRoute
+private sealed class SettingsRoute(val icon: ImageVector? = null) {
+    data object Main : SettingsRoute()
+    data object LanguageLayout : SettingsRoute(Icons.Default.Language)
+    data object Feedback : SettingsRoute(Icons.Default.VolumeUp)
+    data object InputBehavior : SettingsRoute(Icons.Default.TouchApp)
+    data object InputMode : SettingsRoute(Icons.Default.Edit)
+    data object Toolbar : SettingsRoute(Icons.Default.Build)
+    data object Suggestions : SettingsRoute(Icons.Default.Lightbulb)
+    data object Dictionaries : SettingsRoute(Icons.Default.Book)
+    data object Appearance : SettingsRoute(Icons.Default.Palette)
+    data object KeyboardSize : SettingsRoute(Icons.Default.AspectRatio)
 }
 
 private enum class KeyboardSizeHandle {
@@ -428,11 +448,7 @@ private fun SettingsScreen(
                     onShowCreateLayoutDialogChange = { showCreateLayoutDialog = it },
                     showImportLayout = showImportLayout,
                     onShowImportLayoutChange = { showImportLayout = it },
-                    onOpenLayoutEditor = { tag ->
-                        val intent = Intent(context, ModernLayoutEditorActivity::class.java)
-                        intent.putExtra("locale_tag", tag)
-                        context.startActivity(intent)
-                    },
+                    onOpenLayoutEditor = { /* ModernLayoutEditorActivity removed */ },
                 )
 
                 SettingsRoute.Appearance -> AppearanceSettings(
@@ -602,34 +618,26 @@ private fun SettingsMainList(
     val localeTag = prefs.userLocaleTag
     val preferredLayoutId = localeTag?.let { prefs.getPreferredLayoutId(it) }
 
-    LazyColumn(modifier = modifier) {
+    LazyColumn(
+        modifier = modifier,
+        contentPadding = PaddingValues(bottom = 80.dp)
+    ) {
+        // 1. Status Card
         item {
-            SectionHeader(textRes = R.string.settings_section_input_method)
-        }
-        item {
-            SettingItem(
-                titleRes = R.string.settings_open_ime_settings,
-                summary = stringResource(
-                    R.string.settings_status_ime_enabled_selected,
-                    if (imeEnabled) stringResource(R.string.common_yes) else stringResource(R.string.common_no),
-                    if (imeSelected) stringResource(R.string.common_yes) else stringResource(R.string.common_no),
-                ),
-                onClick = onOpenImeSettings,
+            StatusCard(
+                imeEnabled = imeEnabled,
+                imeSelected = imeSelected,
+                onOpenSettings = onOpenImeSettings,
+                onOpenPicker = onShowImePicker
             )
         }
-        item {
-            SettingItem(
-                titleRes = R.string.settings_show_ime_picker,
-                summaryRes = R.string.settings_show_ime_picker_desc,
-                onClick = onShowImePicker,
-            )
-        }
-        item { HorizontalDivider() }
 
-        item { SectionHeader(textRes = R.string.settings_section_input) }
+        // 2. General
+        item { SectionHeader(text = "General") }
         item {
             SettingItem(
                 titleRes = R.string.settings_language_layout,
+                icon = Icons.Default.Language,
                 summary = stringResource(
                     R.string.settings_status_language_layout,
                     localeTag ?: "-",
@@ -638,16 +646,62 @@ private fun SettingsMainList(
                 onClick = onOpenLanguageLayout,
             )
         }
+
+        // 3. Personalization
+        item { SectionHeader(text = "Personalization") }
         item {
             SettingItem(
-                titleRes = R.string.settings_feedback,
-                summary = stringResource(
-                    R.string.settings_feedback_summary,
-                    prefs.clickSoundVolumePercent,
-                    if (prefs.vibrationFollowSystem) stringResource(R.string.settings_vibration_follow_system_short)
-                    else "${prefs.vibrationStrengthPercent}%",
-                ),
-                onClick = onOpenFeedback,
+                titleRes = R.string.settings_appearance,
+                icon = Icons.Default.Palette,
+                summaryRes = R.string.settings_appearance_desc,
+                onClick = onOpenAppearance,
+            )
+        }
+        item {
+            SettingItem(
+                titleRes = R.string.settings_keyboard_size,
+                icon = Icons.Default.AspectRatio,
+                summaryRes = R.string.settings_keyboard_size_desc,
+                onClick = onOpenKeyboardSize,
+            )
+        }
+        item {
+            val maxCount = prefs.toolbarMaxVisibleCount
+            val countLabel =
+                if (maxCount <= 0) stringResource(R.string.settings_toolbar_limit_unlimited)
+                else stringResource(R.string.settings_toolbar_limit_fixed, maxCount)
+            SettingItem(
+                titleRes = R.string.settings_toolbar,
+                icon = Icons.Default.Build,
+                summary = stringResource(R.string.settings_toolbar_summary, countLabel),
+                onClick = onOpenToolbar,
+            )
+        }
+
+        // 4. Typing Features
+        item { SectionHeader(text = "Typing Features") }
+        item {
+            SettingItem(
+                title = "Handwriting", // Updated from Input Mode
+                icon = Icons.Default.Edit,
+                summary = "Configure handwriting speed and style",
+                onClick = onOpenInputMode,
+            )
+        }
+        item {
+            SettingItem(
+                titleRes = R.string.settings_dictionaries,
+                icon = Icons.Default.Book,
+                summaryRes = R.string.settings_dictionaries_desc,
+                onClick = onOpenDictionaries,
+            )
+        }
+        item {
+            SettingItem(
+                titleRes = R.string.settings_suggestions,
+                icon = Icons.Default.Lightbulb,
+                summaryRes = R.string.settings_suggestions_desc,
+                onClick = onOpenSuggestions,
             )
         }
         item {
@@ -662,62 +716,34 @@ private fun SettingsMainList(
                 }
             SettingItem(
                 titleRes = R.string.settings_input_behavior,
+                icon = Icons.Default.TouchApp,
                 summary = summary,
                 onClick = onOpenInputBehavior,
             )
         }
+
+        // 5. Feedback
+        item { SectionHeader(text = "Feedback") }
         item {
             SettingItem(
-                titleRes = R.string.settings_section_input_mode,
-                summaryRes = R.string.settings_input_mode_title,
-                onClick = onOpenInputMode,
-            )
-        }
-        item {
-            val maxCount = prefs.toolbarMaxVisibleCount
-            val countLabel =
-                if (maxCount <= 0) stringResource(R.string.settings_toolbar_limit_unlimited)
-                else stringResource(R.string.settings_toolbar_limit_fixed, maxCount)
-            SettingItem(
-                titleRes = R.string.settings_toolbar,
-                summary = stringResource(R.string.settings_toolbar_summary, countLabel),
-                onClick = onOpenToolbar,
-            )
-        }
-        item {
-            SettingItem(
-                titleRes = R.string.settings_dictionaries,
-                summaryRes = R.string.settings_dictionaries_desc,
-                onClick = onOpenDictionaries,
-            )
-        }
-        item {
-            SettingItem(
-                titleRes = R.string.settings_suggestions,
-                summaryRes = R.string.settings_suggestions_desc,
-                onClick = onOpenSuggestions,
-            )
-        }
-        item {
-            SettingItem(
-                titleRes = R.string.settings_appearance,
-                summaryRes = R.string.settings_appearance_desc,
-                onClick = onOpenAppearance,
+                titleRes = R.string.settings_feedback,
+                icon = Icons.Default.VolumeUp,
+                summary = stringResource(
+                    R.string.settings_feedback_summary,
+                    prefs.clickSoundVolumePercent,
+                    if (prefs.vibrationFollowSystem) stringResource(R.string.settings_vibration_follow_system_short)
+                    else "${prefs.vibrationStrengthPercent}%",
+                ),
+                onClick = onOpenFeedback,
             )
         }
 
-        item { HorizontalDivider() }
-        item { SectionHeader(textRes = R.string.settings_section_advanced) }
-        item {
-            SettingItem(
-                titleRes = R.string.settings_keyboard_size,
-                summaryRes = R.string.settings_keyboard_size_desc,
-                onClick = onOpenKeyboardSize,
-            )
-        }
+        // 6. Advanced
+        item { SectionHeader(text = "Advanced") }
         item {
             SettingItem(
                 titleRes = R.string.settings_reset,
+                icon = Icons.Default.Refresh,
                 summaryRes = R.string.settings_reset_desc,
                 onClick = onResetSetup,
             )
@@ -726,50 +752,134 @@ private fun SettingsMainList(
 }
 
 @Composable
-private fun SectionHeader(textRes: Int) {
+private fun StatusCard(
+    imeEnabled: Boolean,
+    imeSelected: Boolean,
+    onOpenSettings: () -> Unit,
+    onOpenPicker: () -> Unit
+) {
+    val isReady = imeEnabled && imeSelected
+    
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(DesignTokens.Spacing.md),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isReady) MaterialTheme.colorScheme.primaryContainer 
+                            else MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.8f)
+        ),
+        shape = RoundedCornerShape(24.dp)
+    ) {
+        Column(modifier = Modifier.padding(20.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = if (isReady) Icons.Default.CheckCircle else Icons.Default.Error,
+                    contentDescription = null,
+                    tint = if (isReady) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
+                    modifier = Modifier.size(32.dp)
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                Text(
+                    text = if (isReady) "MyBoard is ready!" else "Action Required",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = if (isReady) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onErrorContainer
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(12.dp))
+            
+            Text(
+                text = if (isReady) "Enjoy a smooth and elegant typing experience." 
+                       else "Enable and select MyBoard to start using it.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = if (isReady) MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f) 
+                        else MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.8f)
+            )
+            
+            if (!isReady) {
+                Spacer(modifier = Modifier.height(16.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(
+                        onClick = onOpenSettings,
+                        modifier = Modifier.weight(1f),
+                        enabled = !imeEnabled,
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text("Enable")
+                    }
+                    Button(
+                        onClick = onOpenPicker,
+                        modifier = Modifier.weight(1f),
+                        enabled = imeEnabled && !imeSelected,
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text("Select")
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SectionHeader(text: String) {
     Text(
-        text = stringResource(textRes),
-        modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp),
-        style = MaterialTheme.typography.titleMedium,
+        text = text,
+        modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp),
+        style = MaterialTheme.typography.labelLarge,
         color = MaterialTheme.colorScheme.primary,
-        fontWeight = FontWeight.SemiBold,
+        fontWeight = FontWeight.Bold
     )
 }
 
 @Composable
 private fun SettingItem(
-    titleRes: Int,
+    titleRes: Int? = null,
+    title: String? = null,
+    icon: ImageVector,
     summaryRes: Int? = null,
     summary: String? = null,
     onClick: () -> Unit,
 ) {
-    val shape = RoundedCornerShape(12.dp)
-    Card(
+    Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 4.dp)
             .clickable(onClick = onClick),
-        shape = shape,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface,
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        color = Color.Transparent
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 14.dp),
+                .padding(horizontal = 24.dp, vertical = 16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            Surface(
+                modifier = Modifier.size(40.dp),
+                shape = RoundedCornerShape(12.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
+            
+            Spacer(modifier = Modifier.width(16.dp))
+            
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = stringResource(titleRes),
+                    text = title ?: titleRes?.let { stringResource(it) } ?: "",
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurface,
+                    fontWeight = FontWeight.Medium
                 )
                 val s = summary ?: summaryRes?.let { stringResource(it) }
                 if (!s.isNullOrBlank()) {
-                    Spacer(modifier = Modifier.height(2.dp))
                     Text(
                         text = s,
                         style = MaterialTheme.typography.bodyMedium,
@@ -777,11 +887,12 @@ private fun SettingItem(
                     )
                 }
             }
+            
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(20.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                modifier = Modifier.size(DesignTokens.IconSize.small),
             )
         }
     }

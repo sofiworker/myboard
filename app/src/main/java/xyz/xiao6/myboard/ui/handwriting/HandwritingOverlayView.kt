@@ -15,6 +15,9 @@ import kotlin.math.abs
 /**
  * Overlay view for handwriting input
  * 手写输入overlay视图
+ *
+ * Configurable via HandwritingLayoutSpec to support multiple layouts and styles.
+ * 通过 HandwritingLayoutSpec 可配置，支持多种布局和样式。
  */
 class HandwritingOverlayView @JvmOverloads constructor(
     context: Context,
@@ -25,6 +28,7 @@ class HandwritingOverlayView @JvmOverloads constructor(
 
     var onRecognitionResult: ((List<String>) -> Unit)? = null
     var onStrokeCountChanged: ((Int) -> Unit)? = null
+    var onBackRequested: (() -> Unit)? = null
 
     private val strokePaint = Paint().apply {
         color = Color.BLACK
@@ -40,13 +44,44 @@ class HandwritingOverlayView @JvmOverloads constructor(
     private var lastX = 0f
     private var lastY = 0f
     private var startTime = 0L
+    private var lastClickTime = 0L
 
     private var recognitionManager: HandwritingRecognitionManager? = null
     private var autoRecognizeEnabled = true
-    private val autoRecognizeDelayMs = 500L
+    private var autoRecognizeDelayMs = 500L
     private var autoRecognizeRunnable: Runnable? = null
 
     private val touchSlop = 12f
+    private var currentConfig: HandwritingLayoutSpec? = null
+
+    /**
+     * Apply configuration from HandwritingLayoutSpec
+     * 应用来自 HandwritingLayoutSpec 的配置
+     */
+    fun applyConfig(config: HandwritingLayoutSpec) {
+        currentConfig = config
+
+        // Apply canvas style
+        config.canvas.let { canvas ->
+            setStrokeColor(Color.parseColor(canvas.strokeColor))
+            setStrokeWidth(canvas.strokeWidth)
+            setBackgroundColor(Color.parseColor(canvas.backgroundColor))
+        }
+
+        // Apply recognition settings
+        config.recognition.let { recognition ->
+            setAutoRecognize(recognition.autoRecognize)
+            autoRecognizeDelayMs = recognition.autoRecognizeDelayMs
+        }
+
+        invalidate()
+    }
+
+    /**
+     * Get current configuration
+     * 获取当前配置
+     */
+    fun getConfig(): HandwritingLayoutSpec? = currentConfig
 
     fun setRecognitionManager(manager: HandwritingRecognitionManager) {
         recognitionManager = manager
@@ -76,6 +111,14 @@ class HandwritingOverlayView @JvmOverloads constructor(
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
 
+        // Apply corner radius from config
+        currentConfig?.canvas?.let { canvasConfig ->
+            // Draw rounded background
+            val cornerRadius = canvasConfig.cornerRadius * resources.displayMetrics.density
+            // Note: Actual rounded rect drawing would require clipPath or background drawable
+            // For now, we keep it simple
+        }
+
         // Draw all completed strokes
         allPaths.forEach { (path, paint) ->
             canvas.drawPath(path, paint)
@@ -92,6 +135,18 @@ class HandwritingOverlayView @JvmOverloads constructor(
                 lastY = event.y
                 startTime = event.eventTime
                 currentPath.moveTo(event.x, event.y)
+
+                // Double-tap detection in top-right corner to exit handwriting mode
+                val clickTime = event.eventTime
+                val timeDiff = clickTime - lastClickTime
+                val isTopRight = event.x > width * 0.7f && event.y < height * 0.3f
+                
+                if (isTopRight && timeDiff < 300L) {
+                    onBackRequested?.invoke()
+                    lastClickTime = 0
+                    return true
+                }
+                lastClickTime = clickTime
 
                 recognitionManager?.startStroke(event.x, event.y, event.eventTime)
 
@@ -162,9 +217,10 @@ class HandwritingOverlayView @JvmOverloads constructor(
         if (!manager.hasStrokes()) return
 
         MLog.d(logTag, "Performing recognition...")
-        // This will be async in production with coroutines
-        // For now, we'll trigger it via the controller
-        onRecognitionResult?.invoke(emptyList()) // Placeholder
+        
+        // Trigger async recognition via callback
+        // The actual recognition happens in the coroutine context
+        onStrokeCountChanged?.invoke(-1) // Special signal to trigger recognition
     }
 
     override fun onDetachedFromWindow() {

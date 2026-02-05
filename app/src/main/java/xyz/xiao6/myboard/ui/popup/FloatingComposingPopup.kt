@@ -23,15 +23,15 @@ class FloatingComposingPopup(
     private val displayMetrics = context.resources.displayMetrics
 
     private val textView = TextView(context).apply {
-        textSize = 18f
-        setTextColor(Color.BLACK)
+        textSize = 16f
+        setTextColor(Color.parseColor("#3C4043"))
         applyAppFont()
-        setPadding(dpInt(14f), dpInt(10f), dpInt(14f), dpInt(10f))
+        setPadding(dpInt(12f), dpInt(6f), dpInt(12f), dpInt(6f))
         background = GradientDrawable().apply {
             shape = GradientDrawable.RECTANGLE
-            cornerRadius = dp(10f)
+            cornerRadius = dp(12f)
             setColor(Color.WHITE)
-            setStroke(dpInt(1f), Color.parseColor("#14000000"))
+            setStroke(dpInt(0.5f), Color.parseColor("#E0E0E0"))
         }
     }
 

@@ -26,3 +26,5 @@ app/src/main/assets/dictionary/*.txt
 app/src/main/assets/subtypes/generated.json
 
 nul
+
+.sisyphus

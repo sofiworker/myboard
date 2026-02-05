@@ -3,6 +3,7 @@ package xyz.xiao6.myboard.manager
 import android.content.Context
 import xyz.xiao6.myboard.model.LocaleLayoutProfile
 import xyz.xiao6.myboard.model.SubtypeParser
+import xyz.xiao6.myboard.util.LocaleUtil
 import java.io.File
 import java.util.zip.ZipInputStream
 import java.util.Locale
@@ -40,7 +41,7 @@ class SubtypeManager(
 
     fun get(localeTag: String): LocaleLayoutProfile? {
         ensureLoaded()
-        return profilesByLocaleTag[normalizeLocaleTag(localeTag)]
+        return profilesByLocaleTag[LocaleUtil.normalizeLocaleTag(localeTag)]
     }
 
     /**
@@ -50,12 +51,12 @@ class SubtypeManager(
     fun findByLocale(locale: Locale): List<LocaleLayoutProfile> {
         ensureLoaded()
         val tags = candidateTagsFor(locale)
-        val languageOnly = normalizeLocaleTag(locale.language)
+        val languageOnly = LocaleUtil.normalizeLocaleTag(locale.language)
 
         val scored = mutableListOf<Pair<Int, LocaleLayoutProfile>>()
         for (profile in profilesByLocaleTag.values) {
             if (!profile.enabled) continue
-            val profileTag = normalizeLocaleTag(profile.localeTag)
+            val profileTag = LocaleUtil.normalizeLocaleTag(profile.localeTag)
 
             val score = when {
                 profileTag.isBlank() -> 0
@@ -92,7 +93,7 @@ class SubtypeManager(
      */
     fun saveUserProfile(profile: LocaleLayoutProfile) {
         userDir.mkdirs()
-        val normalizedTag = normalizeLocaleTag(profile.localeTag)
+        val normalizedTag = LocaleUtil.normalizeLocaleTag(profile.localeTag)
         val safe = normalizedTag.replace("-", "_").ifBlank { "unknown" }
         val file = File(userDir, "locale_$safe.json")
         file.writeText(
@@ -127,7 +128,7 @@ class SubtypeManager(
                 listOf(SubtypeParser.parseProfile(text))
             }
             for (p in profiles) {
-                val tag = normalizeLocaleTag(p.localeTag)
+                val tag = LocaleUtil.normalizeLocaleTag(p.localeTag)
                 profilesByLocaleTag[tag] = p.copy(localeTag = tag)
             }
         }
@@ -146,7 +147,7 @@ class SubtypeManager(
                 listOf(SubtypeParser.parseProfile(text))
             }
             for (p in profiles) {
-                val tag = normalizeLocaleTag(p.localeTag)
+                val tag = LocaleUtil.normalizeLocaleTag(p.localeTag)
                 profilesByLocaleTag[tag] = p.copy(localeTag = tag) // user overrides built-in
             }
         }
@@ -155,7 +156,7 @@ class SubtypeManager(
     private fun validate() {
         val errors = mutableListOf<String>()
         for (p in profilesByLocaleTag.values) {
-            val tag = normalizeLocaleTag(p.localeTag)
+            val tag = LocaleUtil.normalizeLocaleTag(p.localeTag)
             if (tag.isBlank()) errors += "localeTag must not be blank"
             if (p.layoutIds.any { it.isBlank() }) errors += "layoutIds must not contain blank items (localeTag=$tag)"
             if (p.layoutIds.distinct().size != p.layoutIds.size) errors += "layoutIds must not contain duplicates (localeTag=$tag)"
@@ -172,18 +173,9 @@ class SubtypeManager(
         val region = locale.country.uppercase(Locale.ROOT)
         val languageRegion = if (region.isNotBlank()) "$language-$region" else language
         return listOf(
-            normalizeLocaleTag(languageRegion),
-            normalizeLocaleTag(language),
+            LocaleUtil.normalizeLocaleTag(languageRegion),
+            LocaleUtil.normalizeLocaleTag(language),
         ).distinct()
-    }
-
-    private fun normalizeLocaleTag(tag: String): String {
-        val t = tag.trim().replace('_', '-')
-        val parts = t.split('-').filter { it.isNotBlank() }
-        if (parts.isEmpty()) return ""
-        val language = parts[0].lowercase(Locale.ROOT)
-        val region = parts.getOrNull(1)?.uppercase(Locale.ROOT)
-        return if (region.isNullOrBlank()) language else "$language-$region"
     }
 
     private fun readAssetText(path: String): String {

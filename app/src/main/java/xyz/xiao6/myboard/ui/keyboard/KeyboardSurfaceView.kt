@@ -72,6 +72,7 @@ class KeyboardSurfaceView @JvmOverloads constructor(
     var onTrigger: ((keyId: String, trigger: GestureType) -> Unit)? = null
     var onAction: ((KeyAction) -> Unit)? = null
     var onSwypePath: ((List<String>) -> Unit)? = null
+    var onRelease: ((keyId: String) -> Unit)? = null
 
     // Input mode settings
     var inputMode: String = "NORMAL"
@@ -134,6 +135,7 @@ class KeyboardSurfaceView @JvmOverloads constructor(
         popup.dismissPreview()
         longPressPopupKeyId = keyId
         longPressPopupCommitted = false
+        resolvedTrigger = GestureType.LONG_PRESS // Mark as handled to prevent TAP on UP
         onTrigger?.invoke(keyId, GestureType.LONG_PRESS)
     }
 
@@ -417,6 +419,7 @@ class KeyboardSurfaceView @JvmOverloads constructor(
                 popup?.dismissPreview()
 
                 if (keyId != null && touchRect != null) {
+                    onRelease?.invoke(keyId)
                     if (trigger != null) {
                         MLog.d(
                             logTag,
@@ -478,7 +481,9 @@ class KeyboardSurfaceView @JvmOverloads constructor(
             val pressed = layoutState.highlightedKeyIds.contains(key.keyId)
 
             val style = resolveKeyStyle(key)
-            val cornerRadius = dp((style?.cornerRadiusDp ?: themeSpec?.global?.paint?.cornerRadiusDp ?: 10f))
+            val isFunction = style?.label?.sizeSp?.let { it < 16f } == true || style?.textSizeSp?.let { it < 16f } == true
+            val defaultRadiusDp = if (isFunction) 8f else 12f
+            val cornerRadius = dp((style?.cornerRadiusDp ?: themeSpec?.global?.paint?.cornerRadiusDp ?: defaultRadiusDp))
 
             applyKeyPaints(style, pressed)
 
@@ -527,9 +532,45 @@ class KeyboardSurfaceView @JvmOverloads constructor(
                         val y = rect.centerY() - (labelPaint.ascent() + labelPaint.descent()) / 2f
                         canvas.drawText(labelText, x, y, labelPaint)
                     }
+                } else {
+                    // Try to draw icon if label is blank
+                    val iconName = key.ui.icons.firstOrNull() ?: key.keyId.removePrefix("key_")
+                    val iconSpecFromRegistry = themeSpec?.icons?.get(iconName)
+                    val iconStyleFromStyle = style?.icon
+                    
+                    if (iconSpecFromRegistry != null || key.ui.icons.isNotEmpty()) {
+                        val drawableName = iconSpecFromRegistry?.name ?: key.ui.icons.firstOrNull() ?: ""
+                        val tint = theme?.resolveColor(iconStyleFromStyle?.tint ?: iconSpecFromRegistry?.tint, labelPaint.color) ?: labelPaint.color
+                        val sizeDp = iconStyleFromStyle?.sizeDp ?: iconSpecFromRegistry?.sizeDp ?: 22f
+                        
+                        if (drawableName.isNotBlank()) {
+                            drawKeyIcon(canvas, rect, drawableName, tint, sizeDp)
+                        }
+                    }
                 }
             }
         }
+    }
+
+    private fun drawKeyIcon(canvas: Canvas, rect: RectF, name: String, tint: Int, sizeDp: Float) {
+        if (name.isBlank()) return
+        
+        val resId = context.resources.getIdentifier(name, "drawable", context.packageName)
+        if (resId == 0) return
+        
+        val drawable = ContextCompat.getDrawable(context, resId)?.mutate() ?: return
+        drawable.setTint(tint)
+        
+        val sizePx = dp(sizeDp)
+        val cx = rect.centerX()
+        val cy = rect.centerY()
+        val left = (cx - sizePx / 2f).toInt()
+        val top = (cy - sizePx / 2f).toInt()
+        val right = (cx + sizePx / 2f).toInt()
+        val bottom = (cy + sizePx / 2f).toInt()
+        
+        drawable.setBounds(left, top, right, bottom)
+        drawable.draw(canvas)
     }
 
     private fun resolveKeyStyle(key: Key): KeyStyle? {
@@ -565,7 +606,7 @@ class KeyboardSurfaceView @JvmOverloads constructor(
                     dp(shadow.radiusDp ?: 2f),
                     dp(shadow.dxDp ?: 0f),
                     dp(shadow.dyDp ?: 1f),
-                    theme.resolveShadowColor(shadow, Color.parseColor("#33000000")),
+                    theme.resolveShadowColor(shadow, Color.parseColor("#19000000")),
                 )
             } else {
                 keyFillPaint.clearShadowLayer()
@@ -1081,7 +1122,7 @@ class KeyboardSurfaceView @JvmOverloads constructor(
 
     private fun shouldHandleLongPress(keyId: String?): Boolean {
         if (keyId.isNullOrBlank()) return false
-        if (keyId == KeyIds.BACKSPACE) return true
+        if (keyId == KeyIds.BACKSPACE || keyId == KeyIds.SPACE) return true
         return keyGestureConfigs[keyId]?.supports(GestureType.LONG_PRESS) == true
     }
 

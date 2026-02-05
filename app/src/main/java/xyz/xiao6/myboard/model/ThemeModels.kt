@@ -116,14 +116,10 @@ data class FontTheme(
 
 @Serializable
 data class FontFamilySpec(
-    val familyId: String? = null,
-    /**
-     * Asset paths for font files (e.g. "fonts/MyFont-Regular.ttf").
-     */
     val regularAsset: String? = null,
-    val mediumAsset: String? = null,
     val boldAsset: String? = null,
     val italicAsset: String? = null,
+    val boldItalicAsset: String? = null,
 )
 
 @Serializable

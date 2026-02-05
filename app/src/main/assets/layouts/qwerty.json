@@ -19,21 +19,6 @@
       "rightDp": 6
     }
   },
-  "metadata": {
-    "layoutType": "qwerty",
-    "defaultEngine": "EN_DIRECT",
-    "description": "Standard QWERTY layout with number hints"
-  },
-  "features": {
-    "showHints": true,
-    "showLabels": true,
-    "showIcons": true,
-    "enableLongPress": true,
-    "enableGestures": true,
-    "enableKeyPreview": true,
-    "enableHapticFeedback": true,
-    "enableSoundFeedback": false
-  },
   "rows": [
     {
       "rowId": "row_1_alpha",
@@ -712,7 +697,7 @@
       "keys": [
         {
           "keyId": "key_shift",
-          "label": "⇧",
+          "label": "",
           "primaryCode": -1,
           "ui": {
             "styleId": "style_function_key",
@@ -974,7 +959,7 @@
         },
         {
           "keyId": "key_backspace",
-          "label": "⌫",
+          "label": "",
           "primaryCode": -5,
           "ui": {
             "styleId": "style_function_key",
@@ -1170,7 +1155,7 @@
         },
         {
           "keyId": "key_lang_toggle",
-          "label": "中",
+          "label": "",
           "primaryCode": -99,
           "hints": {
             "BOTTOM_RIGHT": "/英"
@@ -1198,7 +1183,7 @@
         },
         {
           "keyId": "key_enter",
-          "label": "↵",
+          "label": "",
           "primaryCode": 10,
           "ui": {
             "styleId": "style_function_key_important",

@@ -26,33 +26,33 @@ class DictionaryManager(
     private var loaded = false
     private val specsById = LinkedHashMap<String, DictionarySpec>()
 
+    @Synchronized
     fun loadAll(): DictionaryManager {
         if (loaded) return this
-        loaded = true
-
         loadBuiltInFromAssets()
         loadUserDefinedFromFiles()
         loadUserDefinedFromMybdf()
         validate()
+        loaded = true
 
         MLog.d(logTag, "loaded dictionaries=${specsById.size} ids=${specsById.keys}")
         return this
     }
 
+    @Synchronized
     fun reload(): DictionaryManager {
         loaded = false
         specsById.clear()
         return loadAll()
     }
 
-    fun get(dictionaryId: String): DictionarySpec {
-        ensureLoaded()
+    fun get(dictionaryId: String): DictionarySpec? {
+        loadAll()
         return specsById[dictionaryId]
-            ?: error("Dictionary not found: $dictionaryId (available=${specsById.keys})")
     }
 
     fun listAll(): List<DictionarySpec> {
-        ensureLoaded()
+        loadAll()
         return specsById.values.toList()
     }
 
