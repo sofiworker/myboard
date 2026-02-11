@@ -24,7 +24,7 @@ android {
     }
 
     androidResources {
-        noCompress += listOf("tflite", "anybdict", "mybdict", "conf", "am", "graph", "res", "ivector")
+        noCompress += listOf("tflite", "anybdict", "mybdict", "conf", "am", "graph", "res", "ivector", "uuid")
     }
 
     buildTypes {

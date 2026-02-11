@@ -14,6 +14,7 @@ import android.os.VibratorManager
 import android.view.LayoutInflater
 import android.view.HapticFeedbackConstants
 import android.view.View
+import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.ExtractedTextRequest
 import kotlinx.coroutines.CoroutineScope
@@ -142,6 +143,7 @@ class MyBoardImeService : InputMethodService() {
     private var candidatePageView: CandidatePageView? = null
     private var layoutPickerView: LayoutPickerView? = null
     private var imePanelView: ImePanelView? = null
+    private var layerBottomView: FrameLayout? = null
     private var toolbarDividerView: View? = null
     private var popupView: PopupView? = null
     private var prefsListener: SettingsStore.ChangeListener? = null
@@ -269,6 +271,41 @@ class MyBoardImeService : InputMethodService() {
         voiceInputView?.stopListening()
     }
 
+    override fun onComputeInsets(outInsets: Insets?) {
+        super.onComputeInsets(outInsets)
+        val panel = imePanelView ?: return
+        val out = outInsets ?: return
+        val root = rootView ?: return
+        
+        // Use the fixed floating area height (60dp buffer)
+        val floatingAreaHeight = panel.getFloatingAreaHeight()
+        
+        // 1. contentTopInsets: Offset from the top of the IME window that pushes the app.
+        // By setting it to the start of the keyboard area (skipping the buffer),
+        // we make the buffer area (where the bubble is) overlay the app's input field.
+        out.contentTopInsets = floatingAreaHeight
+        out.visibleTopInsets = floatingAreaHeight
+        
+        // 2. touchableInsets: We need the keyboard area AND the bubble to be touchable.
+        out.touchableInsets = Insets.TOUCHABLE_INSETS_REGION
+        
+        // Start with the keyboard area (from floatingAreaHeight to bottom)
+        out.touchableRegion.set(0, floatingAreaHeight, root.width, root.height)
+        
+        // 3. Add the bubble's Rect to the touchable region if it's visible
+        val layerTop = root.findViewById<View>(R.id.layerTop)
+        if (layerTop != null && layerTop.visibility == View.VISIBLE && layerTop.width > 0) {
+            val location = IntArray(2)
+            layerTop.getLocationInWindow(location)
+            val left = location[0]
+            val top = location[1]
+            val right = left + layerTop.width
+            val bottom = top + layerTop.height
+            // Union the bubble's area so it can receive clicks
+            out.touchableRegion.union(android.graphics.Rect(left, top, right, bottom))
+        }
+    }
+
     override fun onDestroy() {
         prefsListener?.let { listener -> prefs?.removeOnChangeListener(listener) }
         prefsListener = null
@@ -307,55 +344,49 @@ class MyBoardImeService : InputMethodService() {
         imeRoot.setViewTreeLifecycleOwner(lifecycleOwner)
         val imePanel = view.findViewById<ImePanelView>(R.id.imePanel)
         imePanelView = imePanel
-        val topBarSlot = view.findViewById<View>(R.id.topBarSlot)
-        topBarSlotView = topBarSlot
+        
+        // Layer 1: Top (Composing/Bubble)
+        val layerTop = view.findViewById<ViewGroup>(R.id.layerTop)
+        
+        // Layer 2: Middle (Toolbar)
+        val layerMiddle = view.findViewById<ToolbarView>(R.id.layerMiddle)
+        this.toolbarView = layerMiddle
+        this.topBarSlotView = layerMiddle // Use toolbar as anchor for now
+
         val toolbarDivider = view.findViewById<View>(R.id.toolbarDivider)
         toolbarDividerView = toolbarDivider
-        val toolbarView = view.findViewById<ToolbarView>(R.id.toolbarView)
-        this.toolbarView = toolbarView
+        
+        // Layer 3: Bottom (Input Content)
+        val layerBottom = view.findViewById<FrameLayout>(R.id.layerBottom)
+        this.layerBottomView = layerBottom
+        
         val keyboardView = view.findViewById<KeyboardSurfaceView>(R.id.keyboardView)
         this.keyboardView = keyboardView
-        val candidatePageView = view.findViewById<CandidatePageView>(R.id.candidatePageView)
-        this.candidatePageView = candidatePageView
-        val layoutPickerView = view.findViewById<LayoutPickerView>(R.id.layoutPickerView)
-        this.layoutPickerView = layoutPickerView
-        val symbolsView = view.findViewById<SymbolsLayoutView>(R.id.symbolsView)
-        val emojiView = view.findViewById<EmojiLayoutView>(R.id.emojiView)
-        val clipboardView = view.findViewById<ClipboardLayoutView>(R.id.clipboardView)
-        val handwritingView = view.findViewById<ModernHandwritingContainerView>(R.id.handwritingView)
-        this.handwritingView = handwritingView
-        val voiceInputView = view.findViewById<VoiceInputView>(R.id.voiceInputView)
-        this.voiceInputView = voiceInputView
+        
         val resizeOverlay = view.findViewById<KeyboardResizeOverlayView>(R.id.resizeOverlay)
         val popupHost = view.findViewById<FrameLayout>(R.id.popupHost)
         val popupView = PopupView(popupHost).apply { applyTheme(themeSpec) }
         this.popupView = popupView
-        keyboardView.setPopupView(popupView)
-        keyboardView.setTheme(themeSpec)
-        toolbarView.applyTheme(themeSpec)
+        keyboardView?.setPopupView(popupView)
+        keyboardView?.setTheme(themeSpec)
+        toolbarView?.applyTheme(themeSpec)
         applyImePanelTheme(imePanel, themeSpec)
         applyToolbarDividerTheme(toolbarDivider, themeSpec)
-        candidatePageView.applyTheme(themeSpec)
-        layoutPickerView.applyTheme(themeSpec)
-        symbolsView.applyTheme(themeSpec)
-        this.symbolsView = symbolsView
-        emojiView.applyTheme(themeSpec)
-        prefs?.let { emojiView.setUseEmojiImages(it.emojiImageEnabled) }
-        this.emojiView = emojiView
-        clipboardView.applyTheme(themeSpec)
-        this.clipboardView = clipboardView
-        handwritingView.visibility = GONE
-        this.handwritingView = handwritingView
-        resizeOverlay.target = imePanel
-        resizeOverlay.visibility = GONE
-        this.resizeOverlay = resizeOverlay
+        
+        // Initial state
+        switchBottomPanel(keyboardView)
 
         val marginPx = (resources.displayMetrics.density * 8f).toInt()
         popupMarginPx = marginPx
         val composingPopup =
-            FloatingComposingPopup(this).apply {
+            FloatingComposingPopup(this, layerTop).apply {
                 applyTheme(themeSpec)
                 onClick = { toggleComposingEditMode() }
+                onBack = {
+                    isEditingComposing = false
+                    composingEditCursor = 0
+                    updateComposingPopup()
+                }
                 onCursorMove = { index ->
                     if (isEditingComposing) {
                         composingEditCursor = index
@@ -373,348 +404,20 @@ class MyBoardImeService : InputMethodService() {
             }
         this.candidateActionPopup = candidateActionPopup
 
-        fun hideOverlays() {
-            isCandidatePageExpanded = false
-            candidatePageView.visibility = GONE
-            layoutPickerView.visibility = GONE
-            symbolsView.visibility = GONE
-            emojiView.visibility = GONE
-            clipboardView.visibility = GONE
-            clipboardView.clearSelection()
-            handwritingView.visibility = GONE
-            resizeOverlay.visibility = GONE
-            toolbarView.clearCandidates()
-            wordPreviewPopup.dismiss()
-            candidateActionPopup?.dismiss()
-        }
-
-        fun showSymbols() {
-            hideOverlays()
-            composingPopup.dismiss()
-            toolbarView.visibility = View.INVISIBLE
-            keyboardView.visibility = View.INVISIBLE
-            symbolsView.visibility = VISIBLE
-        }
-
-        fun hideSymbols() {
-            if (symbolsView.visibility != VISIBLE) return
-            symbolsView.visibility = GONE
-            toolbarView.visibility = VISIBLE
-            keyboardView.visibility = VISIBLE
-            renderCandidatesUi(
-                candidates = lastCandidates,
-                composing = lastComposing,
-                composingOptions = lastComposingOptions,
-                toolbarView = toolbarView,
-                keyboardView = keyboardView,
-                candidatePageView = candidatePageView,
-            )
-        }
-
-        fun showEmoji() {
-            hideOverlays()
-            composingPopup.dismiss()
-            toolbarView.visibility = View.INVISIBLE
-            keyboardView.visibility = View.INVISIBLE
-            symbolsView.visibility = GONE
-            emojiView.visibility = VISIBLE
-        }
-
-        fun hideEmoji() {
-            if (emojiView.visibility != VISIBLE) return
-            emojiView.visibility = GONE
-            toolbarView.visibility = VISIBLE
-            keyboardView.visibility = VISIBLE
-            renderCandidatesUi(
-                candidates = lastCandidates,
-                composing = lastComposing,
-                composingOptions = lastComposingOptions,
-                toolbarView = toolbarView,
-                keyboardView = keyboardView,
-                candidatePageView = candidatePageView,
-            )
-        }
-
-        fun showClipboard(selectionMode: Boolean) {
-            hideOverlays()
-            composingPopup.dismiss()
-            toolbarView.visibility = View.INVISIBLE
-            keyboardView.visibility = View.INVISIBLE
-            symbolsView.visibility = GONE
-            emojiView.visibility = GONE
-            clipboardView.visibility = VISIBLE
-            clipboardView.submitItems(clipboardEntries.toList())
-            clipboardView.setSelectionMode(selectionMode)
-        }
-
-        fun hideClipboard() {
-            if (clipboardView.visibility != VISIBLE) return
-            clipboardView.visibility = GONE
-            clipboardView.clearSelection()
-            toolbarView.visibility = VISIBLE
-            keyboardView.visibility = VISIBLE
-            renderCandidatesUi(
-                candidates = lastCandidates,
-                composing = lastComposing,
-                composingOptions = lastComposingOptions,
-                toolbarView = toolbarView,
-                keyboardView = keyboardView,
-                candidatePageView = candidatePageView,
-            )
-        }
-
-        fun showHandwriting() {
-            hideOverlays()
-            composingPopup.dismiss()
-            toolbarView.visibility = View.INVISIBLE
-            keyboardView.visibility = View.INVISIBLE
-            handwritingView.visibility = VISIBLE
-
-            // Get layout configuration from settings
-            val layoutModeStr = prefs?.handwritingLayoutMode ?: "HALF_SCREEN"
-            val layoutMode = xyz.xiao6.myboard.model.HandwritingLayoutMode.valueOf(layoutModeStr)
-            val positionStr = prefs?.handwritingPosition ?: "BOTTOM"
-            val position = xyz.xiao6.myboard.model.HandwritingPosition.valueOf(positionStr)
-
-            handwritingView?.setLayoutMode(layoutMode)
-            
-            val layoutId = when (layoutMode) {
-                xyz.xiao6.myboard.model.HandwritingLayoutMode.FULL_SCREEN -> "fullscreen"
-                xyz.xiao6.myboard.model.HandwritingLayoutMode.OVERLAY -> "overlay"
-                else -> "default"
-            }
-            
-            val baseLayoutSpec =
-                handwritingLayoutManager?.getLayout(layoutId)
-                    ?: handwritingLayoutManager?.getDefaultLayout()
-                    ?: xyz.xiao6.myboard.ui.handwriting.HandwritingLayoutSpec(
-                        layoutId = "default",
-                        name = "Default",
-                        mode = xyz.xiao6.myboard.model.HandwritingLayoutMode.HALF_SCREEN
-                    )
-
-            // Apply user settings overrides
-            val userStrokeWidth = prefs?.handwritingStrokeWidth ?: 12f
-            val userStrokeColor = prefs?.handwritingStrokeColor ?: -16777216 // BLACK
-            val userDelay = prefs?.handwritingRecognitionDelayMs ?: 500L
-            val userAutoRecognize = prefs?.handwritingAutoRecognize ?: true
-            
-            // Format color to #AARRGGBB
-            val colorHex = String.format("#%08X", userStrokeColor)
-
-            val layoutSpec = baseLayoutSpec.copy(
-                position = position,
-                canvas = baseLayoutSpec.canvas.copy(
-                    strokeWidth = userStrokeWidth,
-                    strokeColor = colorHex
-                ),
-                recognition = baseLayoutSpec.recognition.copy(
-                    autoRecognize = userAutoRecognize,
-                    autoRecognizeDelayMs = userDelay
-                )
-            )
-            
-            handwritingView?.setLayoutSpec(layoutSpec)
-
-            val locale = activeLocaleTag ?: Locale.getDefault().toLanguageTag()
-            scope.launch {
-                val manager = HandwritingRecognitionManager(this@MyBoardImeService)
-                val initialized = manager.initializeForLanguage(locale)
-                if (initialized) {
-                    handwritingView?.setRecognitionManager(manager)
-                    MLog.d(logTag, "Handwriting recognition initialized for $locale with mode: $layoutMode")
-                } else {
-                    MLog.e(logTag, "Failed to initialize handwriting recognition for $locale")
-                }
-            }
-        }
-
-        fun hideHandwriting() {
-            if (handwritingView.visibility != VISIBLE) return
-            handwritingView.visibility = GONE
-            handwritingView.clearCanvas()
-            toolbarView.visibility = VISIBLE
-            keyboardView.visibility = VISIBLE
-            renderCandidatesUi(
-                candidates = lastCandidates,
-                composing = lastComposing,
-                composingOptions = lastComposingOptions,
-                toolbarView = toolbarView,
-                keyboardView = keyboardView,
-                candidatePageView = candidatePageView,
-            )
-        }
-
-        fun showResize() {
-            // Only applies to the main keyboard panel; close other overlays.
-            symbolsView.visibility = GONE
-            emojiView.visibility = GONE
-            clipboardView.visibility = GONE
-            isCandidatePageExpanded = false
-            candidatePageView.visibility = GONE
-            layoutPickerView.visibility = GONE
-            toolbarView.clearCandidates()
-            wordPreviewPopup.dismiss()
-
-            // Snapshot baseline so "Reset" returns to the state before this resize session.
-            val p = prefs
-            val layout = controller?.currentLayout?.value
-            if (p != null && layout != null) {
-                // Ensure global ratio baseline is set once and stays consistent across toolbar/settings.
-                if (p.globalKeyboardWidthRatio == null) p.globalKeyboardWidthRatio = layout.totalWidthRatio
-                if (p.globalKeyboardHeightRatio == null) p.globalKeyboardHeightRatio = layout.totalHeightRatio
-                resizeBaselineWidthDpOffset = p.globalKeyboardWidthDpOffset ?: layout.totalWidthDpOffset
-                resizeBaselineHeightDpOffset = p.globalKeyboardHeightDpOffset ?: layout.totalHeightDpOffset
-            }
-
-            resizeOverlay.visibility = VISIBLE
-            showImeHint("拖动手柄可同时调整宽高（横向=宽度，纵向=高度）")
-        }
-
-        fun hideResize() {
-            if (resizeOverlay.visibility != VISIBLE) return
-            resizeOverlay.visibility = GONE
-        }
-
-        handwritingView.onBack = {
-            controller?.onAction(xyz.xiao6.myboard.model.KeyAction(xyz.xiao6.myboard.model.ActionType.BACK))
-        }
-        handwritingView.onSwitchToKeyboard = {
-            controller?.onAction(xyz.xiao6.myboard.model.KeyAction(xyz.xiao6.myboard.model.ActionType.BACK))
-        }
-        handwritingView.onClear = {
-            handwritingView.clearCanvas()
-        }
-        handwritingView.onCandidateSelected = { text ->
-            commitTextToEditor(text)
-            handwritingView.clearCanvas()
-        }
-        handwritingView.onLayoutPickerRequest = {
-            showLayoutPicker(
-                layoutManager = layoutManager!!,
-                toolbarView = toolbarView,
-                keyboardView = keyboardView,
-                candidatePageView = candidatePageView,
-                layoutPickerView = layoutPickerView,
-            )
-        }
-        handwritingView.onVoiceRequest = {
-            // Placeholder for voice
-        }
-        handwritingView.onEmojiRequest = {
-            showEmoji()
-        }
-        handwritingView.onResizeRequest = {
-            showResize()
-        }
-        handwritingView.onBackspaceRequest = {
-            commitTextToEditor("\b")
-        }
-        handwritingView.onSwitchLayoutRequest = { layoutId ->
-            controller?.loadLayout(layoutId)
-        }
-        handwritingView.onToggleLocaleRequest = {
-            toggleLocale()
-        }
-
-        resizeOverlay.onDismiss = { hideResize() }
-        resizeOverlay.onReset = fun() {
-            val p = prefs ?: return
-            val layout = controller?.currentLayout?.value ?: return
-            val w = resizeBaselineWidthDpOffset ?: (p.globalKeyboardWidthDpOffset ?: layout.totalWidthDpOffset)
-            val h = resizeBaselineHeightDpOffset ?: (p.globalKeyboardHeightDpOffset ?: layout.totalHeightDpOffset)
-            p.globalKeyboardWidthDpOffset = w
-            p.globalKeyboardHeightDpOffset = h
-            val sized = applyGlobalKeyboardSize(layout)
-            imePanel.applyKeyboardLayoutSize(sized)
-        }
-        resizeOverlay.onConfirm = fun() {
-            hideResize()
-        }
-        resizeOverlay.onResizeDeltaPx = fun(deltaWidthPx: Int, deltaHeightPx: Int) {
-            val p = prefs ?: return
-            val layout = controller?.currentLayout?.value ?: return
-            val density = resources.displayMetrics.density.coerceAtLeast(0.5f)
-            val screenWidthPx = resources.displayMetrics.widthPixels.coerceAtLeast(1)
-            val screenHeightPx = resources.displayMetrics.heightPixels.coerceAtLeast(1)
-            val minWidthPx = KeyboardSizeConstraints.minKeyboardWidthPx(density)
-            val minHeightPx = KeyboardSizeConstraints.minKeyboardHeightPx(density)
-            val maxHeightPx = KeyboardSizeConstraints.maxKeyboardHeightPx(screenHeightPx, density).coerceAtLeast(minHeightPx)
-
-            if (p.globalKeyboardWidthRatio == null) p.globalKeyboardWidthRatio = layout.totalWidthRatio
-            if (p.globalKeyboardHeightRatio == null) p.globalKeyboardHeightRatio = layout.totalHeightRatio
-
-            if (deltaWidthPx != 0) {
-                val ratio = p.globalKeyboardWidthRatio ?: layout.totalWidthRatio
-                val curOffDp = p.globalKeyboardWidthDpOffset ?: layout.totalWidthDpOffset
-                val curPx = (screenWidthPx * ratio + curOffDp * density).toInt()
-                val targetPx = (curPx + deltaWidthPx).coerceIn(minWidthPx, screenWidthPx)
-                val nextOffDp = (targetPx - screenWidthPx * ratio) / density
-                p.globalKeyboardWidthDpOffset = nextOffDp
-            }
-            if (deltaHeightPx != 0) {
-                val ratio = p.globalKeyboardHeightRatio ?: layout.totalHeightRatio
-                val curOffDp = p.globalKeyboardHeightDpOffset ?: layout.totalHeightDpOffset
-                val curPx = (screenHeightPx * ratio + curOffDp * density).toInt()
-                val targetPx = (curPx + deltaHeightPx).coerceIn(minHeightPx, maxHeightPx)
-                val nextOffDp = (targetPx - screenHeightPx * ratio) / density
-                p.globalKeyboardHeightDpOffset = nextOffDp
-            }
-
-            val sized = applyGlobalKeyboardSize(layout)
-            imePanel.applyKeyboardLayoutSize(sized)
-        }
-
-        symbolsView.onBack = { hideSymbols() }
-        symbolsView.onCommitSymbol = { symbol ->
-            playKeyFeedback(keyboardView)
-            commitTextToEditor(symbol)
-            if (!symbolsView.isLocked()) hideSymbols()
-        }
-
-        emojiView.onBack = { hideEmoji() }
-        emojiView.onCommit = { text ->
-            playKeyFeedback(keyboardView)
-            commitTextToEditor(text)
-            lastEmojiCommitText = text
-        }
-        emojiView.onDelete = {
-            playKeyFeedback(keyboardView)
-            deleteLastEmojiCommit()
-        }
-
-        clipboardView.onBack = { hideClipboard() }
-        clipboardView.onCommit = { entry ->
-            playKeyFeedback(keyboardView)
-            commitTextToEditor(entry.text)
-        }
-        clipboardView.onClearAll = {
-            clipboardEntries.clear()
-            clipboardView.submitItems(emptyList())
-            clipboardView.setSelectionMode(false)
-        }
-        clipboardView.onDeleteSelected = onDeleteSelected@{ selectedIds ->
-            if (selectedIds.isEmpty()) return@onDeleteSelected
-            val remaining = clipboardEntries.filterNot { it.id in selectedIds }
-            clipboardEntries.clear()
-            clipboardEntries.addAll(remaining)
-            clipboardView.submitItems(clipboardEntries.toList())
-            clipboardView.clearSelection()
-        }
+        // Ensure initial state is keyboard
+        switchBottomPanel(keyboardView)
 
         // Ensure toolbar is visible and has actions.
         registerPrefsListener()
         updateToolbarFromPrefs()
         updateBenchmarkFlags()
-        toolbarView.onItemClick = { item ->
+        toolbarView?.onItemClick = { item ->
             when (item.itemId) {
                 "layout" -> {
                     showLayoutPicker(
                         layoutManager = layoutManager!!,
-                        toolbarView = toolbarView,
-                        keyboardView = keyboardView,
-                        candidatePageView = candidatePageView,
-                        layoutPickerView = layoutPickerView,
+                        toolbarView = toolbarView!!,
+                        keyboardView = keyboardView!!,
                     )
                 }
                 "emoji" -> {
@@ -733,106 +436,53 @@ class MyBoardImeService : InputMethodService() {
                 else -> Toast.makeText(this, "toolbar: ${item.itemId}", Toast.LENGTH_SHORT).show()
             }
         }
-        toolbarView.onItemLongClick = { item ->
+        toolbarView?.onItemLongClick = { item ->
             when (item.itemId) {
                 "clipboard" -> {
                     showClipboard(selectionMode = true)
                 }
             }
         }
-        toolbarView.onOverflowClick = {
+        toolbarView?.onOverflowClick = {
             // Priority:
             // 1) If symbols panel is open -> close it.
             // 2) If there are candidates -> toggle expanded candidate page.
             // 3) Otherwise -> collapse/hide the IME.
             when {
-                symbolsView.visibility == VISIBLE -> hideSymbols()
-                emojiView.visibility == VISIBLE -> hideEmoji()
-                clipboardView.visibility == VISIBLE -> hideClipboard()
-                handwritingView.visibility == VISIBLE -> hideHandwriting()
-                resizeOverlay.visibility == VISIBLE -> hideResize()
+                symbolsView?.visibility == VISIBLE -> hideSymbols()
+                emojiView?.visibility == VISIBLE -> hideEmoji()
+                clipboardView?.visibility == VISIBLE -> hideClipboard()
+                handwritingView?.visibility == VISIBLE -> hideHandwriting()
+                resizeOverlay?.visibility == VISIBLE -> hideResize()
                 lastCandidates.isNotEmpty() -> {
                     isCandidatePageExpanded = !isCandidatePageExpanded
                     renderCandidatesUi(
                         candidates = lastCandidates,
                         composing = lastComposing,
                         composingOptions = lastComposingOptions,
-                        toolbarView = toolbarView,
-                        keyboardView = keyboardView,
+                        toolbarView = toolbarView!!,
+                        keyboardView = keyboardView!!,
                         candidatePageView = candidatePageView,
                     )
                 }
                 else -> requestHideSelf(0)
             }
         }
-        toolbarView.onOverflowLongClick = {
+        toolbarView?.onOverflowLongClick = {
             val intent = Intent(this, SettingsActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             startActivity(intent)
         }
 
-        toolbarView.visibility = VISIBLE
-        toolbarView.onCandidateClick = { text ->
-            playKeyFeedback(keyboardView)
+        toolbarView?.visibility = VISIBLE
+        toolbarView?.onCandidateClick = { text ->
+            playKeyFeedback(keyboardView!!)
             handleSuggestionCommit(text)
             isCandidatePageExpanded = false
             isEditingComposing = false
             composingEditCursor = 0
         }
-        toolbarView.onCandidateLongPress = { anchor, text ->
+        toolbarView?.onCandidateLongPress = { anchor, text ->
             showCandidateActionPopup(anchor, text)
-        }
-        candidatePageView.onCandidateClick = { text ->
-            playKeyFeedback(keyboardView)
-            handleSuggestionCommit(text)
-            isCandidatePageExpanded = false
-            candidatePageView.visibility = GONE
-            keyboardView.visibility = VISIBLE
-            wordPreviewPopup.dismiss()
-            isEditingComposing = false
-            composingEditCursor = 0
-        }
-        candidatePageView.onPinyinSelected = { index ->
-            candidatePageSelectedPinyinIndex = index
-            val specs = runtimeDicts?.activeList?.value.orEmpty()
-            val factory = decoderFactory
-            val left = lastComposingOptions.takeIf { it.isNotEmpty() } ?: splitPinyinSegments(lastComposing)
-            val seg = left.getOrNull(index).orEmpty()
-            val key = xyz.xiao6.myboard.decoder.normalizePinyinKey(seg)
-            candidatePagePreviewCandidates =
-                if (factory == null || key.isBlank()) null
-                else factory.candidatesByPrefix(specs, key, limit = 200)
-
-            if (candidatePageView.visibility == VISIBLE) {
-                candidatePageView.submitPinyinSegments(left, selectedIndex = candidatePageSelectedPinyinIndex)
-                candidatePageView.submitCandidates(candidatePagePreviewCandidates ?: lastCandidates)
-            }
-        }
-        candidatePageView.onCandidateLongPress = { anchor, text ->
-            wordPreviewPopup.showAbove(anchor, text, marginPx = marginPx)
-        }
-        candidatePageView.onCandidatePreviewDismiss = {
-            wordPreviewPopup.dismiss()
-        }
-        candidatePageView.onBack = {
-            isCandidatePageExpanded = false
-            candidatePageView.visibility = GONE
-            keyboardView.visibility = VISIBLE
-            wordPreviewPopup.dismiss()
-            renderCandidatesUi(
-                candidates = lastCandidates,
-                composing = lastComposing,
-                composingOptions = lastComposingOptions,
-                toolbarView = toolbarView,
-                keyboardView = keyboardView,
-                candidatePageView = candidatePageView,
-            )
-        }
-        candidatePageView.onBackspace = {
-            commitTextToEditor("\b")
-            clearSuggestionsAfterDelete(keepToolbarHidden = true)
-        }
-        candidatePageView.onRetype = {
-            controller?.resetComposing()
         }
 
         val dicts = RuntimeDictionaryManager(dictionaryManager = dictionaryManager!!)
@@ -896,14 +546,14 @@ class MyBoardImeService : InputMethodService() {
                 updateSuggestions(
                     composing = lastComposing,
                     decoderCandidates = lastDecoderCandidates,
-                    toolbarView = toolbarView,
-                    keyboardView = keyboardView,
+                    toolbarView = toolbarView!!,
+                    keyboardView = keyboardView!!,
                     candidatePageView = candidatePageView,
                 )
 
                 val (raw, display) = buildComposingPopupText(c.composingText.value)
                 composingPopup.updateAbove(
-                    anchor = topBarSlot,
+                    anchor = topBarSlotView!!,
                     composing = raw,
                     displayText = display,
                     xMarginPx = 0,
@@ -935,22 +585,22 @@ class MyBoardImeService : InputMethodService() {
                     updateSuggestions(
                         composing = composing,
                         decoderCandidates = lastDecoderCandidates,
-                        toolbarView = toolbarView,
-                        keyboardView = keyboardView,
+                        toolbarView = toolbarView!!,
+                        keyboardView = keyboardView!!,
                         candidatePageView = candidatePageView,
                     )
                 } else {
                     updateSuggestions(
                         composing = composing,
                         decoderCandidates = lastDecoderCandidates,
-                        toolbarView = toolbarView,
-                        keyboardView = keyboardView,
+                        toolbarView = toolbarView!!,
+                        keyboardView = keyboardView!!,
                         candidatePageView = candidatePageView,
                     )
                 }
                 val (raw, display) = buildComposingPopupText(composing)
                 composingPopup.updateAbove(
-                    anchor = topBarSlot,
+                    anchor = topBarSlotView!!,
                     composing = raw,
                     displayText = display,
                     xMarginPx = 0,
@@ -971,8 +621,8 @@ class MyBoardImeService : InputMethodService() {
                         candidates = lastCandidates,
                         composing = lastComposing,
                         composingOptions = lastComposingOptions,
-                        toolbarView = toolbarView,
-                        keyboardView = keyboardView,
+                        toolbarView = toolbarView!!,
+                        keyboardView = keyboardView!!,
                         candidatePageView = candidatePageView,
                     )
                 }
@@ -1060,7 +710,7 @@ class MyBoardImeService : InputMethodService() {
         val popup = wordPreviewPopup
         val anchor =
             topBarSlotView
-                ?: rootView?.findViewById(R.id.topBarSlot)
+                ?: rootView?.findViewById(R.id.layerMiddle)
         if (popup == null || anchor == null) {
             Toast.makeText(applicationContext, text, Toast.LENGTH_SHORT).show()
             return
@@ -1087,19 +737,26 @@ class MyBoardImeService : InputMethodService() {
         divider.visibility = VISIBLE
     }
 
-    private fun applyImePanelTheme(panel: View?, theme: ThemeSpec?) {
+    private fun applyImePanelTheme(panel: ImePanelView?, theme: ThemeSpec?) {
         if (panel == null) return
-        val extend = theme?.layout?.extendToToolbar == true
-        if (!extend) {
-            panel.setBackgroundColor(Color.TRANSPARENT)
-            return
-        }
         val runtime = theme?.let { ThemeRuntime(it) }
-        val fallback = Color.parseColor("#F2F2F7")
-        val color =
-            runtime?.resolveColor(theme?.layout?.background?.color ?: theme?.colors?.get("background"), fallback)
-                ?: fallback
-        panel.setBackgroundColor(color)
+        val extend = theme?.layout?.extendToToolbar == true
+        
+        // The root panel must always be transparent to allow floating layerTop to overlay app content
+        panel.setBackgroundColor(Color.TRANSPARENT)
+        
+        // Apply background to the actual keyboard container
+        val container = panel.findViewById<View>(R.id.layersContainer)
+        if (container != null) {
+            val fallback = Color.parseColor("#F2F2F7")
+            val color = if (extend) {
+                runtime?.resolveColor(theme?.layout?.background?.color ?: theme?.colors?.get("background"), fallback)
+                    ?: fallback
+            } else {
+                Color.TRANSPARENT // Background will be handled by individual layers if not extended
+            }
+            container.setBackgroundColor(color)
+        }
     }
 
     private val dismissImeHintRunnable = Runnable {
@@ -1110,31 +767,27 @@ class MyBoardImeService : InputMethodService() {
         layoutManager: LayoutManager,
         toolbarView: ToolbarView,
         keyboardView: KeyboardSurfaceView,
-        candidatePageView: CandidatePageView,
-        layoutPickerView: LayoutPickerView,
     ) {
+        val picker = getOrCreateLayoutPickerView()
+        val candidatePage = getOrCreateCandidatePageView()
+        
         // Close any overlays which conflict with the picker.
-        symbolsView?.visibility = GONE
-        emojiView?.visibility = GONE
-        clipboardView?.visibility = GONE
-        isCandidatePageExpanded = false
-        candidatePageView.visibility = GONE
+        switchBottomPanel(picker)
         toolbarView.clearCandidates()
         wordPreviewPopup?.dismiss()
 
         val sections = buildLayoutPickerSections(layoutManager)
-        if (sections.isEmpty()) return
-
-        keyboardView.visibility = View.INVISIBLE
-        layoutPickerView.visibility = VISIBLE
-        layoutPickerView.submitSections(sections)
-        layoutPickerView.onDismiss = {
-            layoutPickerView.visibility = GONE
-            keyboardView.visibility = VISIBLE
+        if (sections.isEmpty()) {
+            hideOverlays()
+            return
         }
-        layoutPickerView.onLayoutSelected = { localeTag, selectedId ->
-            layoutPickerView.visibility = GONE
-            keyboardView.visibility = VISIBLE
+
+        picker.submitSections(sections)
+        picker.onDismiss = {
+            hideOverlays()
+        }
+        picker.onLayoutSelected = { localeTag, selectedId ->
+            hideOverlays()
             onLocaleAndLayoutSelected(localeTag, selectedId)
         }
     }
@@ -1406,15 +1059,14 @@ class MyBoardImeService : InputMethodService() {
         }
         if (lastComposing.isBlank()) {
             val toolbar = toolbarView
-            val keyboard = rootView?.findViewById<KeyboardSurfaceView>(R.id.keyboardView)
-            val candidatePage = rootView?.findViewById<CandidatePageView>(R.id.candidatePageView)
-            if (toolbar != null && keyboard != null && candidatePage != null) {
+            val keyboard = keyboardView
+            if (toolbar != null && keyboard != null) {
                 updateSuggestions(
                     composing = lastComposing,
                     decoderCandidates = lastDecoderCandidates,
                     toolbarView = toolbar,
                     keyboardView = keyboard,
-                    candidatePageView = candidatePage,
+                    candidatePageView = this.candidatePageView,
                 )
             }
         }
@@ -1664,7 +1316,7 @@ class MyBoardImeService : InputMethodService() {
         decoderCandidates: List<String>,
         toolbarView: ToolbarView,
         keyboardView: KeyboardSurfaceView,
-        candidatePageView: CandidatePageView,
+        candidatePageView: CandidatePageView?,
     ) {
         if (prefs?.benchmarkDisableCandidates == true) {
             clearSuggestionState()
@@ -1728,12 +1380,11 @@ class MyBoardImeService : InputMethodService() {
         isCandidatePageExpanded = false
 
         val toolbar = toolbarView ?: return
-        val keyboard = rootView?.findViewById<KeyboardSurfaceView>(R.id.keyboardView) ?: return
-        val candidatePage = rootView?.findViewById<CandidatePageView>(R.id.candidatePageView) ?: return
-        candidatePage.visibility = GONE
+        val keyboard = keyboardView ?: return
+        candidatePageView?.visibility = View.GONE
         toolbar.clearCandidates()
         toolbar.setItemsVisible(!keepToolbarHidden)
-        keyboard.visibility = VISIBLE
+        keyboard.visibility = View.VISIBLE
         wordPreviewPopup?.dismiss()
     }
 
@@ -1753,15 +1404,14 @@ class MyBoardImeService : InputMethodService() {
         suggestionManager?.blockWord(tag, text)
         showImeHint(getString(R.string.settings_suggestions_blocked_hint))
         val toolbar = toolbarView
-        val keyboard = rootView?.findViewById<KeyboardSurfaceView>(R.id.keyboardView)
-        val candidatePage = rootView?.findViewById<CandidatePageView>(R.id.candidatePageView)
-        if (toolbar != null && keyboard != null && candidatePage != null) {
+        val keyboard = keyboardView
+        if (toolbar != null && keyboard != null) {
             updateSuggestions(
                 composing = lastComposing,
                 decoderCandidates = lastDecoderCandidates,
                 toolbarView = toolbar,
                 keyboardView = keyboard,
-                candidatePageView = candidatePage,
+                candidatePageView = candidatePageView,
             )
         }
     }
@@ -1770,15 +1420,14 @@ class MyBoardImeService : InputMethodService() {
         val tag = activeLocaleTag ?: Locale.getDefault().toLanguageTag()
         suggestionManager?.demoteWord(tag, text)
         val toolbar = toolbarView
-        val keyboard = rootView?.findViewById<KeyboardSurfaceView>(R.id.keyboardView)
-        val candidatePage = rootView?.findViewById<CandidatePageView>(R.id.candidatePageView)
-        if (toolbar != null && keyboard != null && candidatePage != null) {
+        val keyboard = keyboardView
+        if (toolbar != null && keyboard != null) {
             updateSuggestions(
                 composing = lastComposing,
                 decoderCandidates = lastDecoderCandidates,
                 toolbarView = toolbar,
                 keyboardView = keyboard,
-                candidatePageView = candidatePage,
+                candidatePageView = candidatePageView,
             )
         }
     }
@@ -1912,25 +1561,12 @@ class MyBoardImeService : InputMethodService() {
         controller?.resetComposing()
         controller?.resetLayoutStateToDefault()
 
-        symbolsView?.visibility = GONE
-        emojiView?.visibility = GONE
-        clipboardView?.visibility = GONE
-        clipboardView?.clearSelection()
-        resizeOverlay?.visibility = GONE
-
-        rootView?.findViewById<xyz.xiao6.myboard.ui.toolbar.ToolbarView>(R.id.toolbarView)?.let { toolbar ->
-            toolbar.visibility = VISIBLE
-            toolbar.clearCandidates()
-        }
-        rootView?.findViewById<xyz.xiao6.myboard.ui.candidate.CandidatePageView>(R.id.candidatePageView)?.visibility = GONE
-        rootView?.findViewById<xyz.xiao6.myboard.ui.layout.LayoutPickerView>(R.id.layoutPickerView)?.visibility = GONE
-        rootView?.findViewById<xyz.xiao6.myboard.ui.keyboard.KeyboardSurfaceView>(R.id.keyboardView)?.visibility = VISIBLE
+        hideOverlays()
 
         // Re-apply global keyboard size (e.g. returning from Settings without switching layouts).
         val layout = controller?.currentLayout?.value
         if (layout != null) {
-            rootView?.findViewById<xyz.xiao6.myboard.ui.ime.ImePanelView>(R.id.imePanel)
-                ?.applyKeyboardLayoutSize(applyGlobalKeyboardSize(layout))
+            imePanelView?.applyKeyboardLayoutSize(applyGlobalKeyboardSize(layout))
         }
     }
 
@@ -2094,22 +1730,23 @@ class MyBoardImeService : InputMethodService() {
         composingOptions: List<String>,
         toolbarView: ToolbarView,
         keyboardView: KeyboardSurfaceView,
-        candidatePageView: CandidatePageView,
+        candidatePageView: CandidatePageView?,
     ) {
-        if (symbolsView?.visibility == VISIBLE || emojiView?.visibility == VISIBLE || clipboardView?.visibility == VISIBLE) {
+        if (symbolsView?.visibility == VISIBLE || emojiView?.visibility == VISIBLE || clipboardView?.visibility == VISIBLE || handwritingView?.visibility == VISIBLE) {
             toolbarView.clearCandidates()
-            candidatePageView.visibility = GONE
-            toolbarView.visibility = View.INVISIBLE
+            toolbarView.setItemsVisible(true) // Show icons when in special panels
+            candidatePageView?.visibility = View.GONE
+            toolbarView.visibility = View.VISIBLE
             keyboardView.visibility = View.INVISIBLE
             return
         }
         if (resizeOverlay?.visibility == VISIBLE) {
             // Resizing mode: keep keyboard visible and avoid showing candidates/expanded page.
             toolbarView.clearCandidates()
-            toolbarView.visibility = VISIBLE
+            toolbarView.visibility = View.VISIBLE
             toolbarView.setItemsVisible(true)
-            candidatePageView.visibility = GONE
-            keyboardView.visibility = VISIBLE
+            candidatePageView?.visibility = View.GONE
+            keyboardView.visibility = View.VISIBLE
             return
         }
 
@@ -2118,12 +1755,14 @@ class MyBoardImeService : InputMethodService() {
         val expandPage = showCandidates && isCandidatePageExpanded
 
         // Keep toolbar visible so the overflow arrow is always available.
-        toolbarView.visibility = VISIBLE
+        toolbarView.visibility = View.VISIBLE
         toolbarView.setItemsVisible(!showCandidates)
         toolbarView.setOverflowContentDescription(
             when {
                 symbolsView?.visibility == VISIBLE -> "Close"
                 clipboardView?.visibility == VISIBLE -> "Close"
+                emojiView?.visibility == VISIBLE -> "Close"
+                handwritingView?.visibility == VISIBLE -> "Close"
                 showCandidates -> if (expandPage) "Collapse candidates" else "Expand candidates"
                 else -> "Hide keyboard"
             },
@@ -2131,18 +1770,21 @@ class MyBoardImeService : InputMethodService() {
         toolbarView.setOverflowRotation(if (expandPage) 180f else 0f)
 
         if (expandPage) {
+            // Lazy load candidate page if needed
+            val page = candidatePageView ?: getOrCreateCandidatePageView()
+            
             // Expanded page overlays keyboard region; keep keyboard height by making it INVISIBLE instead of GONE.
             keyboardView.visibility = View.INVISIBLE
-            candidatePageView.visibility = VISIBLE
+            page.visibility = View.VISIBLE
             toolbarView.clearCandidates()
             val left = composingOptions.takeIf { it.isNotEmpty() } ?: splitPinyinSegments(composing)
             candidatePageSelectedPinyinIndex =
                 candidatePageSelectedPinyinIndex.coerceIn(0, (left.size - 1).coerceAtLeast(0))
-            candidatePageView.submitPinyinSegments(left, selectedIndex = candidatePageSelectedPinyinIndex)
-            candidatePageView.submitCandidates(candidatePagePreviewCandidates ?: candidates)
+            page.submitPinyinSegments(left, selectedIndex = candidatePageSelectedPinyinIndex)
+            page.submitCandidates(candidatePagePreviewCandidates ?: candidates)
         } else {
-            candidatePageView.visibility = GONE
-            keyboardView.visibility = VISIBLE
+            candidatePageView?.visibility = View.GONE
+            keyboardView.visibility = View.VISIBLE
             wordPreviewPopup?.dismiss()
             if (showCandidates) {
                 toolbarView.submitCandidates(candidates)
@@ -2293,6 +1935,483 @@ class MyBoardImeService : InputMethodService() {
         if (clipboardView?.visibility == VISIBLE) {
             clipboardView?.submitItems(clipboardEntries.toList())
         }
+    }
+
+    private fun switchBottomPanel(targetView: View?) {
+        val container = layerBottomView ?: return
+        for (i in 0 until container.childCount) {
+            val child = container.getChildAt(i)
+            child.visibility = if (child == targetView) View.VISIBLE else View.GONE
+        }
+
+        // Special handling for some panels
+        if (targetView != clipboardView) {
+            clipboardView?.clearSelection()
+        }
+        if (targetView != handwritingView) {
+            handwritingView?.clearCanvas()
+        }
+        if (targetView != candidatePageView) {
+            isCandidatePageExpanded = false
+        }
+    }
+
+    private fun hideOverlays() {
+        switchBottomPanel(keyboardView)
+        resizeOverlay?.visibility = View.GONE
+        toolbarView?.clearCandidates()
+        toolbarView?.visibility = View.VISIBLE
+        wordPreviewPopup?.dismiss()
+        candidateActionPopup?.dismiss()
+    }
+
+    private fun showSymbols() {
+        composingPopup?.dismiss()
+        val view = getOrCreateSymbolsView()
+        switchBottomPanel(view)
+        toolbarView?.visibility = View.VISIBLE
+        toolbarView?.clearCandidates()
+    }
+
+    private fun getOrCreateSymbolsView(): SymbolsLayoutView {
+        this.symbolsView?.let { return it }
+        val container = layerBottomView!!
+        val newView = SymbolsLayoutView(this).apply {
+            id = R.id.symbolsView
+            applyTheme(themeSpec)
+            onBack = { hideSymbols() }
+            onCommitSymbol = { symbol ->
+                playKeyFeedback(keyboardView!!)
+                commitTextToEditor(symbol)
+                if (!isLocked()) hideSymbols()
+            }
+        }
+        container.addView(newView, FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT)
+        this.symbolsView = newView
+        return newView
+    }
+
+    private fun hideSymbols() {
+        if (this.symbolsView?.visibility != View.VISIBLE) return
+        hideOverlays()
+        val toolbar = toolbarView ?: return
+        val keyboard = keyboardView ?: return
+        getOrCreateCandidatePageView()
+        renderCandidatesUi(
+            candidates = lastCandidates,
+            composing = lastComposing,
+            composingOptions = lastComposingOptions,
+            toolbarView = toolbar,
+            keyboardView = keyboard,
+            candidatePageView = this.candidatePageView,
+        )
+    }
+
+    private fun showEmoji() {
+        composingPopup?.dismiss()
+        val view = getOrCreateEmojiView()
+        switchBottomPanel(view)
+        toolbarView?.visibility = View.VISIBLE
+        toolbarView?.clearCandidates()
+    }
+
+    private fun getOrCreateEmojiView(): EmojiLayoutView {
+        this.emojiView?.let { return it }
+        val container = layerBottomView!!
+        val newView = EmojiLayoutView(this).apply {
+            id = R.id.emojiView
+            applyTheme(themeSpec)
+            prefs?.let { setUseEmojiImages(it.emojiImageEnabled) }
+            onBack = { hideEmoji() }
+            onCommit = { text ->
+                playKeyFeedback(keyboardView!!)
+                commitTextToEditor(text)
+                lastEmojiCommitText = text
+            }
+            onDelete = {
+                playKeyFeedback(keyboardView!!)
+                deleteLastEmojiCommit()
+            }
+        }
+        container.addView(newView, FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT)
+        this.emojiView = newView
+        return newView
+    }
+
+    private fun hideEmoji() {
+        if (this.emojiView?.visibility != View.VISIBLE) return
+        hideOverlays()
+        val toolbar = toolbarView ?: return
+        val keyboard = keyboardView ?: return
+        getOrCreateCandidatePageView()
+        renderCandidatesUi(
+            candidates = lastCandidates,
+            composing = lastComposing,
+            composingOptions = lastComposingOptions,
+            toolbarView = toolbar,
+            keyboardView = keyboard,
+            candidatePageView = this.candidatePageView,
+        )
+    }
+
+    private fun showClipboard(selectionMode: Boolean) {
+        composingPopup?.dismiss()
+        val view = getOrCreateClipboardView()
+        switchBottomPanel(view)
+        toolbarView?.visibility = View.VISIBLE
+        toolbarView?.clearCandidates()
+        view.submitItems(clipboardEntries.toList())
+        view.setSelectionMode(selectionMode)
+    }
+
+    private fun getOrCreateClipboardView(): ClipboardLayoutView {
+        this.clipboardView?.let { return it }
+        val container = layerBottomView!!
+        val newView = ClipboardLayoutView(this).apply {
+            id = R.id.clipboardView
+            applyTheme(themeSpec)
+            onBack = { hideClipboard() }
+            onCommit = { entry ->
+                playKeyFeedback(keyboardView!!)
+                commitTextToEditor(entry.text)
+            }
+            onClearAll = {
+                clipboardEntries.clear()
+                submitItems(emptyList())
+                setSelectionMode(false)
+            }
+            onDeleteSelected = onDeleteSelected@{ selectedIds ->
+                if (selectedIds.isEmpty()) return@onDeleteSelected
+                val remaining = clipboardEntries.filterNot { it.id in selectedIds }
+                clipboardEntries.clear()
+                clipboardEntries.addAll(remaining)
+                submitItems(clipboardEntries.toList())
+                clearSelection()
+            }
+        }
+        container.addView(newView, FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT)
+        this.clipboardView = newView
+        return newView
+    }
+
+    private fun hideClipboard() {
+        if (this.clipboardView?.visibility != View.VISIBLE) return
+        hideOverlays()
+        val toolbar = toolbarView ?: return
+        val keyboard = keyboardView ?: return
+        getOrCreateCandidatePageView()
+        renderCandidatesUi(
+            candidates = lastCandidates,
+            composing = lastComposing,
+            composingOptions = lastComposingOptions,
+            toolbarView = toolbar,
+            keyboardView = keyboard,
+            candidatePageView = this.candidatePageView,
+        )
+    }
+
+    private fun showHandwriting() {
+        composingPopup?.dismiss()
+        val view = getOrCreateHandwritingView()
+        switchBottomPanel(view)
+        toolbarView?.visibility = View.VISIBLE
+        toolbarView?.clearCandidates()
+
+        // Get layout configuration from settings
+        val layoutModeStr = prefs?.handwritingLayoutMode ?: "HALF_SCREEN"
+        val layoutMode = xyz.xiao6.myboard.model.HandwritingLayoutMode.valueOf(layoutModeStr)
+        val positionStr = prefs?.handwritingPosition ?: "BOTTOM"
+        val position = xyz.xiao6.myboard.model.HandwritingPosition.valueOf(positionStr)
+
+        view.setLayoutMode(layoutMode)
+
+        val layoutId = when (layoutMode) {
+            xyz.xiao6.myboard.model.HandwritingLayoutMode.FULL_SCREEN -> "fullscreen"
+            xyz.xiao6.myboard.model.HandwritingLayoutMode.OVERLAY -> "overlay"
+            else -> "default"
+        }
+
+        val baseLayoutSpec =
+            handwritingLayoutManager?.getLayout(layoutId)
+                ?: handwritingLayoutManager?.getDefaultLayout()
+                ?: xyz.xiao6.myboard.ui.handwriting.HandwritingLayoutSpec(
+                    layoutId = "default",
+                    name = "Default",
+                    mode = xyz.xiao6.myboard.model.HandwritingLayoutMode.HALF_SCREEN
+                )
+
+        // Apply user settings overrides
+        val userStrokeWidth = prefs?.handwritingStrokeWidth ?: 12f
+        val userStrokeColor = prefs?.handwritingStrokeColor ?: -16777216 // BLACK
+        val userDelay = prefs?.handwritingRecognitionDelayMs ?: 500L
+        val userAutoRecognize = prefs?.handwritingAutoRecognize ?: true
+
+        // Format color to #AARRGGBB
+        val colorHex = String.format("#%08X", userStrokeColor)
+
+        val layoutSpec = baseLayoutSpec.copy(
+            position = position,
+            canvas = baseLayoutSpec.canvas.copy(
+                strokeWidth = userStrokeWidth,
+                strokeColor = colorHex
+            ),
+            recognition = baseLayoutSpec.recognition.copy(
+                autoRecognize = userAutoRecognize,
+                autoRecognizeDelayMs = userDelay
+            )
+        )
+
+        view.setLayoutSpec(layoutSpec)
+
+        val locale = activeLocaleTag ?: Locale.getDefault().toLanguageTag()
+        scope.launch {
+            val manager = HandwritingRecognitionManager(this@MyBoardImeService)
+            val initialized = manager.initializeForLanguage(locale)
+            if (initialized) {
+                view.setRecognitionManager(manager)
+                MLog.d(logTag, "Handwriting recognition initialized for $locale with mode: $layoutMode")
+            } else {
+                MLog.e(logTag, "Failed to initialize handwriting recognition for $locale")
+            }
+        }
+    }
+
+    private fun getOrCreateHandwritingView(): ModernHandwritingContainerView {
+        this.handwritingView?.let { return it }
+        val container = layerBottomView!!
+        val newView = ModernHandwritingContainerView(this).apply {
+            id = R.id.handwritingView
+            onBack = {
+                controller?.onAction(xyz.xiao6.myboard.model.KeyAction(xyz.xiao6.myboard.model.ActionType.BACK))
+            }
+            onSwitchToKeyboard = {
+                controller?.onAction(xyz.xiao6.myboard.model.KeyAction(xyz.xiao6.myboard.model.ActionType.BACK))
+            }
+            onClear = {
+                clearCanvas()
+            }
+            onCandidateSelected = { text ->
+                commitTextToEditor(text)
+                clearCanvas()
+            }
+            onLayoutPickerRequest = {
+                showLayoutPicker(
+                    layoutManager = layoutManager!!,
+                    toolbarView = toolbarView!!,
+                    keyboardView = keyboardView!!,
+                )
+            }
+            onVoiceRequest = {
+                // Placeholder for voice
+            }
+            onEmojiRequest = {
+                showEmoji()
+            }
+            onResizeRequest = {
+                showResize()
+            }
+            onBackspaceRequest = {
+                commitTextToEditor("\b")
+            }
+            onSwitchLayoutRequest = { layoutId ->
+                controller?.loadLayout(layoutId)
+            }
+            onToggleLocaleRequest = {
+                toggleLocale()
+            }
+        }
+        container.addView(newView, FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT)
+        this.handwritingView = newView
+        return newView
+    }
+
+    private fun hideHandwriting() {
+        if (this.handwritingView?.visibility != View.VISIBLE) return
+        hideOverlays()
+        val toolbar = toolbarView ?: return
+        val keyboard = keyboardView ?: return
+        getOrCreateCandidatePageView()
+        renderCandidatesUi(
+            candidates = lastCandidates,
+            composing = lastComposing,
+            composingOptions = lastComposingOptions,
+            toolbarView = toolbar,
+            keyboardView = keyboard,
+            candidatePageView = this.candidatePageView,
+        )
+    }
+
+    private fun showResize() {
+        switchBottomPanel(keyboardView)
+        this.toolbarView?.clearCandidates()
+        this.wordPreviewPopup?.dismiss()
+
+        val p = prefs
+        val layout = controller?.currentLayout?.value
+        if (p != null && layout != null) {
+            if (p.globalKeyboardWidthRatio == null) p.globalKeyboardWidthRatio = layout.totalWidthRatio
+            if (p.globalKeyboardHeightRatio == null) p.globalKeyboardHeightRatio = layout.totalHeightRatio
+            resizeBaselineWidthDpOffset = p.globalKeyboardWidthDpOffset ?: layout.totalWidthDpOffset
+            resizeBaselineHeightDpOffset = p.globalKeyboardHeightDpOffset ?: layout.totalHeightDpOffset
+        }
+
+        val overlay = getOrCreateResizeOverlay()
+        overlay.visibility = View.VISIBLE
+        showImeHint("拖动手柄可同时调整宽高（横向=宽度，纵向=高度）")
+    }
+
+    private fun getOrCreateResizeOverlay(): KeyboardResizeOverlayView {
+        this.resizeOverlay?.let { return it }
+        val container = imePanelView!! // Root is FrameLayout
+        val newView = KeyboardResizeOverlayView(this).apply {
+            id = R.id.resizeOverlay
+            target = container
+            onDismiss = { hideResize() }
+            onReset = {
+                val pr = prefs
+                val ly = controller?.currentLayout?.value
+                if (pr != null && ly != null) {
+                    val w = resizeBaselineWidthDpOffset ?: (pr.globalKeyboardWidthDpOffset ?: ly.totalWidthDpOffset)
+                    val h = resizeBaselineHeightDpOffset ?: (pr.globalKeyboardHeightDpOffset ?: ly.totalHeightDpOffset)
+                    pr.globalKeyboardWidthDpOffset = w
+                    pr.globalKeyboardHeightDpOffset = h
+                    val sized = applyGlobalKeyboardSize(ly)
+                    imePanelView?.applyKeyboardLayoutSize(sized)
+                }
+            }
+            onConfirm = { hideResize() }
+            onResizeDeltaPx = { deltaWidthPx, deltaHeightPx ->
+                val pr = prefs
+                val ly = controller?.currentLayout?.value
+                if (pr != null && ly != null) {
+                    val density = resources.displayMetrics.density.coerceAtLeast(0.5f)
+                    val screenWidthPx = resources.displayMetrics.widthPixels.coerceAtLeast(1)
+                    val screenHeightPx = resources.displayMetrics.heightPixels.coerceAtLeast(1)
+                    val minWidthPx = KeyboardSizeConstraints.minKeyboardWidthPx(density)
+                    val minHeightPx = KeyboardSizeConstraints.minKeyboardHeightPx(density)
+                    val maxHeightPx = KeyboardSizeConstraints.maxKeyboardHeightPx(screenHeightPx, density).coerceAtLeast(minHeightPx)
+
+                    if (pr.globalKeyboardWidthRatio == null) pr.globalKeyboardWidthRatio = ly.totalWidthRatio
+                    if (pr.globalKeyboardHeightRatio == null) pr.globalKeyboardHeightRatio = ly.totalHeightRatio
+
+                    if (deltaWidthPx != 0) {
+                        val ratio = pr.globalKeyboardWidthRatio ?: ly.totalWidthRatio
+                        val curOffDp = pr.globalKeyboardWidthDpOffset ?: ly.totalWidthDpOffset
+                        val curPx = (screenWidthPx * ratio + curOffDp * density).toInt()
+                        val targetPx = (curPx + deltaWidthPx).coerceIn(minWidthPx, screenWidthPx)
+                        val nextOffDp = (targetPx - screenWidthPx * ratio) / density
+                        pr.globalKeyboardWidthDpOffset = nextOffDp
+                    }
+                    if (deltaHeightPx != 0) {
+                        val ratio = pr.globalKeyboardHeightRatio ?: ly.totalHeightRatio
+                        val curOffDp = pr.globalKeyboardHeightDpOffset ?: ly.totalHeightDpOffset
+                        val curPx = (screenHeightPx * ratio + curOffDp * density).toInt()
+                        val targetPx = (curPx + deltaHeightPx).coerceIn(minHeightPx, maxHeightPx)
+                        val nextOffDp = (targetPx - screenHeightPx * ratio) / density
+                        pr.globalKeyboardHeightDpOffset = nextOffDp
+                    }
+
+                    val sized = applyGlobalKeyboardSize(ly)
+                    imePanelView?.applyKeyboardLayoutSize(sized)
+                }
+            }
+        }
+        container.addView(newView, FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT)
+        this.resizeOverlay = newView
+        return newView
+    }
+
+    private fun hideResize() {
+        if (resizeOverlay?.visibility != View.VISIBLE) return
+        resizeOverlay?.visibility = View.GONE
+    }
+
+    private fun getOrCreateCandidatePageView(): CandidatePageView {
+        this.candidatePageView?.let { return it }
+        val container = layerBottomView!!
+        val newView = CandidatePageView(this).apply {
+            id = R.id.candidatePageView
+            applyTheme(themeSpec)
+            onCandidateClick = { text ->
+                playKeyFeedback(keyboardView!!)
+                handleSuggestionCommit(text)
+                isCandidatePageExpanded = false
+                visibility = View.GONE
+                keyboardView?.visibility = View.VISIBLE
+                wordPreviewPopup?.dismiss()
+                isEditingComposing = false
+                composingEditCursor = 0
+            }
+            onPinyinSelected = { index ->
+                candidatePageSelectedPinyinIndex = index
+                val specs = runtimeDicts?.activeList?.value.orEmpty()
+                val factory = decoderFactory
+                val left = lastComposingOptions.takeIf { it.isNotEmpty() } ?: splitPinyinSegments(lastComposing)
+                val seg = left.getOrNull(index).orEmpty()
+                val key = xyz.xiao6.myboard.decoder.normalizePinyinKey(seg)
+                candidatePagePreviewCandidates =
+                    if (factory == null || key.isBlank()) null
+                    else factory.candidatesByPrefix(specs, key, limit = 200)
+
+                if (visibility == View.VISIBLE) {
+                    submitPinyinSegments(left, selectedIndex = candidatePageSelectedPinyinIndex)
+                    submitCandidates(candidatePagePreviewCandidates ?: lastCandidates)
+                }
+            }
+            onCandidateLongPress = { anchor, text ->
+                wordPreviewPopup?.showAbove(anchor, text, marginPx = popupMarginPx)
+            }
+            onCandidatePreviewDismiss = {
+                wordPreviewPopup?.dismiss()
+            }
+            onBack = {
+                isCandidatePageExpanded = false
+                visibility = View.GONE
+                keyboardView?.visibility = View.VISIBLE
+                wordPreviewPopup?.dismiss()
+                renderCandidatesUi(
+                    candidates = lastCandidates,
+                    composing = lastComposing,
+                    composingOptions = lastComposingOptions,
+                    toolbarView = toolbarView!!,
+                    keyboardView = keyboardView!!,
+                    candidatePageView = this,
+                )
+            }
+            onBackspace = {
+                commitTextToEditor("\b")
+                clearSuggestionsAfterDelete(keepToolbarHidden = true)
+            }
+            onRetype = {
+                controller?.resetComposing()
+            }
+        }
+        container.addView(newView, FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT)
+        this.candidatePageView = newView
+        return newView
+    }
+
+    private fun getOrCreateLayoutPickerView(): LayoutPickerView {
+        this.layoutPickerView?.let { return it }
+        val container = layerBottomView!!
+        val newView = LayoutPickerView(this).apply {
+            id = R.id.layoutPickerView
+            applyTheme(themeSpec)
+        }
+        container.addView(newView, FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT)
+        this.layoutPickerView = newView
+        return newView
+    }
+
+    private fun getOrCreateVoiceInputView(): VoiceInputView {
+        this.voiceInputView?.let { return it }
+        val container = layerBottomView!!
+        val newView = VoiceInputView(this).apply {
+            id = R.id.voiceInputView
+        }
+        container.addView(newView, FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT)
+        this.voiceInputView = newView
+        return newView
     }
 
     private companion object {

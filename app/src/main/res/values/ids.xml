@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <item name="symbolsView" type="id" />
+    <item name="emojiView" type="id" />
+    <item name="clipboardView" type="id" />
+    <item name="handwritingView" type="id" />
+    <item name="voiceInputView" type="id" />
+    <item name="candidatePageView" type="id" />
+    <item name="layoutPickerView" type="id" />
+    <item name="resizeOverlay" type="id" />
+</resources>

@@ -898,8 +898,13 @@ class KeyboardSurfaceView @JvmOverloads constructor(
                         py
                     }
 
-                    val xClamped = px.coerceIn(rect.left + paddingX, rect.right - paddingX)
-                    val yClamped = (adjustedY - fm.descent).coerceIn(rect.top + paddingY - fm.ascent, rect.bottom - paddingY - fm.descent)
+                    val minX = rect.left + paddingX
+                    val maxX = rect.right - paddingX
+                    val xClamped = if (minX < maxX) px.coerceIn(minX, maxX) else minX
+
+                    val minY = rect.top + paddingY - fm.ascent
+                    val maxY = rect.bottom - paddingY - fm.descent
+                    val yClamped = if (minY < maxY) (adjustedY - fm.descent).coerceIn(minY, maxY) else minY
                     Triple(xClamped, yClamped, anchor.align)
                 }
                 is HintAnchor.Grid ->
@@ -976,7 +981,11 @@ class KeyboardSurfaceView @JvmOverloads constructor(
                                 // Center vertically within left safe zone
                                 val safeTop = rect.top + paddingY - fm.ascent
                                 val safeBottom = exclusionTop - paddingY - fm.descent
-                                ((safeTop + safeBottom) / 2f).coerceIn(safeTop, safeBottom)
+                                if (safeTop < safeBottom) {
+                                    ((safeTop + safeBottom) / 2f).coerceIn(safeTop, safeBottom)
+                                } else {
+                                    safeTop
+                                }
                             }
                             Triple(x, y, Paint.Align.LEFT)
                         }
@@ -1020,7 +1029,11 @@ class KeyboardSurfaceView @JvmOverloads constructor(
                                 // Center vertically within right safe zone
                                 val safeTop = rect.top + paddingY - fm.ascent
                                 val safeBottom = exclusionTop - paddingY - fm.descent
-                                ((safeTop + safeBottom) / 2f).coerceIn(safeTop, safeBottom)
+                                if (safeTop < safeBottom) {
+                                    ((safeTop + safeBottom) / 2f).coerceIn(safeTop, safeBottom)
+                                } else {
+                                    safeTop
+                                }
                             }
                             Triple(x, y, Paint.Align.RIGHT)
                         }
@@ -1039,7 +1052,11 @@ class KeyboardSurfaceView @JvmOverloads constructor(
                                 // Use bottom with spacing
                                 val safeTop = exclusionBottom + paddingY - fm.ascent
                                 val safeBottom = rect.bottom - paddingY - fm.descent
-                                ((safeTop + safeBottom) / 2f).coerceIn(safeTop, safeBottom)
+                                if (safeTop < safeBottom) {
+                                    ((safeTop + safeBottom) / 2f).coerceIn(safeTop, safeBottom)
+                                } else {
+                                    safeTop
+                                }
                             }
                             Triple(x, y, Paint.Align.LEFT)
                         }
@@ -1058,7 +1075,11 @@ class KeyboardSurfaceView @JvmOverloads constructor(
                                 // Use bottom with spacing
                                 val safeTop = exclusionBottom + paddingY - fm.ascent
                                 val safeBottom = rect.bottom - paddingY - fm.descent
-                                ((safeTop + safeBottom) / 2f).coerceIn(safeTop, safeBottom)
+                                if (safeTop < safeBottom) {
+                                    ((safeTop + safeBottom) / 2f).coerceIn(safeTop, safeBottom)
+                                } else {
+                                    safeTop
+                                }
                             }
                             Triple(x, y, Paint.Align.CENTER)
                         }
@@ -1077,7 +1098,11 @@ class KeyboardSurfaceView @JvmOverloads constructor(
                                 // Use bottom with spacing
                                 val safeTop = exclusionBottom + paddingY - fm.ascent
                                 val safeBottom = rect.bottom - paddingY - fm.descent
-                                ((safeTop + safeBottom) / 2f).coerceIn(safeTop, safeBottom)
+                                if (safeTop < safeBottom) {
+                                    ((safeTop + safeBottom) / 2f).coerceIn(safeTop, safeBottom)
+                                } else {
+                                    safeTop
+                                }
                             }
                             Triple(x, y, Paint.Align.RIGHT)
                         }

@@ -1,9 +1,7 @@
 package xyz.xiao6.myboard.ui
 
 import android.os.Bundle
-import android.view.inputmethod.InputMethodManager
 import android.view.WindowManager
-import android.widget.EditText
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.getSystemService
 import xyz.xiao6.myboard.R
@@ -28,40 +26,11 @@ class BenchmarkInputActivity : AppCompatActivity() {
         )
         applyBenchmarkLocale()
         setContentView(R.layout.activity_benchmark_input)
-
-        val input = findViewById<EditText>(R.id.benchmarkInputField)
-        input.requestFocus()
-        input.requestFocusFromTouch()
     }
 
     override fun onDestroy() {
         super.onDestroy()
         restoreLocale()
-    }
-
-    override fun onWindowFocusChanged(hasFocus: Boolean) {
-        super.onWindowFocusChanged(hasFocus)
-        if (!hasFocus || requestedIme) return
-        val input = findViewById<EditText>(R.id.benchmarkInputField)
-        input.requestFocus()
-        input.requestFocusFromTouch()
-        showIme(input)
-        requestedIme = true
-    }
-
-    private fun showIme(target: EditText) {
-        val imm = getSystemService<InputMethodManager>() ?: return
-        target.post {
-            if (!target.hasWindowFocus()) return@post
-            if (!imm.isActive(target)) {
-                target.postDelayed(
-                    { imm.showSoftInput(target, InputMethodManager.SHOW_IMPLICIT) },
-                    120L,
-                )
-            } else {
-                imm.showSoftInput(target, InputMethodManager.SHOW_IMPLICIT)
-            }
-        }
     }
 
     private fun applyBenchmarkLocale() {

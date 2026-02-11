@@ -11,8 +11,7 @@ import xyz.xiao6.myboard.util.KeyboardSizeConstraints
 import kotlin.math.roundToInt
 
 /**
- * A unified panel that contains toolbar / candidate area and the keyboard layout region.
- * The keyboard region height is driven by [KeyboardLayout.totalHeightRatio] and [KeyboardLayout.totalHeightDpOffset].
+ * A unified panel that contains toolbar, keyboard, and the floating composing area.
  */
 class ImePanelView @JvmOverloads constructor(
     context: Context,
@@ -20,13 +19,38 @@ class ImePanelView @JvmOverloads constructor(
     defStyleAttr: Int = 0,
 ) : FrameLayout(context, attrs, defStyleAttr) {
 
-    private var topBarSlot: View? = null
-    private var contentSlot: View? = null
+    private var layerTop: FrameLayout? = null
+    private var layerMiddle: View? = null
+    private var layerBottom: View? = null
+    private var layersContainer: View? = null
+
+    private val floatingAreaHeightDp = 60f
 
     override fun onFinishInflate() {
         super.onFinishInflate()
-        topBarSlot = findViewById(R.id.topBarSlot)
-        contentSlot = findViewById(R.id.contentSlot)
+        layerTop = findViewById(R.id.layerTop)
+        layerMiddle = findViewById(R.id.layerMiddle)
+        layerBottom = findViewById(R.id.layerBottom)
+        layersContainer = findViewById(R.id.layersContainer)
+    }
+
+    /**
+     * Returns the height of the actual keyboard area (Toolbar + Keyboard),
+     * excluding the floating area.
+     */
+    fun getContentHeight(): Int {
+        val density = resources.displayMetrics.density
+        val toolbarHeightPx = resolveSlotHeightPx(layerMiddle, fallbackDp = 48f)
+        val dividerHeightPx = if (findViewById<View>(R.id.toolbarDivider)?.visibility == View.VISIBLE) (density * 1f).roundToInt() else 0
+        val keyboardHeightPx = layerBottom?.layoutParams?.height ?: 0
+        return toolbarHeightPx + dividerHeightPx + keyboardHeightPx
+    }
+    
+    /**
+     * Returns the height of the reserved floating area at the top.
+     */
+    fun getFloatingAreaHeight(): Int {
+        return (resources.displayMetrics.density * floatingAreaHeightDp).roundToInt()
     }
 
     fun applyKeyboardLayoutSize(layout: KeyboardLayout) {
@@ -35,6 +59,7 @@ class ImePanelView @JvmOverloads constructor(
         val screenHeightPx = display.heightPixels
         val screenWidthPx = display.widthPixels
 
+        // 1. Calculate target keyboard height (Bottom Layer)
         val targetKeyboardHeightPx =
             (screenHeightPx * layout.totalHeightRatio + (layout.totalHeightDpOffset * density)).roundToInt()
                 .coerceAtLeast(KeyboardSizeConstraints.minKeyboardHeightPx(density))
@@ -47,41 +72,90 @@ class ImePanelView @JvmOverloads constructor(
             (screenWidthPx * layout.totalWidthRatio + (layout.totalWidthDpOffset * density)).roundToInt()
                 .coerceIn(KeyboardSizeConstraints.minKeyboardWidthPx(density), screenWidthPx)
 
-        val slot = contentSlot ?: return
-        val slotLp = slot.layoutParams ?: return
-        var changed = false
-        if (slotLp.height != targetKeyboardHeightPx) {
-            slotLp.height = targetKeyboardHeightPx
-            changed = true
+        // 2. Apply size to Bottom Layer
+        val bottom = layerBottom ?: return
+        val bottomLp = bottom.layoutParams ?: return
+        var bottomChanged = false
+        if (bottomLp.height != targetKeyboardHeightPx) {
+            bottomLp.height = targetKeyboardHeightPx
+            bottomChanged = true
         }
-        if (slotLp.width != targetKeyboardWidthPx) {
-            slotLp.width = targetKeyboardWidthPx
-            changed = true
+        if (bottomLp.width != targetKeyboardWidthPx) {
+            bottomLp.width = targetKeyboardWidthPx
+            bottomChanged = true
         }
-        if (changed) {
-            slot.layoutParams = slotLp
-            slot.requestLayout()
+        if (bottomChanged) {
+            bottom.layoutParams = bottomLp
+            bottom.requestLayout()
         }
 
-        val topBarHeightPx = resolveSlotHeightPx(topBarSlot, fallbackDp = 48f)
+        // 3. Middle Layer (Toolbar) uses its own size
+        layerMiddle?.let { middle ->
+            val middleLp = middle.layoutParams
+            if (middleLp != null && middleLp.width != targetKeyboardWidthPx) {
+                middleLp.width = targetKeyboardWidthPx
+                middle.layoutParams = middleLp
+            }
+        }
+
+        // 4. Update the layers container width
+        layersContainer?.let { container ->
+            val containerLp = container.layoutParams
+            if (containerLp != null && containerLp.width != targetKeyboardWidthPx) {
+                containerLp.width = targetKeyboardWidthPx
+                container.layoutParams = containerLp
+            }
+        }
+
+        // 5. Anchor layerTop to the top of the actual content
+        val toolbarHeightPx = resolveSlotHeightPx(layerMiddle, fallbackDp = 48f)
+        val dividerHeightPx = if (findViewById<View>(R.id.toolbarDivider)?.visibility == View.VISIBLE) (density * 1f).roundToInt() else 0
+        val bottomOffsetPx = targetKeyboardHeightPx + toolbarHeightPx + dividerHeightPx
+
+        layerTop?.let { top ->
+            val topLp = top.layoutParams
+            if (topLp is LayoutParams) {
+                var topChanged = false
+                if (topLp.bottomMargin != bottomOffsetPx) {
+                    topLp.bottomMargin = bottomOffsetPx
+                    topChanged = true
+                }
+                if (topLp.gravity != (Gravity.BOTTOM or Gravity.START)) {
+                    topLp.gravity = (Gravity.BOTTOM or Gravity.START)
+                    topChanged = true
+                }
+                if (topChanged) {
+                    top.layoutParams = topLp
+                }
+            }
+        }
+
+        // 6. Update the Panel (this view) itself
         val panelLp = layoutParams ?: return
-        val targetPanelHeightPx = targetKeyboardHeightPx + topBarHeightPx
         var panelChanged = false
-        if (panelLp.height != targetPanelHeightPx) {
-            panelLp.height = targetPanelHeightPx
+        
+        // Total panel height = Keyboard Area + Floating Area
+        val floatingAreaHeightPx = getFloatingAreaHeight()
+        val totalPanelHeight = bottomOffsetPx + floatingAreaHeightPx
+        
+        if (panelLp.width != LayoutParams.WRAP_CONTENT) { 
+            panelLp.width = LayoutParams.WRAP_CONTENT
             panelChanged = true
         }
-        if (panelLp.width != targetKeyboardWidthPx) {
-            panelLp.width = targetKeyboardWidthPx
+        
+        if (panelLp.height != totalPanelHeight) {
+            panelLp.height = totalPanelHeight
             panelChanged = true
         }
+
         if (panelLp is FrameLayout.LayoutParams) {
-            val desiredGravity = Gravity.CENTER_HORIZONTAL
+            val desiredGravity = Gravity.CENTER_HORIZONTAL or Gravity.BOTTOM
             if (panelLp.gravity != desiredGravity) {
                 panelLp.gravity = desiredGravity
                 panelChanged = true
             }
         }
+        
         if (panelChanged) {
             layoutParams = panelLp
             requestLayout()
