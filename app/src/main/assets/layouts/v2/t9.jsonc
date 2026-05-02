@@ -1,0 +1,265 @@
+{
+  "type": "layout",
+  "id": "t9_default",
+  "version": 1,
+  "meta": {
+    "name": "T9 Default"
+  },
+  "state": {
+    "defaultLayer": "default",
+    "supportedLayers": ["default", "symbol", "number"],
+    "supportedModes": ["t9"]
+  },
+  "layout": {
+    "direction": "vertical",
+    "regions": [
+      {
+        "id": "candidate_bar",
+        "role": "candidate",
+        "layoutType": "linear",
+        "size": {
+          "width": "match",
+          "height": "48dp"
+        },
+        "scroll": {
+          "enabled": true,
+          "direction": "horizontal",
+          "paging": false
+        },
+        "linear": {
+          "orientation": "horizontal",
+          "gap": 4,
+          "gravity": "start"
+        },
+        "children": []
+      },
+      {
+        "id": "main_keyboard",
+        "role": "keyboard",
+        "layoutType": "grid",
+        "size": {
+          "width": "match",
+          "height": "wrap"
+        },
+        "grid": {
+          "columns": 3,
+          "rowHeight": 64,
+          "gap": 4
+        },
+        "children": [
+          {
+            "type": "key",
+            "id": "key_1",
+            "content": {
+              "label": "1"
+            },
+            "actions": {
+              "TAP": {
+                "actionType": "PUSH_TOKEN",
+                "payload": {
+                  "token": "1"
+                }
+              }
+            }
+          },
+          {
+            "type": "key",
+            "id": "key_2",
+            "content": {
+              "label": "2",
+              "subLabel": "ABC"
+            },
+            "data": {
+              "letters": "abc"
+            },
+            "actions": {
+              "TAP": {
+                "actionType": "PUSH_TOKEN",
+                "payload": {
+                  "token": "2"
+                }
+              }
+            }
+          },
+          {
+            "type": "key",
+            "id": "key_3",
+            "content": {
+              "label": "3",
+              "subLabel": "DEF"
+            },
+            "data": {
+              "letters": "def"
+            },
+            "actions": {
+              "TAP": {
+                "actionType": "PUSH_TOKEN",
+                "payload": {
+                  "token": "3"
+                }
+              }
+            }
+          },
+          {
+            "type": "key",
+            "id": "key_4",
+            "content": {
+              "label": "4",
+              "subLabel": "GHI"
+            },
+            "data": {
+              "letters": "ghi"
+            },
+            "actions": {
+              "TAP": {
+                "actionType": "PUSH_TOKEN",
+                "payload": {
+                  "token": "4"
+                }
+              }
+            }
+          },
+          {
+            "type": "key",
+            "id": "key_5",
+            "content": {
+              "label": "5",
+              "subLabel": "JKL"
+            },
+            "data": {
+              "letters": "jkl"
+            },
+            "actions": {
+              "TAP": {
+                "actionType": "PUSH_TOKEN",
+                "payload": {
+                  "token": "5"
+                }
+              }
+            }
+          },
+          {
+            "type": "key",
+            "id": "key_6",
+            "content": {
+              "label": "6",
+              "subLabel": "MNO"
+            },
+            "data": {
+              "letters": "mno"
+            },
+            "actions": {
+              "TAP": {
+                "actionType": "PUSH_TOKEN",
+                "payload": {
+                  "token": "6"
+                }
+              }
+            }
+          },
+          {
+            "type": "key",
+            "id": "key_7",
+            "content": {
+              "label": "7",
+              "subLabel": "PQRS"
+            },
+            "data": {
+              "letters": "pqrs"
+            },
+            "actions": {
+              "TAP": {
+                "actionType": "PUSH_TOKEN",
+                "payload": {
+                  "token": "7"
+                }
+              }
+            }
+          },
+          {
+            "type": "key",
+            "id": "key_8",
+            "content": {
+              "label": "8",
+              "subLabel": "TUV"
+            },
+            "data": {
+              "letters": "tuv"
+            },
+            "actions": {
+              "TAP": {
+                "actionType": "PUSH_TOKEN",
+                "payload": {
+                  "token": "8"
+                }
+              }
+            }
+          },
+          {
+            "type": "key",
+            "id": "key_9",
+            "content": {
+              "label": "9",
+              "subLabel": "WXYZ"
+            },
+            "data": {
+              "letters": "wxyz"
+            },
+            "actions": {
+              "TAP": {
+                "actionType": "PUSH_TOKEN",
+                "payload": {
+                  "token": "9"
+                }
+              }
+            }
+          },
+          {
+            "type": "button",
+            "id": "switch_symbol",
+            "content": {
+              "label": "*"
+            },
+            "actions": {
+              "TAP": {
+                "actionType": "SWITCH_LAYER",
+                "payload": {
+                  "layer": "symbol"
+                }
+              }
+            }
+          },
+          {
+            "type": "key",
+            "id": "key_0",
+            "content": {
+              "label": "0",
+              "subLabel": "+"
+            },
+            "actions": {
+              "TAP": {
+                "actionType": "SPACE",
+                "payload": {}
+              }
+            }
+          },
+          {
+            "type": "button",
+            "id": "backspace",
+            "content": {
+              "label": "⌫"
+            },
+            "actions": {
+              "TAP": {
+                "actionType": "DELETE",
+                "payload": {
+                  "count": 1
+                }
+              }
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

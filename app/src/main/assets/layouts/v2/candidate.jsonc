@@ -1,0 +1,139 @@
+{
+  "type": "layout",
+  "id": "candidate_page_default",
+  "version": 1,
+  "meta": {
+    "name": "Candidate Page Default"
+  },
+  "state": {
+    "defaultLayer": "default",
+    "supportedLayers": ["default"],
+    "supportedModes": ["candidate"]
+  },
+  "layout": {
+    "direction": "horizontal",
+    "regions": [
+      {
+        "id": "left_actions",
+        "role": "sidebar",
+        "layoutType": "linear",
+        "size": {
+          "width": "56dp",
+          "height": "match"
+        },
+        "linear": {
+          "orientation": "vertical",
+          "gap": 4,
+          "gravity": "start"
+        },
+        "children": [
+          {
+            "type": "button",
+            "id": "prev_page",
+            "content": {
+              "label": "‹"
+            },
+            "actions": {
+              "TAP": {
+                "actionType": "PAGE_PREV",
+                "payload": {}
+              }
+            }
+          },
+          {
+            "type": "button",
+            "id": "close_candidate",
+            "content": {
+              "label": "×"
+            },
+            "actions": {
+              "TAP": {
+                "actionType": "CLOSE_PANEL",
+                "payload": {
+                  "panel": "candidate"
+                }
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": "candidate_grid",
+        "role": "candidate",
+        "layoutType": "grid",
+        "size": {
+          "width": "1w",
+          "height": "match"
+        },
+        "grid": {
+          "columns": 3,
+          "rowHeight": 52,
+          "gap": 4
+        },
+        "children": [
+          {
+            "type": "candidate",
+            "id": "candidate_0",
+            "content": {
+              "label": "${candidate0.text}",
+              "subLabel": "${candidate0.comment}"
+            },
+            "actions": {
+              "TAP": {
+                "actionType": "COMMIT_CANDIDATE",
+                "payload": {
+                  "index": 0
+                }
+              }
+            }
+          },
+          {
+            "type": "candidate",
+            "id": "candidate_1",
+            "content": {
+              "label": "${candidate1.text}",
+              "subLabel": "${candidate1.comment}"
+            },
+            "actions": {
+              "TAP": {
+                "actionType": "COMMIT_CANDIDATE",
+                "payload": {
+                  "index": 1
+                }
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": "right_actions",
+        "role": "sidebar",
+        "layoutType": "linear",
+        "size": {
+          "width": "56dp",
+          "height": "match"
+        },
+        "linear": {
+          "orientation": "vertical",
+          "gap": 4,
+          "gravity": "start"
+        },
+        "children": [
+          {
+            "type": "button",
+            "id": "next_page",
+            "content": {
+              "label": "›"
+            },
+            "actions": {
+              "TAP": {
+                "actionType": "PAGE_NEXT",
+                "payload": {}
+              }
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

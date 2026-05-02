@@ -1,0 +1,277 @@
+{
+  "type": "layout",
+  "id": "shuangpin_default",
+  "version": 1,
+  "meta": {
+    "name": "Shuangpin Default"
+  },
+  "state": {
+    "defaultLayer": "default",
+    "supportedLayers": ["default", "shift", "symbol", "number"],
+    "supportedModes": ["shuangpin"]
+  },
+  "layout": {
+    "direction": "vertical",
+    "regions": [
+      {
+        "id": "candidate_bar",
+        "role": "candidate",
+        "layoutType": "linear",
+        "size": {
+          "width": "match",
+          "height": "48dp"
+        },
+        "scroll": {
+          "enabled": true,
+          "direction": "horizontal",
+          "paging": false
+        },
+        "linear": {
+          "orientation": "horizontal",
+          "gap": 4,
+          "gravity": "start"
+        },
+        "children": []
+      },
+      {
+        "id": "main_keyboard",
+        "role": "keyboard",
+        "layoutType": "rows",
+        "size": {
+          "width": "match",
+          "height": "wrap"
+        },
+        "children": [
+          {
+            "type": "row",
+            "id": "row_1",
+            "linear": {
+              "orientation": "horizontal",
+              "gap": 4,
+              "gravity": "stretch"
+            },
+            "children": [
+              {
+                "type": "key",
+                "id": "q",
+                "layout": { "weight": 1 },
+                "content": {
+                  "label": "q",
+                  "hint": {
+                    "BOTTOM_CENTER": "iu"
+                  }
+                },
+                "data": {
+                  "spellMap": "iu"
+                },
+                "actions": {
+                  "TAP": {
+                    "actionType": "PUSH_TOKEN",
+                    "payload": {
+                      "token": "q"
+                    }
+                  }
+                }
+              },
+              {
+                "type": "key",
+                "id": "w",
+                "layout": { "weight": 1 },
+                "content": {
+                  "label": "w",
+                  "hint": {
+                    "BOTTOM_CENTER": "ei"
+                  }
+                },
+                "data": {
+                  "spellMap": "ei"
+                },
+                "actions": {
+                  "TAP": {
+                    "actionType": "PUSH_TOKEN",
+                    "payload": {
+                      "token": "w"
+                    }
+                  }
+                }
+              },
+              {
+                "type": "key",
+                "id": "e",
+                "layout": { "weight": 1 },
+                "content": {
+                  "label": "e",
+                  "hint": {
+                    "BOTTOM_CENTER": "e"
+                  }
+                },
+                "data": {
+                  "spellMap": "e"
+                },
+                "actions": {
+                  "TAP": {
+                    "actionType": "PUSH_TOKEN",
+                    "payload": {
+                      "token": "e"
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "type": "row",
+            "id": "row_2",
+            "linear": {
+              "orientation": "horizontal",
+              "gap": 4,
+              "gravity": "stretch"
+            },
+            "children": [
+              {
+                "type": "key",
+                "id": "a",
+                "layout": { "weight": 1 },
+                "content": {
+                  "label": "a",
+                  "hint": {
+                    "BOTTOM_CENTER": "a"
+                  }
+                },
+                "data": {
+                  "spellMap": "a"
+                },
+                "actions": {
+                  "TAP": {
+                    "actionType": "PUSH_TOKEN",
+                    "payload": {
+                      "token": "a"
+                    }
+                  }
+                }
+              },
+              {
+                "type": "key",
+                "id": "s",
+                "layout": { "weight": 1 },
+                "content": {
+                  "label": "s",
+                  "hint": {
+                    "BOTTOM_CENTER": "ong"
+                  }
+                },
+                "data": {
+                  "spellMap": "ong"
+                },
+                "actions": {
+                  "TAP": {
+                    "actionType": "PUSH_TOKEN",
+                    "payload": {
+                      "token": "s"
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "type": "row",
+            "id": "row_3",
+            "linear": {
+              "orientation": "horizontal",
+              "gap": 4,
+              "gravity": "stretch"
+            },
+            "children": [
+              {
+                "type": "button",
+                "id": "shift",
+                "layout": { "weight": 1.5 },
+                "content": {
+                  "label": "Shift"
+                },
+                "actions": {
+                  "TAP": {
+                    "actionType": "TOGGLE_SHIFT",
+                    "payload": {}
+                  }
+                }
+              },
+              {
+                "type": "button",
+                "id": "backspace",
+                "layout": { "weight": 1.5 },
+                "content": {
+                  "label": "⌫"
+                },
+                "actions": {
+                  "TAP": {
+                    "actionType": "DELETE",
+                    "payload": {
+                      "count": 1
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "type": "row",
+            "id": "row_4",
+            "linear": {
+              "orientation": "horizontal",
+              "gap": 4,
+              "gravity": "stretch"
+            },
+            "children": [
+              {
+                "type": "button",
+                "id": "switch_number",
+                "layout": { "weight": 1.2 },
+                "content": {
+                  "label": "123"
+                },
+                "actions": {
+                  "TAP": {
+                    "actionType": "SWITCH_LAYER",
+                    "payload": {
+                      "layer": "number"
+                    }
+                  }
+                }
+              },
+              {
+                "type": "key",
+                "id": "space",
+                "layout": { "weight": 4 },
+                "content": {
+                  "label": "空格"
+                },
+                "actions": {
+                  "TAP": {
+                    "actionType": "SPACE",
+                    "payload": {}
+                  }
+                }
+              },
+              {
+                "type": "button",
+                "id": "enter",
+                "layout": { "weight": 1.5 },
+                "content": {
+                  "label": "回车"
+                },
+                "actions": {
+                  "TAP": {
+                    "actionType": "ENTER",
+                    "payload": {}
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

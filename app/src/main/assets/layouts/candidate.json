@@ -1,0 +1,255 @@
+{
+  "type": "layout",
+  "id": "ime_universal_layout",
+  "version": 1,
+  "meta": {
+    "name": "Universal IME Layout"
+  },
+  "layout": {
+    "direction": "vertical",
+    "regions": [
+      {
+        "id": "candidate_bar",
+        "role": "candidate",
+        "layoutType": "linear",
+        "visible": true,
+        "enabled": true,
+        "size": {
+          "width": "match",
+          "height": "48dp"
+        },
+        "scroll": {
+          "enabled": true,
+          "direction": "horizontal",
+          "paging": false
+        },
+        "linear": {
+          "orientation": "horizontal",
+          "gap": 4,
+          "gravity": "start"
+        },
+        "children": [
+          {
+            "type": "button",
+            "id": "prev_page",
+            "size": {
+              "width": "40dp",
+              "height": "match"
+            },
+            "content": {
+              "label": "‹"
+            },
+            "actions": {
+              "TAP": {
+                "actionType": "PAGE_PREV",
+                "payload": {}
+              }
+            }
+          },
+          {
+            "type": "group",
+            "id": "candidate_list",
+            "size": {
+              "width": "1w",
+              "height": "match"
+            },
+            "layout": {
+              "weight": 1
+            },
+            "layoutType": "linear",
+            "linear": {
+              "orientation": "horizontal",
+              "gap": 4,
+              "gravity": "start"
+            },
+            "children": [
+              {
+                "type": "candidate",
+                "id": "candidate_0",
+                "content": {
+                  "label": "${candidate0.text}"
+                },
+                "actions": {
+                  "TAP": {
+                    "actionType": "COMMIT_CANDIDATE",
+                    "payload": {
+                      "index": 0
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "type": "button",
+            "id": "next_page",
+            "size": {
+              "width": "40dp",
+              "height": "match"
+            },
+            "content": {
+              "label": "›"
+            },
+            "actions": {
+              "TAP": {
+                "actionType": "PAGE_NEXT",
+                "payload": {}
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": "main_keyboard",
+        "role": "keyboard",
+        "layoutType": "rows",
+        "visible": true,
+        "enabled": true,
+        "size": {
+          "width": "match",
+          "height": "wrap"
+        },
+        "children": [
+          {
+            "type": "row",
+            "id": "row_1",
+            "linear": {
+              "orientation": "horizontal",
+              "gap": 4,
+              "gravity": "start"
+            },
+            "children": [
+              {
+                "type": "key",
+                "id": "key_q",
+                "layout": {
+                  "weight": 1
+                },
+                "content": {
+                  "label": "q",
+                  "hint": {
+                    "BOTTOM_CENTER": "1"
+                  }
+                },
+                "data": {
+                  "keyCode": 113
+                },
+                "actions": {
+                  "TAP": {
+                    "actionType": "PUSH_TOKEN",
+                    "payload": {
+                      "token": "q"
+                    }
+                  }
+                }
+              },
+              {
+                "type": "key",
+                "id": "key_w",
+                "layout": {
+                  "weight": 1
+                },
+                "content": {
+                  "label": "w",
+                  "hint": {
+                    "BOTTOM_CENTER": "2"
+                  }
+                },
+                "data": {
+                  "keyCode": 119
+                },
+                "actions": {
+                  "TAP": {
+                    "actionType": "PUSH_TOKEN",
+                    "payload": {
+                      "token": "w"
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "type": "row",
+            "id": "row_4",
+            "linear": {
+              "orientation": "horizontal",
+              "gap": 4,
+              "gravity": "start"
+            },
+            "children": [
+              {
+                "type": "button",
+                "id": "switch_number",
+                "layout": {
+                  "weight": 1.2
+                },
+                "content": {
+                  "label": "123"
+                },
+                "actions": {
+                  "TAP": {
+                    "actionType": "SWITCH_LAYER",
+                    "payload": {
+                      "layer": "number"
+                    }
+                  }
+                }
+              },
+              {
+                "type": "key",
+                "id": "space",
+                "layout": {
+                  "weight": 4
+                },
+                "content": {
+                  "label": "空格"
+                },
+                "actions": {
+                  "TAP": {
+                    "actionType": "SPACE",
+                    "payload": {}
+                  }
+                }
+              },
+              {
+                "type": "button",
+                "id": "enter",
+                "layout": {
+                  "weight": 1.5
+                },
+                "content": {
+                  "label": "回车"
+                },
+                "actions": {
+                  "TAP": {
+                    "actionType": "ENTER",
+                    "payload": {}
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "styles": {
+    "style_key_default": {
+      "background": "#FFFFFFFF",
+      "pressedBackground": "#FFEAEAEA",
+      "textColor": "#FF111111",
+      "hintColor": "#FF888888",
+      "cornerRadius": 8,
+      "borderWidth": 1,
+      "borderColor": "#22000000",
+      "fontSize": 18,
+      "hintFontSize": 10
+    }
+  },
+  "state": {
+    "defaultLayer": "default",
+    "supportedLayers": ["default", "shift", "number", "symbol"],
+    "supportedModes": ["pinyin", "english", "t9", "shuangpin", "custom"]
+  }
+}
