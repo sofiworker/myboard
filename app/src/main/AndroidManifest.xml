@@ -3,23 +3,17 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.VIBRATE" />
-    <uses-permission android:name="android.permission.RECORD_AUDIO" />
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
         android:allowBackup="true"
-        android:dataExtractionRules="@xml/data_extraction_rules"
-        android:extractNativeLibs="true"
-        android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.Myboard">
 
-        <profileable android:shell="true" />
         <activity
-            android:name=".ui.SettingsActivity"
+            android:name=".ime.MainActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -28,35 +22,14 @@
         </activity>
 
         <activity
-            android:name=".ui.SetupActivity"
-            android:exported="false" />
-
-        <activity
-            android:name=".ui.ModernLayoutEditorActivity"
+            android:name=".ime.OnboardingActivity"
             android:exported="false"
-            android:label="Layout Editor"
-            android:parentActivityName=".ui.SettingsActivity" />
+            android:theme="@style/Theme.AppCompat.NoActionBar" />
 
         <activity
-            android:name=".ui.BenchmarkInputActivity"
-            android:exported="true"
-            android:label="@string/benchmark_input_title" />
-
-        <activity
-            android:name=".ui.handwriting.HandwritingActivity"
+            android:name=".ime.SettingsActivity"
             android:exported="false"
-            android:label="@string/handwriting_title"
-            android:windowSoftInputMode="stateAlwaysHidden"
-            android:excludeFromRecents="true"
-            android:taskAffinity="" />
-
-        <activity
-            android:name=".ui.ImePickerActivity"
-            android:exported="false"
-            android:label="@string/ime_picker_title"
-            android:excludeFromRecents="true"
-            android:finishOnTaskLaunch="true"
-            android:taskAffinity="" />
+            android:theme="@style/Theme.AppCompat.NoActionBar" />
 
         <service
             android:name=".ime.MyBoardImeService"
@@ -66,7 +39,6 @@
             <intent-filter>
                 <action android:name="android.view.InputMethod" />
             </intent-filter>
-
             <meta-data
                 android:name="android.view.im"
                 android:resource="@xml/method" />

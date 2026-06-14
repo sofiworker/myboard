@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "id": "test_qwerty",
+  "meta": {
+    "name": "Test QWERTY",
+    "locale": "en-US",
+    "tags": ["latin", "test"]
+  },
+  "grid": {
+    "columns": 10,
+    "rowHeight": "1fr"
+  },
+  "templates": {
+    "char": {
+      "role": "character",
+      "gestures": {
+        "tap": [{ "type": "commitText" }]
+      }
+    },
+    "action": {
+      "role": "action",
+      "gestures": { "tap": [{ "type": "keyAction" }] }
+    },
+    "repeatable": {
+      "extends": "action",
+      "repeat": { "delay": 400, "interval": 50 }
+    }
+  },
+  "keys": {
+    "q": { "t": "char", "code": 113, "label": "q" },
+    "w": { "t": "char", "code": 119, "label": "w" },
+    "e": { "t": "char", "code": 101, "label": "e" },
+    "r": { "t": "char", "code": 114, "label": "r" },
+    "t": { "t": "char", "code": 116, "label": "t" },
+    "y": { "t": "char", "code": 121, "label": "y" },
+    "u": { "t": "char", "code": 117, "label": "u" },
+    "i": { "t": "char", "code": 105, "label": "i" },
+    "o": { "t": "char", "code": 111, "label": "o" },
+    "p": { "t": "char", "code": 112, "label": "p" },
+    "a": { "t": "char", "code": 97, "label": "a" },
+    "s": { "t": "char", "code": 115, "label": "s" },
+    "d": { "t": "char", "code": 100, "label": "d" },
+    "f": { "t": "char", "code": 102, "label": "f" },
+    "g": { "t": "char", "code": 103, "label": "g" },
+    "h": { "t": "char", "code": 104, "label": "h" },
+    "j": { "t": "char", "code": 106, "label": "j" },
+    "k": { "t": "char", "code": 107, "label": "k" },
+    "l": { "t": "char", "code": 108, "label": "l" },
+    "z": { "t": "char", "code": 122, "label": "z" },
+    "x": { "t": "char", "code": 120, "label": "x" },
+    "c": { "t": "char", "code": 99, "label": "c" },
+    "v": { "t": "char", "code": 118, "label": "v" },
+    "b": { "t": "char", "code": 98, "label": "b" },
+    "n": { "t": "char", "code": 110, "label": "n" },
+    "m": { "t": "char", "code": 109, "label": "m" },
+    "space": {
+      "t": "action",
+      "label": " ",
+      "colSpan": 4,
+      "action": "commitText"
+    },
+    "enter": {
+      "t": "action",
+      "label": "↵",
+      "colSpan": 2,
+      "action": "editorAction"
+    },
+    "backspace": {
+      "t": "repeatable",
+      "icon": "backspace",
+      "colSpan": 2,
+      "action": "delete"
+    },
+    "comma": { "t": "char", "code": 44, "label": "," },
+    "period": { "t": "char", "code": 46, "label": "." }
+  },
+  "rows": [
+    { "id": "r1", "keys": ["q","w","e","r","t","y","u","i","o","p"] },
+    { "id": "r2", "keys": ["a","s","d","f","g","h","j","k","l"] },
+    { "id": "r3", "keys": ["z","x","c","v","b","n","m","backspace"] },
+    { "id": "r4", "keys": ["comma","space","period","enter"] }
+  ],
+  "arrangements": {
+    "alpha": { "rows": ["r1","r2","r3","r4"] }
+  },
+  "geometry": {
+    "height": { "dp": 260, "min": 190, "max": 360 },
+    "gap": { "h": 4, "v": 5 },
+    "padding": { "all": 6 }
+  }
+}
