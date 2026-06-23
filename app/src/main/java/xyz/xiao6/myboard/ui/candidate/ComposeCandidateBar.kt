@@ -14,8 +14,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import xyz.xiao6.myboard.core.keyboard.Candidate
-import xyz.xiao6.myboard.core.keyboard.CandidateSource
+import xyz.xiao6.myboard.core.contract.Candidate
 
 @Composable
 fun CandidateBar(

@@ -4,14 +4,14 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import xyz.xiao6.myboard.core.theme.BuiltInThemes
-import xyz.xiao6.myboard.core.theme.KeyboardTheme
+import xyz.xiao6.myboard.core.theme.ThemeDoc
 
 /**
  * 主题设置页面。
@@ -23,7 +23,7 @@ fun ThemeSettingsScreen(
     onThemeSelected: (String) -> Unit,
     onBack: () -> Unit
 ) {
-    val themes = BuiltInThemes.getAll()
+    val themes = BuiltInThemes.all
 
     Scaffold(
         topBar = {
@@ -31,7 +31,7 @@ fun ThemeSettingsScreen(
                 title = { Text("主题设置") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "返回")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
                     }
                 }
             )
@@ -58,7 +58,7 @@ fun ThemeSettingsScreen(
 
 @Composable
 private fun ThemeItem(
-    theme: KeyboardTheme,
+    theme: ThemeDoc,
     isSelected: Boolean,
     onClick: () -> Unit
 ) {

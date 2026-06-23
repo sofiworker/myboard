@@ -1,0 +1,83 @@
+{
+  // MyBoard 深色主题
+  "schemaVersion": 1,
+  "id": "default_dark",
+  "name": "Default Dark",
+  "dark": true,
+  "colors": {
+    "background": "#1E1E1E",
+    "surface": "#2D2D2D",
+    "keyDefault": "#3C3C3C",
+    "keyPressed": "#4A4A4A",
+    "keyText": "#E8EAED",
+    "keyHint": "#8E8E93",
+    "keyFunction": "#3C3C3C",
+    "keyFunctionPressed": "#4A4A4A",
+    "keyFunctionText": "#E8EAED",
+    "keyAction": "#3C3C3C",
+    "keyActionPressed": "#4A4A4A",
+    "keyActionText": "#E8EAED",
+    "candidateBackground": "#2D2D2D",
+    "candidateText": "#E8EAED",
+    "candidateHighlight": "#8AB4F8"
+  },
+  "keyStyles": {
+    "key_default": {
+      "background": "#3C3C3C",
+      "pressedBackground": "#4A4A4A",
+      "textColor": "#E8EAED",
+      "pressedTextColor": "#E8EAED",
+      "fontSize": 18.0,
+      "cornerRadius": 8.0,
+      "iconTint": "#E8EAED"
+    },
+    "key_function": {
+      "background": "#3C3C3C",
+      "pressedBackground": "#4A4A4A",
+      "textColor": "#E8EAED",
+      "pressedTextColor": "#E8EAED",
+      "fontSize": 14.0,
+      "cornerRadius": 8.0,
+      "iconTint": "#E8EAED"
+    },
+    "key_action": {
+      "background": "#3C3C3C",
+      "pressedBackground": "#4A4A4A",
+      "textColor": "#E8EAED",
+      "pressedTextColor": "#E8EAED",
+      "fontSize": 14.0,
+      "cornerRadius": 8.0,
+      "iconTint": "#E8EAED"
+    },
+    "key_space": {
+      "background": "#3C3C3C",
+      "pressedBackground": "#4A4A4A",
+      "textColor": "#E8EAED",
+      "pressedTextColor": "#E8EAED",
+      "fontSize": 14.0,
+      "cornerRadius": 20.0,
+      "iconTint": "#E8EAED"
+    },
+    "key_candidate": {
+      "background": "#2D2D2D",
+      "pressedBackground": "#3C3C3C",
+      "textColor": "#E8EAED",
+      "pressedTextColor": "#8AB4F8",
+      "fontSize": 16.0,
+      "cornerRadius": 4.0,
+      "iconTint": "#E8EAED"
+    }
+  },
+  "feedback": {
+    "haptic": {
+      "key_tap": { "durationMs": 10, "amplitude": 64, "fallbackVibration": true },
+      "key_long_press": { "durationMs": 30, "amplitude": 128, "fallbackVibration": true },
+      "key_action": { "durationMs": 15, "amplitude": 96, "fallbackVibration": true }
+    },
+    "sound": {
+      "key_tap": { "soundResName": "key_tap", "volume": 0.3 },
+      "key_action": { "soundResName": "key_action", "volume": 0.5 },
+      "key_space": { "soundResName": "key_space", "volume": 0.2 }
+    }
+  }
+}

@@ -1,11 +1,8 @@
 package xyz.xiao6.myboard.ime
 
-import android.content.Intent
 import android.inputmethodservice.InputMethodService
-import android.provider.Settings
 import android.view.View
 import android.view.inputmethod.EditorInfo
-import android.view.inputmethod.InputConnection
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -26,30 +23,18 @@ import androidx.savedstate.SavedStateRegistryController
 import androidx.savedstate.SavedStateRegistryOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import kotlinx.coroutines.*
-import xyz.xiao6.myboard.core.dictionary.DictionaryImporter
-import xyz.xiao6.myboard.core.dictionary.SuggestionEngine
-import xyz.xiao6.myboard.core.input.CompositionInputEngine
-import xyz.xiao6.myboard.core.input.ComposingResolver
-import xyz.xiao6.myboard.core.input.ComposingResult
-import xyz.xiao6.myboard.core.input.DirectInputEngine
-import xyz.xiao6.myboard.core.input.InputEngine
-import xyz.xiao6.myboard.core.input.InputMethodConfig
-import xyz.xiao6.myboard.core.input.LanguageInfo
-import xyz.xiao6.myboard.core.input.LanguageRegistry
-import xyz.xiao6.myboard.core.input.LanguageSwitchManager
-import xyz.xiao6.myboard.core.input.SwitchRule
-import xyz.xiao6.myboard.core.keyboard.ActionDispatcher
-import xyz.xiao6.myboard.core.keyboard.EngineResult
-import xyz.xiao6.myboard.core.keyboard.InputAction
-import xyz.xiao6.myboard.core.keyboard.KeyboardStateManager
-import xyz.xiao6.myboard.core.layout.KeyboardLayout
-import xyz.xiao6.myboard.core.layout.LayoutParser
-import xyz.xiao6.myboard.core.settings.SettingsManager
+import xyz.xiao6.myboard.core.androidbridge.*
+import xyz.xiao6.myboard.core.contract.*
+import xyz.xiao6.myboard.core.engine.*
+import xyz.xiao6.myboard.core.engine.builtin.*
+import xyz.xiao6.myboard.core.layout.*
+import xyz.xiao6.myboard.core.state.*
+import xyz.xiao6.myboard.core.theme.*
 import xyz.xiao6.myboard.ui.candidate.CandidateBar
-import xyz.xiao6.myboard.ui.keyboard.ComposableInputView
 
 /**
  * 重构后的 IME 服务。
+ * 使用正交状态管理架构。
  */
 class MyBoardImeService : InputMethodService(), LifecycleOwner, SavedStateRegistryOwner {
 
@@ -59,167 +44,194 @@ class MyBoardImeService : InputMethodService(), LifecycleOwner, SavedStateRegist
     override val lifecycle: Lifecycle get() = lifecycleRegistry
     override val savedStateRegistry: SavedStateRegistry get() = savedStateRegistryController.savedStateRegistry
 
-    private lateinit var stateManager: KeyboardStateManager
-    private lateinit var actionDispatcher: ActionDispatcher
-    private lateinit var suggestionEngine: SuggestionEngine
-    private lateinit var settings: SettingsManager
-    private lateinit var languageRegistry: LanguageRegistry
-    private lateinit var languageSwitchManager: LanguageSwitchManager
-
-    private var currentLayout: KeyboardLayout? = null
-    private var currentEngine: InputEngine? = null
-    private val engines = mutableMapOf<String, InputEngine>()
+    // 核心组件
+    private lateinit var keyboardContextManager: KeyboardContextManagerImpl
+    private lateinit var inputPipeline: InputPipelineImpl
+    private lateinit var inputConnectionGateway: InputConnectionGatewayImpl
+    private lateinit var feedbackPlayer: FeedbackPlayerImpl
+    private lateinit var editorInfoResolver: EditorInfoResolverImpl
+    private lateinit var layoutRegistry: LayoutRegistryImpl
+    private lateinit var layoutMeasurer: LayoutMeasurerImpl
+    private lateinit var engineRegistry: EngineRegistryImpl
+    private lateinit var orthogonalRegistry: OrthogonalRegistryImpl
+    private lateinit var transitionEngine: TransitionEngineImpl
+    private lateinit var themeResolver: ThemeResolverImpl
+    
+    // 辅助组件
+    private lateinit var encoderRegistry: EncoderRegistryImpl
+    private lateinit var candidatePolicyRegistry: CandidatePolicyRegistryImpl
+    private lateinit var displayPolicyRegistry: DisplayPolicyRegistryImpl
+    private lateinit var dictionaryRegistry: DictionaryRegistryImpl
+    private lateinit var engineResourceResolver: EngineResourceResolverImpl
+    
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    
+    // 当前测量布局
+    private var measuredLayout: MeasuredLayout? = null
 
     override fun onCreate() {
         super.onCreate()
         savedStateRegistryController.performRestore(null)
         lifecycleRegistry.currentState = Lifecycle.State.CREATED
-
-        stateManager = KeyboardStateManager()
-        actionDispatcher = ActionDispatcher(stateManager)
-        suggestionEngine = SuggestionEngine()
-        settings = SettingsManager(this)
-
-        // 加载词典
-        val importer = DictionaryImporter()
-        val entries = importer.importFromAssets(this, "dictionary/base.dict.txt")
-        suggestionEngine.loadDictionary(entries.map { it.word to it.frequency })
-
-        // 初始化语言注册表
-        languageRegistry = LanguageRegistry()
-        languageRegistry.register(LanguageInfo("en_us", "English", "DIRECT_LTR", "LTR", "alpha", "en_qwerty"))
-        languageRegistry.register(LanguageInfo("zh_cn", "中文", "COMPOSITION", "LTR", "pinyin", "zh_pinyin"))
-
-        val rules = listOf(
-            SwitchRule("COMPOSITION", "DIRECT_LTR"),
-            SwitchRule("DIRECT_LTR", "COMPOSITION"),
-            SwitchRule("*", "*")
-        )
-        languageSwitchManager = LanguageSwitchManager(rules, languageRegistry)
-
-        initEngines()
-        loadLayout("qwerty")
+        
+        initCoreComponents()
+        registerBuiltIns()
     }
-
-    private fun initEngines() {
-        val enConfig = InputMethodConfig(
-            id = "en_qwerty",
-            name = "English",
-            engine = "direct",
-            language = "en-US",
-            shift = xyz.xiao6.myboard.core.input.ShiftConfig(mode = "autoOff"),
-            enter = xyz.xiao6.myboard.core.input.EnterConfig(),
-            space = xyz.xiao6.myboard.core.input.SpaceConfig(),
-            backspace = xyz.xiao6.myboard.core.input.BackspaceConfig()
+    
+    private fun initCoreComponents() {
+        // 1. 初始化底层注册表
+        engineRegistry = EngineRegistryImpl()
+        layoutRegistry = LayoutRegistryImpl()
+        dictionaryRegistry = DictionaryRegistryImpl()
+        encoderRegistry = EncoderRegistryImpl()
+        candidatePolicyRegistry = CandidatePolicyRegistryImpl()
+        displayPolicyRegistry = DisplayPolicyRegistryImpl()
+        
+        // 2. 初始化资源解析器
+        engineResourceResolver = EngineResourceResolverImpl(
+            encoderRegistry = encoderRegistry,
+            dictionaryRegistry = dictionaryRegistry,
+            candidatePolicyRegistry = candidatePolicyRegistry,
+            displayPolicyRegistry = displayPolicyRegistry
         )
-        engines["en_qwerty"] = DirectInputEngine(enConfig, suggestionEngine)
-
-        val zhConfig = InputMethodConfig(
-            id = "zh_pinyin",
-            name = "中文 (拼音)",
-            engine = "composition",
-            language = "zh-CN",
-            engineParams = mapOf("autoCommitOnSpace" to "true", "composingType" to "pinyin"),
-            shift = xyz.xiao6.myboard.core.input.ShiftConfig(mode = "disabled"),
-            enter = xyz.xiao6.myboard.core.input.EnterConfig(composing = "commitThenAction"),
-            space = xyz.xiao6.myboard.core.input.SpaceConfig(composing = "commitComposition", hasCandidates = "selectFirst"),
-            backspace = xyz.xiao6.myboard.core.input.BackspaceConfig(composing = "deleteComposition")
+        
+        // 3. 初始化正交注册表
+        orthogonalRegistry = OrthogonalRegistryImpl(
+            engineRegistry = engineRegistry,
+            layoutRegistry = layoutRegistry,
+            dictionaryRegistry = dictionaryRegistry,
+            engineResourceResolver = engineResourceResolver
         )
-        engines["zh_pinyin"] = CompositionInputEngine(zhConfig, suggestionEngine, PinyinComposingResolver())
-
-        currentEngine = engines["en_qwerty"]
+        
+        // 4. 初始化状态转移引擎
+        transitionEngine = TransitionEngineImpl(orthogonalRegistry)
+        
+        // 5. 初始化键盘上下文管理器
+        keyboardContextManager = KeyboardContextManagerImpl(
+            transitionEngine = transitionEngine,
+            registry = orthogonalRegistry,
+            scope = serviceScope
+        )
+        
+        // 6. 初始化 Android 桥接层
+        inputConnectionGateway = InputConnectionGatewayImpl()
+        feedbackPlayer = FeedbackPlayerImpl(this)
+        editorInfoResolver = EditorInfoResolverImpl()
+        
+        // 7. 初始化输入管线
+        inputPipeline = InputPipelineImpl(
+            engineRegistry = engineRegistry,
+            keyboardContextManager = keyboardContextManager,
+            gateway = inputConnectionGateway,
+            scope = serviceScope
+        )
+        
+        // 8. 初始化布局测量器
+        layoutMeasurer = LayoutMeasurerImpl()
+        
+        // 9. 初始化主题解析器
+        themeResolver = ThemeResolverImpl(BuiltInThemes.light)
     }
-
-    private fun loadLayout(layoutId: String) {
-        try {
-            val text = assets.open("layouts/$layoutId.json").bufferedReader().readText()
-            currentLayout = LayoutParser.parse(text)
-        } catch (_: Exception) {
-            // Fallback to test layout
-            val text = assets.open("layouts/test_qwerty.json").bufferedReader().readText()
-            currentLayout = LayoutParser.parse(text)
+    
+    private fun registerBuiltIns() {
+        // 注册内置引擎
+        engineRegistry.register(DirectEngine())
+        engineRegistry.register(TableComposingEngine())
+        engineRegistry.register(TransliterationEngine())
+        
+        // 注册内置编码器
+        encoderRegistry.register(IdentityEncoder())
+        
+        // 注册内置候选策略
+        candidatePolicyRegistry.register(ChineseDefaultPolicy())
+        candidatePolicyRegistry.register(DirectDefaultPolicy())
+        candidatePolicyRegistry.register(JapaneseKanaDefaultPolicy())
+        
+        // 注册内置显示策略
+        displayPolicyRegistry.register(ShowQueryPolicy())
+        displayPolicyRegistry.register(ShowComposingPolicy())
+        displayPolicyRegistry.register(HiddenDisplayPolicy())
+        
+        // 注册内置布局
+        val qwertyDoc = BuiltInLayouts.qwerty
+        layoutRegistry.register(qwertyDoc, LayoutSource.BUILT_IN)
+        
+        // 注册内置语言包
+        BuiltInManifests.all.forEach { manifest ->
+            orthogonalRegistry.register(manifest)
         }
     }
 
     override fun onCreateInputView(): View {
         lifecycleRegistry.currentState = Lifecycle.State.RESUMED
-
+        
         val composeView = ComposeView(this).apply {
             setContent {
-                val state by stateManager.state.collectAsState()
-                val layout = currentLayout
-
-                if (layout != null) {
-                    Column(modifier = Modifier.fillMaxWidth()) {
-                        // 工具栏/候选栏切换：有候选时显示候选栏，否则显示工具栏
-                        if (state.hasCandidates || state.isComposing) {
-                            // 候选栏
-                            CandidateBar(
-                                candidates = state.candidates,
-                                selectedIndex = state.selectedCandidateIndex,
-                                onCandidateClick = { index ->
-                                    serviceScope.launch {
-                                        currentEngine?.onCandidateSelected(index)
-                                        stateManager.clearComposing()
-                                        updateInputView()
-                                    }
-                                },
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                        } else {
-                            // 工具栏
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(36.dp)
-                                    .background(Color(0xFFF1F3F4)),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceEvenly
-                            ) {
-                                IconButton(onClick = {
-                                    serviceScope.launch {
-                                        val from = stateManager.state.value.languageId
-                                        val to = if (from == "en_us") "zh_cn" else "en_us"
-                                        val switchAction = languageSwitchManager.switch(from, to)
-                                        stateManager.update {
-                                            it.copy(
-                                                languageId = switchAction.targetLanguage,
-                                                shiftState = switchAction.shiftState
-                                            )
-                                        }
-                                        currentEngine = engines[languageRegistry.get(to)?.inputMethodId]
-                                        updateInputView()
-                                    }
-                                }, modifier = Modifier.size(32.dp)) {
-                                    Icon(Icons.Default.Language, "语言", tint = Color(0xFF5F6368), modifier = Modifier.size(18.dp))
+                val context by keyboardContextManager.context.collectAsState()
+                val layoutDoc = layoutRegistry.get(context.layoutId)
+                val isDark = themeResolver.isDark()
+                
+                // 测量布局
+                val currentMeasured = remember(context.layoutId, context.layer) {
+                    if (layoutDoc != null) {
+                        layoutMeasurer.measure(layoutDoc, context.layer, 360, 220)
+                    } else {
+                        null
+                    }
+                }
+                measuredLayout = currentMeasured
+                
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    // 工具栏/候选栏切换
+                    if (context.hasCandidates || context.isComposing) {
+                        // 候选栏
+                        CandidateBar(
+                            candidates = context.candidates,
+                            selectedIndex = context.selectedCandidateIndex,
+                            onCandidateClick = { index ->
+                                serviceScope.launch {
+                                    inputPipeline.handle(InputAction.CommitCandidate(index))
+                                    updateInputView()
                                 }
-                                IconButton(onClick = { }, modifier = Modifier.size(32.dp)) {
-                                    Icon(Icons.Default.EmojiEmotions, "Emoji", tint = Color(0xFF5F6368), modifier = Modifier.size(18.dp))
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    } else {
+                        // 工具栏
+                        Toolbar(
+                            context = context,
+                            onLocaleSwitch = { targetLocale ->
+                                serviceScope.launch {
+                                    inputPipeline.handle(InputAction.SwitchLocale(targetLocale))
+                                    updateInputView()
                                 }
-                                IconButton(onClick = { }, modifier = Modifier.size(32.dp)) {
-                                    Icon(Icons.Default.Star, "符号", tint = Color(0xFF5F6368), modifier = Modifier.size(18.dp))
+                            },
+                            onPanelOpen = { panelType ->
+                                serviceScope.launch {
+                                    inputPipeline.handle(InputAction.OpenPanel(panelType))
+                                    updateInputView()
                                 }
-                                IconButton(onClick = { }, modifier = Modifier.size(32.dp)) {
-                                    Icon(Icons.Default.ContentPaste, "剪贴板", tint = Color(0xFF5F6368), modifier = Modifier.size(18.dp))
-                                }
-                                IconButton(onClick = { }, modifier = Modifier.size(32.dp)) {
-                                    Icon(Icons.Default.Mic, "语音", tint = Color(0xFF5F6368), modifier = Modifier.size(18.dp))
-                                }
-                                IconButton(onClick = { }, modifier = Modifier.size(32.dp)) {
-                                    Icon(Icons.Default.Settings, "设置", tint = Color(0xFF5F6368), modifier = Modifier.size(18.dp))
-                                }
-                            }
-                        }
-
-                        // 主键盘
-                        ComposableInputView(
-                            layout = layout,
-                            state = state,
-                            engine = currentEngine,
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                    
+                    // 主键盘
+                    if (currentMeasured != null) {
+                        LayoutRenderer(
+                            measuredLayout = currentMeasured,
+                            context = context,
+                            themeResolver = themeResolver,
                             onAction = { action ->
                                 serviceScope.launch {
-                                    handleAction(action)
+                                    inputPipeline.handle(action)
+                                    feedbackPlayer.playHaptic(
+                                        HapticToken(
+                                            id = "key_tap",
+                                            durationMs = 10,
+                                            amplitude = 50
+                                        )
+                                    )
                                     updateInputView()
                                 }
                             },
@@ -231,111 +243,47 @@ class MyBoardImeService : InputMethodService(), LifecycleOwner, SavedStateRegist
                 }
             }
         }
-
+        
         window?.window?.decorView?.let { decorView ->
             decorView.setViewTreeLifecycleOwner(this)
             decorView.setViewTreeSavedStateRegistryOwner(this)
         }
-
+        
         return composeView
     }
-
-    private suspend fun handleAction(action: InputAction) {
-        val engine = currentEngine ?: return
-        val ic = currentInputConnection ?: return
-
-        actionDispatcher.setInputConnection(ic)
-
-        when (action) {
-            is InputAction.CommitText -> {
-                ic.commitText(action.text, 1)
-                stateManager.clearComposing()
-            }
-            is InputAction.Delete -> {
-                ic.deleteSurroundingText(action.count, 0)
-            }
-            is InputAction.ToggleShift -> {
-                val result = engine.onShift()
-                handleEngineResult(result)
-            }
-            is InputAction.ToggleCapsLock -> {
-                val result = engine.onDoubleShift()
-                handleEngineResult(result)
-            }
-            is InputAction.SwitchArrangement -> {
-                stateManager.update { it.copy(arrangement = action.id) }
-            }
-            is InputAction.SwitchLanguage -> {
-                val from = stateManager.state.value.languageId
-                val switchAction = languageSwitchManager.switch(from, action.id)
-                stateManager.update {
-                    it.copy(
-                        languageId = switchAction.targetLanguage,
-                        arrangement = switchAction.arrangement,
-                        shiftState = switchAction.shiftState
-                    )
-                }
-                currentEngine = engines[languageRegistry.get(action.id)?.inputMethodId]
-            }
-            is InputAction.SelectCandidate -> {
-                val result = engine.onCandidateSelected(action.index)
-                handleEngineResult(result)
-            }
-            is InputAction.PerformEditorAction -> {
-                ic.performEditorAction(EditorInfo.IME_ACTION_DONE)
-            }
-            else -> {}
-        }
-    }
-
-    private fun handleEngineResult(result: EngineResult) {
-        val ic = currentInputConnection ?: return
-
-        when (result) {
-            is EngineResult.CommitText -> {
-                ic.commitText(result.text, 1)
-                stateManager.clearComposing()
-            }
-            is EngineResult.UpdateComposing -> {
-                stateManager.update { it.copy(composingText = result.text) }
-            }
-            is EngineResult.Combined -> {
-                if (result.commit != null) {
-                    ic.commitText(result.commit, 1)
-                }
-                stateManager.setComposing(
-                    result.composing ?: "",
-                    result.candidates ?: emptyList()
-                )
-            }
-            is EngineResult.UpdateCandidates -> {
-                stateManager.update { it.copy(candidates = result.candidates) }
-            }
-            is EngineResult.Delete -> {
-                ic.deleteSurroundingText(result.count, 0)
-            }
-            is EngineResult.Nothing -> {}
-        }
-    }
-
+    
     private fun updateInputView() {
-        stateManager.update { it.copy() }
+        // 触发 UI 重绘
+        keyboardContextManager.context.value.let { _ ->
+            // StateFlow 会自动触发重组
+        }
     }
 
     override fun onStartInput(attribute: EditorInfo?, restarting: Boolean) {
         super.onStartInput(attribute, restarting)
-        val inputType = attribute?.inputType ?: 0
-        val arrangement = when (inputType and 0xF) {
-            2 -> "number"
-            3 -> "phone"
-            else -> "alpha"
+        
+        // 解析 EditorInfo
+        val profile = editorInfoResolver.resolve(attribute, keyboardContextManager.context.value.orthogonal.locale)
+        keyboardContextManager.applyEditorProfile(profile)
+        
+        // 更新 InputConnection
+        inputConnectionGateway.update(currentInputConnection)
+        
+        // 重置组合态
+        if (!restarting) {
+            serviceScope.launch {
+                inputPipeline.reset(ResetReason.InputStarted)
+            }
         }
-        stateManager.update { it.copy(arrangement = arrangement) }
     }
-
+    
     override fun onFinishInputView(finishingInput: Boolean) {
         super.onFinishInputView(finishingInput)
-        stateManager.clearComposing()
+        
+        // 清除组合态
+        serviceScope.launch {
+            inputPipeline.reset(ResetReason.InputFinished)
+        }
     }
 
     override fun onDestroy() {
@@ -345,8 +293,121 @@ class MyBoardImeService : InputMethodService(), LifecycleOwner, SavedStateRegist
     }
 }
 
-class PinyinComposingResolver : ComposingResolver {
-    override fun resolve(buffer: String, params: Map<String, String>): ComposingResult {
-        return ComposingResult(displayText = buffer)
+/**
+ * 工具栏 Composable。
+ */
+@Composable
+private fun Toolbar(
+    context: KeyboardContext,
+    onLocaleSwitch: (LocaleTag) -> Unit,
+    onPanelOpen: (PanelType) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .height(36.dp)
+            .background(Color(0xFFF1F3F4)),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceEvenly
+    ) {
+        // 语言切换
+        IconButton(
+            onClick = {
+                // 循环切换：en-US <-> zh-CN <-> ja-JP
+                val currentLocale = context.orthogonal.locale
+                val nextLocale = when (currentLocale.value) {
+                    "en-US" -> LocaleTag("zh-CN")
+                    "zh-CN" -> LocaleTag("ja-JP")
+                    else -> LocaleTag("en-US")
+                }
+                onLocaleSwitch(nextLocale)
+            },
+            modifier = Modifier.size(32.dp)
+        ) {
+            Icon(
+                Icons.Default.Language,
+                "语言",
+                tint = Color(0xFF5F6368),
+                modifier = Modifier.size(18.dp)
+            )
+        }
+        
+        // Emoji 面板
+        IconButton(
+            onClick = { onPanelOpen(PanelType.EMOJI) },
+            modifier = Modifier.size(32.dp)
+        ) {
+            Icon(
+                Icons.Default.EmojiEmotions,
+                "Emoji",
+                tint = Color(0xFF5F6368),
+                modifier = Modifier.size(18.dp)
+            )
+        }
+        
+        // 符号面板
+        IconButton(
+            onClick = { onPanelOpen(PanelType.SYMBOL) },
+            modifier = Modifier.size(32.dp)
+        ) {
+            Icon(
+                Icons.Default.Star,
+                "符号",
+                tint = Color(0xFF5F6368),
+                modifier = Modifier.size(18.dp)
+            )
+        }
+        
+        // 剪贴板面板
+        IconButton(
+            onClick = { onPanelOpen(PanelType.CLIPBOARD) },
+            modifier = Modifier.size(32.dp)
+        ) {
+            Icon(
+                Icons.Default.ContentPaste,
+                "剪贴板",
+                tint = Color(0xFF5F6368),
+                modifier = Modifier.size(18.dp)
+            )
+        }
+        
+        // LLM 面板
+        IconButton(
+            onClick = { onPanelOpen(PanelType.LLM) },
+            modifier = Modifier.size(32.dp)
+        ) {
+            Icon(
+                Icons.Default.SmartToy,
+                "AI",
+                tint = Color(0xFF5F6368),
+                modifier = Modifier.size(18.dp)
+            )
+        }
+        
+        // STT 面板
+        IconButton(
+            onClick = { onPanelOpen(PanelType.STT) },
+            modifier = Modifier.size(32.dp)
+        ) {
+            Icon(
+                Icons.Default.Mic,
+                "语音",
+                tint = Color(0xFF5F6368),
+                modifier = Modifier.size(18.dp)
+            )
+        }
+        
+        // 设置
+        IconButton(
+            onClick = { },
+            modifier = Modifier.size(32.dp)
+        ) {
+            Icon(
+                Icons.Default.Settings,
+                "设置",
+                tint = Color(0xFF5F6368),
+                modifier = Modifier.size(18.dp)
+            )
+        }
     }
 }
