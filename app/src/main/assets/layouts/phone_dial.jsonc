@@ -1,0 +1,40 @@
+{
+  // 拨号键盘布局
+  "schemaVersion": "1.0.0",
+  "id": "phone_dial",
+  "meta": {
+    "name": "Phone Dial",
+    "description": "Phone dial pad layout"
+  },
+  "root": {
+    "type": "composite",
+    "id": "root",
+    "orientation": "VERTICAL",
+    "regions": [
+      {
+        "id": "keyboard_region",
+        "role": "KEYBOARD",
+        "container": {
+          "type": "grid",
+          "id": "keyboard_grid",
+          "columns": 3,
+          "cells": [
+            { "key": { "id": "dial_1", "content": { "label": "1" }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "1" } } } } }, "col": 0, "row": 0 },
+            { "key": { "id": "dial_2", "content": { "label": "2", "hint": { "BOTTOM_CENTER": "ABC" } }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "2" } } } } }, "col": 1, "row": 0 },
+            { "key": { "id": "dial_3", "content": { "label": "3", "hint": { "BOTTOM_CENTER": "DEF" } }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "3" } } } } }, "col": 2, "row": 0 },
+            { "key": { "id": "dial_4", "content": { "label": "4", "hint": { "BOTTOM_CENTER": "GHI" } }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "4" } } } } }, "col": 0, "row": 1 },
+            { "key": { "id": "dial_5", "content": { "label": "5", "hint": { "BOTTOM_CENTER": "JKL" } }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "5" } } } } }, "col": 1, "row": 1 },
+            { "key": { "id": "dial_6", "content": { "label": "6", "hint": { "BOTTOM_CENTER": "MNO" } }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "6" } } } } }, "col": 2, "row": 1 },
+            { "key": { "id": "dial_7", "content": { "label": "7", "hint": { "BOTTOM_CENTER": "PQRS" } }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "7" } } } } }, "col": 0, "row": 2 },
+            { "key": { "id": "dial_8", "content": { "label": "8", "hint": { "BOTTOM_CENTER": "TUV" } }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "8" } } } } }, "col": 1, "row": 2 },
+            { "key": { "id": "dial_9", "content": { "label": "9", "hint": { "BOTTOM_CENTER": "WXYZ" } }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "9" } } } } }, "col": 2, "row": 2 },
+            { "key": { "id": "dial_star", "styleRef": "key_function", "content": { "label": "*" }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "*" } } } } }, "col": 0, "row": 3 },
+            { "key": { "id": "dial_0", "content": { "label": "0", "hint": { "BOTTOM_CENTER": "+" } }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "0" } } } } }, "col": 1, "row": 3 },
+            { "key": { "id": "dial_hash", "styleRef": "key_function", "content": { "label": "#" }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "#" } } } } }, "col": 2, "row": 3 }
+          ]
+        }
+      }
+    ]
+  },
+  "supportedLayers": ["NORMAL"]
+}

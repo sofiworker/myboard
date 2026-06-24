@@ -1,6 +1,6 @@
 {
   // MyBoard 深色主题
-  "schemaVersion": 1,
+  "schemaVersion": "1.0.0",
   "id": "default_dark",
   "name": "Default Dark",
   "dark": true,

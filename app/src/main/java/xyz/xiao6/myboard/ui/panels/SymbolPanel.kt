@@ -24,9 +24,15 @@ import androidx.compose.ui.unit.sp
  */
 @Composable
 fun SymbolPanel(
-    categories: List<Pair<String, List<String>>>,
     onSymbolClick: (String) -> Unit,
-    onClose: () -> Unit
+    onBack: () -> Unit,
+    categories: List<Pair<String, List<String>>> = listOf(
+        "标点" to listOf("，", "。", "！", "？", "；", "：", "、", "…", "—", "·", "～", "〃", "〞", "〟"),
+        "数学" to listOf("＋", "－", "×", "÷", "＝", "≠", "≤", "≥", "≈", "∞", "∑", "∏", "√", "∫"),
+        "货币" to listOf("￥", "＄", "€", "£", "¥", "￠", "₠", "₣", "₤", "₥"),
+        "箭头" to listOf("→", "←", "↑", "↓", "↔", "↕", "⇒", "⇐", "⇑", "⇓"),
+        "希腊" to listOf("α", "β", "γ", "δ", "ε", "ζ", "η", "θ", "ι", "κ", "λ", "μ", "ν", "ξ", "π", "ρ", "σ", "τ", "φ", "χ", "ψ", "ω")
+    )
 ) {
     var selectedCategory by remember { mutableStateOf(categories.firstOrNull()?.first ?: "") }
 
@@ -35,6 +41,20 @@ fun SymbolPanel(
             .fillMaxWidth()
             .background(Color(0xFFF1F3F4))
     ) {
+        // 标题栏
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp, vertical = 4.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            TextButton(onClick = onBack) {
+                Text("返回", fontSize = 12.sp)
+            }
+            Text("符号", fontSize = 14.sp, modifier = Modifier.weight(1f))
+            Spacer(modifier = Modifier.width(48.dp))
+        }
         // 分类标签
         Row(
             modifier = Modifier

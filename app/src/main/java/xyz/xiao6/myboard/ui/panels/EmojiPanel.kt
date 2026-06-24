@@ -34,6 +34,20 @@ fun EmojiPanel(
             .fillMaxWidth()
             .background(Color(0xFFF1F3F4))
     ) {
+        // 标题栏
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp, vertical = 4.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            TextButton(onClick = onClose) {
+                Text("返回", fontSize = 12.sp)
+            }
+            Text("Emoji", fontSize = 14.sp, modifier = Modifier.weight(1f))
+            Spacer(modifier = Modifier.width(48.dp))
+        }
         // 分类标签
         Row(
             modifier = Modifier

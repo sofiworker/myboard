@@ -1,0 +1,79 @@
+{
+  // 自然码双拼布局
+  "schemaVersion": "1.0.0",
+  "id": "shuangpin_ziran",
+  "meta": {
+    "name": "自然码双拼",
+    "description": "Ziran Shuangpin - Natural Code Double Pinyin"
+  },
+  "root": {
+    "type": "composite",
+    "id": "root",
+    "orientation": "VERTICAL",
+    "regions": [
+      {
+        "id": "candidate_region",
+        "role": "CANDIDATE",
+        "container": {
+          "type": "linear",
+          "id": "candidate_bar",
+          "orientation": "HORIZONTAL",
+          "children": [],
+          "height": { "type": "dp", "value": 40 }
+        }
+      },
+      {
+        "id": "keyboard_region",
+        "role": "KEYBOARD",
+        "container": {
+          "type": "grid",
+          "id": "keyboard_grid",
+          "columns": 10,
+          "cells": [
+            // Row 1: Q W E R T Y U I O P
+            { "key": { "id": "q", "content": { "label": "Q", "hint": { "TOP_CENTER": "iu" } }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "q" } } } } }, "col": 0, "row": 0 },
+            { "key": { "id": "w", "content": { "label": "W", "hint": { "TOP_CENTER": "ei" } }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "w" } } } } }, "col": 1, "row": 0 },
+            { "key": { "id": "e", "content": { "label": "E", "hint": { "TOP_CENTER": "e" } }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "e" } } } } }, "col": 2, "row": 0 },
+            { "key": { "id": "r", "content": { "label": "R", "hint": { "TOP_CENTER": "uan" } }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "r" } } } } }, "col": 3, "row": 0 },
+            { "key": { "id": "t", "content": { "label": "T", "hint": { "TOP_CENTER": "ue" } }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "t" } } } } }, "col": 4, "row": 0 },
+            { "key": { "id": "y", "content": { "label": "Y", "hint": { "TOP_CENTER": "un" } }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "y" } } } } }, "col": 5, "row": 0 },
+            { "key": { "id": "u", "content": { "label": "U", "hint": { "TOP_CENTER": "sh" } }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "u" } } } } }, "col": 6, "row": 0 },
+            { "key": { "id": "i", "content": { "label": "I", "hint": { "TOP_CENTER": "ch" } }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "i" } } } } }, "col": 7, "row": 0 },
+            { "key": { "id": "o", "content": { "label": "O", "hint": { "TOP_CENTER": "uo" } }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "o" } } } } }, "col": 8, "row": 0 },
+            { "key": { "id": "p", "content": { "label": "P", "hint": { "TOP_CENTER": "ie" } }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "p" } } } } }, "col": 9, "row": 0 },
+
+            // Row 2: A S D F G H J K L
+            { "key": { "id": "a", "content": { "label": "A", "hint": { "TOP_CENTER": "a" } }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "a" } } } } }, "col": 0, "row": 1 },
+            { "key": { "id": "s", "content": { "label": "S", "hint": { "TOP_CENTER": "ong" } }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "s" } } } } }, "col": 1, "row": 1 },
+            { "key": { "id": "d", "content": { "label": "D", "hint": { "TOP_CENTER": "iang" } }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "d" } } } } }, "col": 2, "row": 1 },
+            { "key": { "id": "f", "content": { "label": "F", "hint": { "TOP_CENTER": "en" } }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "f" } } } } }, "col": 3, "row": 1 },
+            { "key": { "id": "g", "content": { "label": "G", "hint": { "TOP_CENTER": "eng" } }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "g" } } } } }, "col": 4, "row": 1 },
+            { "key": { "id": "h", "content": { "label": "H", "hint": { "TOP_CENTER": "ang" } }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "h" } } } } }, "col": 5, "row": 1 },
+            { "key": { "id": "j", "content": { "label": "J", "hint": { "TOP_CENTER": "an" } }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "j" } } } } }, "col": 6, "row": 1 },
+            { "key": { "id": "k", "content": { "label": "K", "hint": { "TOP_CENTER": "ao" } }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "k" } } } } }, "col": 7, "row": 1 },
+            { "key": { "id": "l", "content": { "label": "L", "hint": { "TOP_CENTER": "ai" } }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "l" } } } } }, "col": 8, "row": 1 },
+            { "key": { "id": "enter", "styleRef": "key_action", "content": { "label": "Enter" }, "actions": { "gestures": { "TAP": { "actionType": "performEditorAction" } } } }, "col": 9, "row": 1 },
+
+            // Row 3: SHIFT Z X C V B N M BACKSPACE
+            { "key": { "id": "shift", "styleRef": "key_function", "content": { "icon": "shift" }, "actions": { "gestures": { "TAP": { "actionType": "cycleLayer", "payload": { "layers": ["NORMAL", "SHIFTED"] } } } } }, "col": 0, "row": 2, "colSpan": 1.5 },
+            { "key": { "id": "z", "content": { "label": "Z", "hint": { "TOP_CENTER": "ou" } }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "z" } } } } }, "col": 1.5, "row": 2 },
+            { "key": { "id": "x", "content": { "label": "X", "hint": { "TOP_CENTER": "ia" } }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "x" } } } } }, "col": 2.5, "row": 2 },
+            { "key": { "id": "c", "content": { "label": "C", "hint": { "TOP_CENTER": "iao" } }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "c" } } } } }, "col": 3.5, "row": 2 },
+            { "key": { "id": "v", "content": { "label": "V", "hint": { "TOP_CENTER": "zh" } }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "v" } } } } }, "col": 4.5, "row": 2 },
+            { "key": { "id": "b", "content": { "label": "B", "hint": { "TOP_CENTER": "in" } }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "b" } } } } }, "col": 5.5, "row": 2 },
+            { "key": { "id": "n", "content": { "label": "N", "hint": { "TOP_CENTER": "iao" } }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "n" } } } } }, "col": 6.5, "row": 2 },
+            { "key": { "id": "m", "content": { "label": "M", "hint": { "TOP_CENTER": "ian" } }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "m" } } } } }, "col": 7.5, "row": 2 },
+            { "key": { "id": "backspace", "styleRef": "key_function", "content": { "icon": "backspace" }, "actions": { "gestures": { "TAP": { "actionType": "delete", "payload": { "count": 1 } }, "LONG_PRESS": { "actionType": "delete", "payload": { "count": 10 } } } }, "repeatable": true }, "col": 8.5, "row": 2, "colSpan": 1.5 },
+
+            // Row 4: , Space . SYM
+            { "key": { "id": "comma", "styleRef": "key_function", "content": { "label": "," }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "," } } } } }, "col": 0, "row": 3 },
+            { "key": { "id": "space", "styleRef": "key_space", "content": { "label": "Space" }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": " " } } } }, "width": { "type": "weight", "value": 5 } }, "col": 1, "row": 3, "colSpan": 5 },
+            { "key": { "id": "period", "styleRef": "key_function", "content": { "label": "." }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "." } } } } }, "col": 6, "row": 3 },
+            { "key": { "id": "sym", "styleRef": "key_function", "content": { "label": "?123" }, "actions": { "gestures": { "TAP": { "actionType": "openPanel", "payload": { "panel": "SYMBOL" } } } } }, "col": 7, "row": 3, "colSpan": 3 }
+          ]
+        }
+      }
+    ]
+  },
+  "supportedLayers": ["NORMAL", "SHIFTED"]
+}

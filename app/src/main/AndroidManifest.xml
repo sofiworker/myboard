@@ -13,7 +13,7 @@
         android:theme="@style/Theme.Myboard">
 
         <activity
-            android:name=".ime.MainActivity"
+            android:name=".activity.MainActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -22,12 +22,12 @@
         </activity>
 
         <activity
-            android:name=".ime.OnboardingActivity"
+            android:name=".activity.OnboardingActivity"
             android:exported="false"
             android:theme="@style/Theme.AppCompat.NoActionBar" />
 
         <activity
-            android:name=".ime.SettingsActivity"
+            android:name=".activity.SettingsActivity"
             android:exported="false"
             android:theme="@style/Theme.AppCompat.NoActionBar" />
 

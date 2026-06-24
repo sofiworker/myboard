@@ -1,6 +1,6 @@
 {
   // QWERTY 布局 - 标准键盘
-  "schemaVersion": 2,
+  "schemaVersion": "1.0.0",
   "id": "qwerty",
   "meta": {
     "name": "QWERTY",

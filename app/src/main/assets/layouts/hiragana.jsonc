@@ -1,0 +1,108 @@
+{
+  // 日语平假名50音布局
+  "schemaVersion": "1.0.0",
+  "id": "hiragana",
+  "meta": {
+    "name": "ひらがな",
+    "description": "Hiragana 50-on keyboard"
+  },
+  "root": {
+    "type": "composite",
+    "id": "root",
+    "orientation": "VERTICAL",
+    "regions": [
+      {
+        "id": "candidate_region",
+        "role": "CANDIDATE",
+        "container": {
+          "type": "linear",
+          "id": "candidate_bar",
+          "orientation": "HORIZONTAL",
+          "children": [],
+          "height": { "type": "dp", "value": 40 }
+        }
+      },
+      {
+        "id": "keyboard_region",
+        "role": "KEYBOARD",
+        "container": {
+          "type": "grid",
+          "id": "keyboard_grid",
+          "columns": 5,
+          "cells": [
+            // Row 1: あ い う え お
+            { "key": { "id": "a", "content": { "label": "あ" }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "あ" } } } } }, "col": 0, "row": 0 },
+            { "key": { "id": "i", "content": { "label": "い" }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "い" } } } } }, "col": 1, "row": 0 },
+            { "key": { "id": "u", "content": { "label": "う" }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "う" } } } } }, "col": 2, "row": 0 },
+            { "key": { "id": "e", "content": { "label": "え" }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "え" } } } } }, "col": 3, "row": 0 },
+            { "key": { "id": "o", "content": { "label": "お" }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "お" } } } } }, "col": 4, "row": 0 },
+
+            // Row 2: か き く け こ
+            { "key": { "id": "ka", "content": { "label": "か" }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "か" } } } } }, "col": 0, "row": 1 },
+            { "key": { "id": "ki", "content": { "label": "き" }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "き" } } } } }, "col": 1, "row": 1 },
+            { "key": { "id": "ku", "content": { "label": "く" }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "く" } } } } }, "col": 2, "row": 1 },
+            { "key": { "id": "ke", "content": { "label": "け" }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "け" } } } } }, "col": 3, "row": 1 },
+            { "key": { "id": "ko", "content": { "label": "こ" }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "こ" } } } } }, "col": 4, "row": 1 },
+
+            // Row 3: さ し す せ そ
+            { "key": { "id": "sa", "content": { "label": "さ" }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "さ" } } } } }, "col": 0, "row": 2 },
+            { "key": { "id": "si", "content": { "label": "し" }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "し" } } } } }, "col": 1, "row": 2 },
+            { "key": { "id": "su", "content": { "label": "す" }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "す" } } } } }, "col": 2, "row": 2 },
+            { "key": { "id": "se", "content": { "label": "せ" }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "せ" } } } } }, "col": 3, "row": 2 },
+            { "key": { "id": "so", "content": { "label": "そ" }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "そ" } } } } }, "col": 4, "row": 2 },
+
+            // Row 4: た ち つ て と
+            { "key": { "id": "ta", "content": { "label": "た" }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "た" } } } } }, "col": 0, "row": 3 },
+            { "key": { "id": "ti", "content": { "label": "ち" }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "ち" } } } } }, "col": 1, "row": 3 },
+            { "key": { "id": "tu", "content": { "label": "つ" }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "つ" } } } } }, "col": 2, "row": 3 },
+            { "key": { "id": "te", "content": { "label": "て" }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "て" } } } } }, "col": 3, "row": 3 },
+            { "key": { "id": "to", "content": { "label": "と" }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "と" } } } } }, "col": 4, "row": 3 },
+
+            // Row 5: な に ぬ ね の
+            { "key": { "id": "na", "content": { "label": "な" }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "な" } } } } }, "col": 0, "row": 4 },
+            { "key": { "id": "ni", "content": { "label": "に" }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "に" } } } } }, "col": 1, "row": 4 },
+            { "key": { "id": "nu", "content": { "label": "ぬ" }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "ぬ" } } } } }, "col": 2, "row": 4 },
+            { "key": { "id": "ne", "content": { "label": "ね" }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "ね" } } } } }, "col": 3, "row": 4 },
+            { "key": { "id": "no", "content": { "label": "の" }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "の" } } } } }, "col": 4, "row": 4 },
+
+            // Row 6: は ひ ふ へ ほ
+            { "key": { "id": "ha", "content": { "label": "は" }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "は" } } } } }, "col": 0, "row": 5 },
+            { "key": { "id": "hi", "content": { "label": "ひ" }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "ひ" } } } } }, "col": 1, "row": 5 },
+            { "key": { "id": "hu", "content": { "label": "ふ" }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "ふ" } } } } }, "col": 2, "row": 5 },
+            { "key": { "id": "he", "content": { "label": "へ" }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "へ" } } } } }, "col": 3, "row": 5 },
+            { "key": { "id": "ho", "content": { "label": "ほ" }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "ほ" } } } } }, "col": 4, "row": 5 },
+
+            // Row 7: ま み む め も
+            { "key": { "id": "ma", "content": { "label": "ま" }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "ま" } } } } }, "col": 0, "row": 6 },
+            { "key": { "id": "mi", "content": { "label": "み" }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "み" } } } } }, "col": 1, "row": 6 },
+            { "key": { "id": "mu", "content": { "label": "む" }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "む" } } } } }, "col": 2, "row": 6 },
+            { "key": { "id": "me", "content": { "label": "め" }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "め" } } } } }, "col": 3, "row": 6 },
+            { "key": { "id": "mo", "content": { "label": "も" }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "も" } } } } }, "col": 4, "row": 6 },
+
+            // Row 8: や (skip) ゆ (skip) よ
+            { "key": { "id": "ya", "content": { "label": "や" }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "や" } } } } }, "col": 0, "row": 7 },
+            { "key": { "id": "yu", "content": { "label": "ゆ" }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "ゆ" } } } } }, "col": 2, "row": 7 },
+            { "key": { "id": "yo", "content": { "label": "よ" }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "よ" } } } } }, "col": 4, "row": 7 },
+
+            // Row 9: ら り る れ ろ
+            { "key": { "id": "ra", "content": { "label": "ら" }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "ら" } } } } }, "col": 0, "row": 8 },
+            { "key": { "id": "ri", "content": { "label": "り" }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "り" } } } } }, "col": 1, "row": 8 },
+            { "key": { "id": "ru", "content": { "label": "る" }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "る" } } } } }, "col": 2, "row": 8 },
+            { "key": { "id": "re", "content": { "label": "れ" }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "れ" } } } } }, "col": 3, "row": 8 },
+            { "key": { "id": "ro", "content": { "label": "ろ" }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "ろ" } } } } }, "col": 4, "row": 8 },
+
+            // Row 10: わ (skip) を (skip) ん
+            { "key": { "id": "wa", "content": { "label": "わ" }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "わ" } } } } }, "col": 0, "row": 9 },
+            { "key": { "id": "wo", "content": { "label": "を" }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "を" } } } } }, "col": 2, "row": 9 },
+            { "key": { "id": "n", "content": { "label": "ん" }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "ん" } } } } }, "col": 4, "row": 9 },
+
+            // Row 11: Backspace Enter
+            { "key": { "id": "backspace", "styleRef": "key_function", "content": { "icon": "backspace" }, "actions": { "gestures": { "TAP": { "actionType": "delete", "payload": { "count": 1 } }, "LONG_PRESS": { "actionType": "delete", "payload": { "count": 10 } } } }, "repeatable": true }, "col": 0, "row": 10, "colSpan": 2 },
+            { "key": { "id": "enter", "styleRef": "key_action", "content": { "label": "Enter" }, "actions": { "gestures": { "TAP": { "actionType": "performEditorAction" } } } }, "col": 3, "row": 10, "colSpan": 2 }
+          ]
+        }
+      }
+    ]
+  },
+  "supportedLayers": ["NORMAL"]
+}

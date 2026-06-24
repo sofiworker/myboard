@@ -16,7 +16,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import xyz.xiao6.myboard.core.clipboard.ClipboardEntry
+import xyz.xiao6.myboard.clipboard.ClipboardEntry
 
 /**
  * 剪贴板面板。

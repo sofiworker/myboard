@@ -1,0 +1,54 @@
+{
+  // T9 九键中文布局
+  "schemaVersion": "1.0.0",
+  "id": "t9_chinese",
+  "meta": {
+    "name": "T9九键",
+    "description": "T9 nine-key Chinese input layout"
+  },
+  "root": {
+    "type": "composite",
+    "id": "root",
+    "orientation": "VERTICAL",
+    "regions": [
+      {
+        "id": "candidate_region",
+        "role": "CANDIDATE",
+        "container": {
+          "type": "linear",
+          "id": "candidate_bar",
+          "orientation": "HORIZONTAL",
+          "children": [],
+          "height": { "type": "dp", "value": 40 }
+        }
+      },
+      {
+        "id": "keyboard_region",
+        "role": "KEYBOARD",
+        "container": {
+          "type": "grid",
+          "id": "keyboard_grid",
+          "columns": 3,
+          "cells": [
+            { "key": { "id": "key_1", "content": { "label": "1", "hint": { "BOTTOM_CENTER": ",@" } }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "1" } } } } }, "col": 0, "row": 0 },
+            { "key": { "id": "key_2", "content": { "label": "2", "hint": { "BOTTOM_CENTER": "ABC" } }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "2" } } } } }, "col": 1, "row": 0 },
+            { "key": { "id": "key_3", "content": { "label": "3", "hint": { "BOTTOM_CENTER": "DEF" } }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "3" } } } } }, "col": 2, "row": 0 },
+            { "key": { "id": "key_4", "content": { "label": "4", "hint": { "BOTTOM_CENTER": "GHI" } }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "4" } } } } }, "col": 0, "row": 1 },
+            { "key": { "id": "key_5", "content": { "label": "5", "hint": { "BOTTOM_CENTER": "JKL" } }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "5" } } } } }, "col": 1, "row": 1 },
+            { "key": { "id": "key_6", "content": { "label": "6", "hint": { "BOTTOM_CENTER": "MNO" } }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "6" } } } } }, "col": 2, "row": 1 },
+            { "key": { "id": "key_7", "content": { "label": "7", "hint": { "BOTTOM_CENTER": "PQRS" } }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "7" } } } } }, "col": 0, "row": 2 },
+            { "key": { "id": "key_8", "content": { "label": "8", "hint": { "BOTTOM_CENTER": "TUV" } }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "8" } } } } }, "col": 1, "row": 2 },
+            { "key": { "id": "key_9", "content": { "label": "9", "hint": { "BOTTOM_CENTER": "WXYZ" } }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "9" } } } } }, "col": 2, "row": 2 },
+            { "key": { "id": "key_star", "styleRef": "key_function", "content": { "label": "*" }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "*" } } } } }, "col": 0, "row": 3 },
+            { "key": { "id": "key_0", "content": { "label": "0", "hint": { "BOTTOM_CENTER": "Space" } }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": " " } } } } }, "col": 1, "row": 3 },
+            { "key": { "id": "key_hash", "styleRef": "key_function", "content": { "label": "#" }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "#" } } } } }, "col": 2, "row": 3 },
+            { "key": { "id": "backspace", "styleRef": "key_function", "content": { "icon": "backspace" }, "actions": { "gestures": { "TAP": { "actionType": "delete", "payload": { "count": 1 } }, "LONG_PRESS": { "actionType": "delete", "payload": { "count": 10 } } } }, "repeatable": true }, "col": 0, "row": 4 },
+            { "key": { "id": "sym", "styleRef": "key_function", "content": { "label": "?123" }, "actions": { "gestures": { "TAP": { "actionType": "openPanel", "payload": { "panel": "SYMBOL" } } } } }, "col": 1, "row": 4 },
+            { "key": { "id": "enter", "styleRef": "key_action", "content": { "label": "Enter" }, "actions": { "gestures": { "TAP": { "actionType": "performEditorAction" } } } }, "col": 2, "row": 4 }
+          ]
+        }
+      }
+    ]
+  },
+  "supportedLayers": ["NORMAL"]
+}

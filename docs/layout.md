@@ -378,7 +378,7 @@ enum class RegionRole { KEYBOARD, CANDIDATE, TOOLBAR, SIDEBAR, HEADER, FOOTER, P
 ```kotlin
 @Serializable
 data class LayoutDoc(
-    val schemaVersion: Int = 2,
+    val schemaVersion: SchemaVersion = SchemaVersion.CURRENT,
     val id: String,                          // layoutId，Manifest 通过它引用
     val meta: LayoutMeta = LayoutMeta(),
     val env: LayoutEnv? = null,              // 适配条件
@@ -631,7 +631,7 @@ private fun measureContainer(c: LayoutContainer, ..., depth: Int) {
 
 `LayoutRegistry.register` 时必须校验（未通过则注册失败，不产生半注册状态）：
 
-- `schemaVersion` 受当前 app 支持。
+- `schemaVersion` 主版本号兼容（同主版本号且 >= 当前版本）。
 - `id` 非空且在当前 registry 内唯一。
 - `root` 必须是合法 `LayoutContainer`。
 - 所有 `KeyDef.id` 在同一布局内唯一。
@@ -779,7 +779,7 @@ class LayoutHintResolver(private val registry: LayoutRegistry) {
 
 ```json
 {
-  "schemaVersion": 2,
+  "schemaVersion": "1.0.0",
   "id": "qwerty_dvorak",
   "extends": "qwerty",
   "patches": [
