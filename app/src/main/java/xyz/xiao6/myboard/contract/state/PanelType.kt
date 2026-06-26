@@ -11,5 +11,7 @@ enum class PanelType {
     LLM,
     STT,
     KAOMOJI,
-    TEXT_EXPANSION
+    TEXT_EXPANSION,
+    LOCALE_SWITCH,
+    LAYOUT_SWITCH
 }

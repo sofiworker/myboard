@@ -5,6 +5,11 @@ import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import com.github.appintro.AppIntro
 import com.github.appintro.AppIntroFragment
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import xyz.xiao6.myboard.data.db.SettingsDatabase
+import xyz.xiao6.myboard.data.repository.SettingsRepository
 
 /**
  * 使用 AppIntro 的引导页面。
@@ -59,8 +64,10 @@ class OnboardingActivity : AppIntro() {
     }
 
     private fun finishOnboarding() {
-        val settings = xyz.xiao6.myboard.settings.SettingsManager(this)
-        settings.onboardingCompleted = true
+        val repo = SettingsRepository(SettingsDatabase.getInstance(this).settingsDao())
+        CoroutineScope(Dispatchers.IO).launch {
+            repo.updateSetting("onboarding_completed", "true")
+        }
         // 引导完成后直接进入设置页面
         startActivity(Intent(this, SettingsActivity::class.java))
         finish()

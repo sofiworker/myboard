@@ -8,7 +8,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import xyz.xiao6.myboard.settings.SettingsManager
+import kotlinx.coroutines.launch
+import xyz.xiao6.myboard.data.repository.SettingsRepository
 
 /**
  * LLM 设置页面。
@@ -16,12 +17,14 @@ import xyz.xiao6.myboard.settings.SettingsManager
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LLMSettingsScreen(
-    settings: SettingsManager,
+    repo: SettingsRepository,
     onBack: () -> Unit
 ) {
-    var provider by remember { mutableStateOf(settings.llmProvider) }
-    var apiKey by remember { mutableStateOf(settings.llmApiKey) }
-    var endpoint by remember { mutableStateOf(settings.llmEndpoint) }
+    val settings by repo.settings.collectAsState(initial = emptyMap())
+    val scope = rememberCoroutineScope()
+    var provider by remember(settings) { mutableStateOf(settings["llm_provider"] ?: "disabled") }
+    var apiKey by remember(settings) { mutableStateOf(settings["llm_api_key"] ?: "") }
+    var endpoint by remember(settings) { mutableStateOf(settings["llm_endpoint"] ?: "") }
 
     Scaffold(
         topBar = {
@@ -50,7 +53,7 @@ fun LLMSettingsScreen(
                             selected = provider == option,
                             onClick = {
                                 provider = option
-                                settings.llmProvider = option
+                                scope.launch { repo.updateSetting("llm_provider", option) }
                             },
                             shape = SegmentedButtonDefaults.itemShape(index, 3)
                         ) {
@@ -66,7 +69,7 @@ fun LLMSettingsScreen(
                         value = apiKey,
                         onValueChange = {
                             apiKey = it
-                            settings.llmApiKey = it
+                            scope.launch { repo.updateSetting("llm_api_key", it) }
                         },
                         label = { Text("API Key") },
                         modifier = Modifier.fillMaxWidth()
@@ -78,7 +81,7 @@ fun LLMSettingsScreen(
                         value = endpoint,
                         onValueChange = {
                             endpoint = it
-                            settings.llmEndpoint = it
+                            scope.launch { repo.updateSetting("llm_endpoint", it) }
                         },
                         label = { Text("API Endpoint") },
                         modifier = Modifier.fillMaxWidth()

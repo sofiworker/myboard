@@ -9,6 +9,8 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.KeyboardHide
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -20,12 +22,18 @@ import androidx.compose.ui.unit.sp
 
 /**
  * Emoji 面板。
+ *
+ * @param onBack 返回上一层（回到键盘主界面），**不是**关闭输入法
+ * @param onHideKeyboard 收起整个键盘
  */
 @Composable
 fun EmojiPanel(
     categories: List<Triple<String, String, List<String>>>,
     onEmojiClick: (String) -> Unit,
-    onClose: () -> Unit
+    /** 返回键盘主界面（关闭面板），不是关闭输入法 */
+    onBack: () -> Unit,
+    /** 收起整个键盘 */
+    onHideKeyboard: () -> Unit = {}
 ) {
     var selectedCategory by remember { mutableStateOf(categories.firstOrNull()?.first ?: "") }
 
@@ -42,11 +50,13 @@ fun EmojiPanel(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            TextButton(onClick = onClose) {
+            TextButton(onClick = onBack) {
                 Text("返回", fontSize = 12.sp)
             }
             Text("Emoji", fontSize = 14.sp, modifier = Modifier.weight(1f))
-            Spacer(modifier = Modifier.width(48.dp))
+            IconButton(onClick = onHideKeyboard, modifier = Modifier.size(28.dp)) {
+                Icon(Icons.Default.KeyboardHide, "收起键盘", modifier = Modifier.size(18.dp))
+            }
         }
         // 分类标签
         Row(

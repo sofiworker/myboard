@@ -1,3 +1,84 @@
 <resources>
     <string name="app_name">MyBoard</string>
+    <string name="common_back">Back</string>
+
+    <!-- Toolbar -->
+    <string name="toolbar_settings">Settings</string>
+    <string name="toolbar_hide_keyboard">Hide keyboard</string>
+    <string name="toolbar_locale_switch">Language</string>
+    <string name="toolbar_theme_toggle">Theme</string>
+    <string name="toolbar_emoji">Emoji</string>
+    <string name="toolbar_symbol">Symbol</string>
+    <string name="toolbar_clipboard">Clipboard</string>
+    <string name="toolbar_layout_switch">Layout</string>
+    <string name="toolbar_voice_input">Voice</string>
+
+    <!-- Toolbar Settings -->
+    <string name="toolbar_settings_title">Toolbar Settings</string>
+    <string name="toolbar_layout_mode">Layout Mode</string>
+    <string name="toolbar_layout_scrollable">Scrollable</string>
+    <string name="toolbar_layout_scrollable_desc">Scroll horizontally when buttons overflow</string>
+    <string name="toolbar_layout_fixed">Fixed</string>
+    <string name="toolbar_layout_fixed_desc">Buttons equally share screen width</string>
+    <string name="toolbar_manage_buttons">Manage Buttons</string>
+    <string name="toolbar_available_buttons">Available Buttons</string>
+    <string name="toolbar_add">Add</string>
+    <string name="toolbar_move_up">Move up</string>
+    <string name="toolbar_move_down">Move down</string>
+
+    <!-- Settings - Main -->
+    <string name="settings_title">MyBoard Settings</string>
+    <string name="settings_section_input_method">Input Method</string>
+    <string name="settings_section_keyboard">Keyboard</string>
+    <string name="settings_section_input">Input</string>
+    <string name="settings_section_vibration">Vibration</string>
+    <string name="settings_section_sound">Sound</string>
+    <string name="settings_appearance">Appearance</string>
+    <string name="settings_feedback">Sound &amp; Vibration</string>
+    <string name="settings_about">About</string>
+
+    <!-- Settings - Language -->
+    <string name="settings_language_layout">Language &amp; Layout</string>
+    <string name="settings_language_layout_language">Language</string>
+    <string name="settings_language_layout_layouts">Enabled Layouts</string>
+    <string name="settings_language_layout_enabled_title">Enabled Languages</string>
+    <string name="settings_language_layout_enable">Enable</string>
+    <string name="settings_current_language">Default Language</string>
+
+    <!-- Settings - Keyboard -->
+    <string name="settings_toolbar">Toolbar</string>
+    <string name="settings_toolbar_manage">Manage toolbar buttons</string>
+    <string name="settings_keyboard_height">Keyboard Height</string>
+    <string name="settings_key_font_size">Key Font Size</string>
+
+    <!-- Settings - Input -->
+    <string name="settings_input_behavior">Input Behavior</string>
+    <string name="settings_double_space_period">Double-space period</string>
+    <string name="settings_double_space_period_desc">Double-tap space to insert period</string>
+    <string name="settings_auto_capitalize">Auto Capitalize</string>
+    <string name="settings_auto_capitalize_desc">Automatically capitalize at sentence start</string>
+
+    <!-- Settings - Feedback -->
+    <string name="settings_vibration_follow_system">Vibration feedback</string>
+    <string name="settings_vibration_follow_system_desc">Vibrate on key press</string>
+    <string name="settings_sound_feedback">Sound feedback</string>
+    <string name="settings_sound_feedback_desc">Play sound on key press</string>
+
+    <!-- Settings - Theme -->
+    <string name="settings_theme">Theme</string>
+    <string name="settings_theme_mode">Theme Mode</string>
+    <string name="settings_keyboard_theme">Keyboard Theme</string>
+    <string name="settings_theme_auto">Auto</string>
+    <string name="settings_theme_auto_desc">Follow system dark mode setting</string>
+    <string name="settings_theme_light">Light</string>
+    <string name="settings_theme_light_desc">Always use light theme</string>
+    <string name="settings_theme_dark">Dark</string>
+    <string name="settings_theme_dark_desc">Always use dark theme</string>
+
+    <!-- Settings - AI -->
+    <string name="settings_voice_input">Voice Input</string>
+
+    <!-- Settings - About -->
+    <string name="settings_version">Version</string>
+    <string name="settings_open_source">Open Source Licenses</string>
 </resources>

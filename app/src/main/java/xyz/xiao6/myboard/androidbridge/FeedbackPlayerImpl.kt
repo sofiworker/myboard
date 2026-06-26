@@ -4,22 +4,19 @@ import android.os.Build
 import android.os.Vibrator
 import android.os.VibratorManager
 import android.content.Context
-import xyz.xiao6.myboard.contract.input.*
-import xyz.xiao6.myboard.contract.layout.*
-import xyz.xiao6.myboard.contract.manifest.*
+import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.*
 import xyz.xiao6.myboard.contract.theme.*
-import xyz.xiao6.myboard.contract.engine.*
-import xyz.xiao6.myboard.contract.bridge.*
-import xyz.xiao6.myboard.contract.registry.*
-import xyz.xiao6.myboard.contract.panel.*
-import xyz.xiao6.myboard.contract.language.*
-import xyz.xiao6.myboard.contract.state.*
+import xyz.xiao6.myboard.data.repository.SettingsRepository
 
 /**
- * 触觉反馈播放器真实实现。
+ * 触觉/声音反馈播放器。
+ * 从 SettingsRepository 实时观察 haptic_feedback / sound_feedback 设置。
  */
 class FeedbackPlayerImpl(
-    private val context: Context
+    private val context: Context,
+    private val repo: SettingsRepository,
+    private val scope: CoroutineScope
 ) : FeedbackPlayer {
 
     private val vibrator: Vibrator by lazy {
@@ -32,8 +29,21 @@ class FeedbackPlayerImpl(
         }
     }
 
-    var soundEnabled = false
-    var hapticEnabled = true
+    private var hapticEnabled = true
+    private var soundEnabled = false
+
+    init {
+        scope.launch {
+            repo.observeSetting("haptic_feedback").collect { raw ->
+                hapticEnabled = raw?.toBooleanStrictOrNull() ?: true
+            }
+        }
+        scope.launch {
+            repo.observeSetting("sound_feedback").collect { raw ->
+                soundEnabled = raw?.toBooleanStrictOrNull() ?: false
+            }
+        }
+    }
 
     override fun playHaptic(token: HapticToken) {
         if (!hapticEnabled) return
@@ -56,6 +66,7 @@ class FeedbackPlayerImpl(
     }
 
     override fun playSound(token: SoundToken) {
+        if (!soundEnabled) return
         // TODO: 使用 SoundPool 加载 assets/sounds/ 播放
     }
 }

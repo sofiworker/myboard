@@ -9,11 +9,10 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import xyz.xiao6.myboard.settings.SettingsManager
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import xyz.xiao6.myboard.data.db.SettingsDatabase
+import xyz.xiao6.myboard.data.repository.SettingsRepository
 
 /**
  * 主入口页面 - 根据引导状态跳转。
@@ -31,18 +30,22 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun MainApp() {
-    val context = LocalContext.current
+    val context = androidx.compose.ui.platform.LocalContext.current
     val activity = context as? ComponentActivity
-    val settings = remember { SettingsManager(context) }
+    var isLoading by remember { mutableStateOf(true) }
 
     LaunchedEffect(Unit) {
-        if (!settings.onboardingCompleted) {
+        val repo = SettingsRepository(SettingsDatabase.getInstance(context).settingsDao())
+        val completed = withContext(Dispatchers.IO) {
+            repo.getSetting("onboarding_completed")?.toBooleanStrictOrNull() ?: false
+        }
+        if (!completed) {
             context.startActivity(Intent(context, OnboardingActivity::class.java))
-            activity?.finish()
         } else {
             context.startActivity(Intent(context, SettingsActivity::class.java))
-            activity?.finish()
         }
+        activity?.finish()
+        isLoading = false
     }
 
     Box(

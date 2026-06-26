@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.KeyboardHide
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -16,11 +17,17 @@ import xyz.xiao6.myboard.contract.state.PanelType
 /**
  * 占位面板。
  * 用于尚未实现的面板类型。
+ *
+ * @param onBack 返回上一层（回到键盘主界面），**不是**关闭输入法
+ * @param onHideKeyboard 收起整个键盘
  */
 @Composable
 fun PlaceholderPanel(
     panelType: PanelType,
-    onClose: () -> Unit,
+    /** 返回键盘主界面（关闭面板），不是关闭输入法 */
+    onBack: () -> Unit,
+    /** 收起整个键盘 */
+    onHideKeyboard: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -35,9 +42,12 @@ fun PlaceholderPanel(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Text(panelType.name, style = MaterialTheme.typography.titleSmall)
-            IconButton(onClick = onClose, modifier = Modifier.size(28.dp)) {
-                Icon(Icons.Default.Close, "关闭", modifier = Modifier.size(18.dp))
+            Text(panelType.name, style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
+            IconButton(onClick = onBack, modifier = Modifier.size(28.dp)) {
+                Icon(Icons.Default.Close, "返回键盘", modifier = Modifier.size(18.dp))
+            }
+            IconButton(onClick = onHideKeyboard, modifier = Modifier.size(28.dp)) {
+                Icon(Icons.Default.KeyboardHide, "收起键盘", modifier = Modifier.size(18.dp))
             }
         }
         Box(

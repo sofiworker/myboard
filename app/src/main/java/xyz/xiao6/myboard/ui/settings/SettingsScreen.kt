@@ -1,9 +1,10 @@
 package xyz.xiao6.myboard.ui.settings
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -11,37 +12,39 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import xyz.xiao6.myboard.settings.SettingsManager
+import androidx.lifecycle.viewmodel.compose.viewModel
+import xyz.xiao6.myboard.R
+import xyz.xiao6.myboard.data.repository.SettingsRepository
 
 /**
- * 设置页面 - 完整版。
+ * 设置主页面 — 所有设置项均从 SettingsRepository 单一来源读取。
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onNavigate: (String) -> Unit = {},
+    viewModel: SettingsViewModel = viewModel(
+        factory = SettingsViewModel.Factory(
+            SettingsRepository(
+                xyz.xiao6.myboard.data.db.SettingsDatabase.getInstance(
+                    androidx.compose.ui.platform.LocalContext.current
+                ).settingsDao()
+            )
+        )
+    )
 ) {
-    val context = LocalContext.current
-    val settings = remember { SettingsManager(context) }
-
-    var currentLanguage by remember { mutableStateOf(settings.currentLanguage) }
-    var currentTheme by remember { mutableStateOf(settings.currentTheme) }
-    var keyboardHeight by remember { mutableFloatStateOf(settings.keyboardHeight.toFloat()) }
-    var hapticFeedback by remember { mutableStateOf(settings.hapticFeedback) }
-    var soundFeedback by remember { mutableStateOf(settings.soundFeedback) }
-    var doubleSpacePeriod by remember { mutableStateOf(settings.doubleSpacePeriod) }
-    var autoCapitalize by remember { mutableStateOf(settings.autoCapitalize) }
-    var llmProvider by remember { mutableStateOf(settings.llmProvider) }
-    var sttProvider by remember { mutableStateOf(settings.sttProvider) }
+    val uiState by viewModel.uiState.collectAsState()
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("设置") },
+                title = { Text(stringResource(R.string.settings_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "返回")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.common_back))
                     }
                 }
             )
@@ -54,189 +57,131 @@ fun SettingsScreen(
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            // 语言
-            item { SectionHeader("语言") }
+            // ===== 输入法 =====
+            item { SectionHeader(stringResource(R.string.settings_section_input_method)) }
             item {
                 NavigationItem(
-                    title = "当前语言",
-                    subtitle = currentLanguage,
+                    title = stringResource(R.string.settings_language_layout),
+                    subtitle = uiState.settings["current_locale"] ?: "en-US",
                     icon = Icons.Default.Language,
-                    onClick = { }
+                    onClick = { onNavigate("language") }
                 )
             }
             item {
                 NavigationItem(
-                    title = "管理语言",
-                    icon = Icons.Default.Translate,
-                    onClick = { }
-                )
-            }
-            item {
-                SwitchItem(
-                    title = "自动切换语言",
-                    icon = Icons.Default.Autorenew,
-                    checked = true,
-                    onCheckedChange = { }
+                    title = stringResource(R.string.settings_toolbar),
+                    subtitle = stringResource(R.string.settings_toolbar_manage),
+                    icon = Icons.Default.Widgets,
+                    onClick = { onNavigate("toolbar") }
                 )
             }
 
-            // 布局
-            item { SectionHeader("布局") }
-            item {
-                NavigationItem(
-                    title = "布局选择",
-                    subtitle = "QWERTY",
-                    icon = Icons.Default.Keyboard,
-                    onClick = { }
-                )
-            }
+            // ===== 键盘 =====
+            item { SectionHeader(stringResource(R.string.settings_section_keyboard)) }
             item {
                 SliderItem(
-                    title = "键盘高度",
-                    value = keyboardHeight,
-                    onValueChange = {
-                        keyboardHeight = it
-                        settings.keyboardHeight = it.toInt()
-                    },
+                    title = stringResource(R.string.settings_keyboard_height),
+                    value = (uiState.settings["keyboard_height"] ?: "260").toFloatOrNull() ?: 260f,
+                    onValueChange = { viewModel.updateSetting("keyboard_height", it.toInt().toString()) },
                     valueRange = 180f..400f,
                     suffix = "dp"
                 )
             }
+            item {
+                SliderItem(
+                    title = stringResource(R.string.settings_key_font_size),
+                    value = (uiState.settings["key_font_size"] ?: "18").toFloatOrNull() ?: 18f,
+                    onValueChange = { viewModel.updateSetting("key_font_size", it.toInt().toString()) },
+                    valueRange = 12f..24f,
+                    suffix = "sp"
+                )
+            }
 
-            // 外观
-            item { SectionHeader("外观") }
+            // ===== 外观 =====
+            item { SectionHeader(stringResource(R.string.settings_appearance)) }
             item {
                 NavigationItem(
-                    title = "主题",
-                    subtitle = currentTheme,
+                    title = stringResource(R.string.settings_theme),
+                    subtitle = when (uiState.settings["theme_mode"] ?: "auto") {
+                        "dark" -> stringResource(R.string.settings_theme_dark)
+                        "light" -> stringResource(R.string.settings_theme_light)
+                        else -> stringResource(R.string.settings_theme_auto)
+                    },
                     icon = Icons.Default.Palette,
-                    onClick = { }
+                    onClick = { onNavigate("theme") }
+                )
+            }
+
+            // ===== 反馈 =====
+            item { SectionHeader(stringResource(R.string.settings_feedback)) }
+            item {
+                NavigationItem(
+                    title = stringResource(R.string.settings_feedback),
+                    icon = Icons.Default.Vibration,
+                    onClick = { onNavigate("feedback") }
+                )
+            }
+
+            // ===== 输入 =====
+            item { SectionHeader(stringResource(R.string.settings_section_input)) }
+            item {
+                SwitchItem(
+                    title = stringResource(R.string.settings_double_space_period),
+                    icon = Icons.Default.SpaceBar,
+                    checked = uiState.settings["double_space_period"]?.toBooleanStrictOrNull() ?: true,
+                    onCheckedChange = { viewModel.updateSetting("double_space_period", it.toString()) }
                 )
             }
             item {
                 SwitchItem(
-                    title = "按键动画",
-                    icon = Icons.Default.Animation,
-                    checked = true,
-                    onCheckedChange = { }
+                    title = stringResource(R.string.settings_auto_capitalize),
+                    icon = Icons.Default.TextFormat,
+                    checked = uiState.settings["auto_capitalize"]?.toBooleanStrictOrNull() ?: true,
+                    onCheckedChange = { viewModel.updateSetting("auto_capitalize", it.toString()) }
                 )
             }
 
-            // 功能
-            item { SectionHeader("功能") }
-            item {
-                NavigationItem(
-                    title = "词典管理",
-                    icon = Icons.Default.MenuBook,
-                    onClick = { }
-                )
-            }
-            item {
-                NavigationItem(
-                    title = "文本填充",
-                    icon = Icons.Default.TextSnippet,
-                    onClick = { }
-                )
-            }
-            item {
-                NavigationItem(
-                    title = "剪贴板",
-                    icon = Icons.Default.ContentPaste,
-                    onClick = { }
-                )
-            }
-
-            // AI
+            // ===== AI =====
             item { SectionHeader("AI") }
             item {
                 NavigationItem(
-                    title = "LLM 设置",
-                    subtitle = llmProvider,
+                    title = "LLM",
+                    subtitle = uiState.settings["llm_provider"] ?: "disabled",
                     icon = Icons.Default.SmartToy,
-                    onClick = { }
+                    onClick = { onNavigate("llm") }
                 )
             }
             item {
                 NavigationItem(
-                    title = "语音输入",
-                    subtitle = sttProvider,
+                    title = stringResource(R.string.settings_voice_input),
+                    subtitle = uiState.settings["stt_provider"] ?: "system",
                     icon = Icons.Default.Mic,
-                    onClick = { }
-                )
-            }
-            item {
-                SwitchItem(
-                    title = "智能联想",
-                    icon = Icons.Default.AutoAwesome,
-                    checked = true,
-                    onCheckedChange = { }
+                    onClick = { onNavigate("stt") }
                 )
             }
 
-            // 反馈
-            item { SectionHeader("反馈") }
+            // ===== 关于 =====
+            item { SectionHeader(stringResource(R.string.settings_about)) }
             item {
-                SwitchItem(
-                    title = "触觉反馈",
-                    subtitle = "按键时振动",
-                    icon = Icons.Default.Vibration,
-                    checked = hapticFeedback,
-                    onCheckedChange = {
-                        hapticFeedback = it
-                        settings.hapticFeedback = it
-                    }
-                )
-            }
-            item {
-                SwitchItem(
-                    title = "声音反馈",
-                    subtitle = "按键时播放声音",
-                    icon = Icons.Default.VolumeUp,
-                    checked = soundFeedback,
-                    onCheckedChange = {
-                        soundFeedback = it
-                        settings.soundFeedback = it
-                    }
-                )
-            }
-            item {
-                SwitchItem(
-                    title = "双击空格输入句号",
-                    icon = Icons.Default.SpaceBar,
-                    checked = doubleSpacePeriod,
-                    onCheckedChange = {
-                        doubleSpacePeriod = it
-                        settings.doubleSpacePeriod = it
-                    }
-                )
-            }
-            item {
-                SwitchItem(
-                    title = "自动大写",
-                    icon = Icons.Default.TextFormat,
-                    checked = autoCapitalize,
-                    onCheckedChange = {
-                        autoCapitalize = it
-                        settings.autoCapitalize = it
-                    }
-                )
-            }
-
-            // 关于
-            item { SectionHeader("关于") }
-            item {
+                val context = LocalContext.current
+                val versionName = remember {
+                    try {
+                        val pInfo = context.packageManager.getPackageInfo(context.packageName, 0)
+                        pInfo.versionName ?: "1.0"
+                    } catch (_: Exception) { "1.0" }
+                }
                 NavigationItem(
-                    title = "版本",
-                    subtitle = "1.0.0",
+                    title = stringResource(R.string.settings_version),
+                    subtitle = versionName,
                     icon = Icons.Default.Info,
                     onClick = { }
                 )
             }
             item {
                 NavigationItem(
-                    title = "开源许可",
-                    icon = Icons.Default.Code,
-                    onClick = { }
+                    title = stringResource(R.string.settings_open_source),
+                    icon = Icons.AutoMirrored.Filled.MenuBook,
+                    onClick = { onNavigate("about") }
                 )
             }
 
@@ -246,7 +191,7 @@ fun SettingsScreen(
 }
 
 @Composable
-private fun SectionHeader(title: String) {
+fun SectionHeader(title: String) {
     Text(
         text = title,
         style = MaterialTheme.typography.titleMedium,
@@ -256,7 +201,7 @@ private fun SectionHeader(title: String) {
 }
 
 @Composable
-private fun NavigationItem(
+fun NavigationItem(
     title: String,
     subtitle: String? = null,
     icon: ImageVector,
@@ -286,7 +231,7 @@ private fun NavigationItem(
 }
 
 @Composable
-private fun SwitchItem(
+fun SwitchItem(
     title: String,
     subtitle: String? = null,
     icon: ImageVector,
@@ -314,7 +259,7 @@ private fun SwitchItem(
 }
 
 @Composable
-private fun SliderItem(
+fun SliderItem(
     title: String,
     value: Float,
     onValueChange: (Float) -> Unit,

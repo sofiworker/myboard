@@ -8,7 +8,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import xyz.xiao6.myboard.settings.SettingsManager
+import kotlinx.coroutines.launch
+import xyz.xiao6.myboard.data.repository.SettingsRepository
 
 /**
  * STT 设置页面。
@@ -16,10 +17,12 @@ import xyz.xiao6.myboard.settings.SettingsManager
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun STTSettingsScreen(
-    settings: SettingsManager,
+    repo: SettingsRepository,
     onBack: () -> Unit
 ) {
-    var provider by remember { mutableStateOf(settings.sttProvider) }
+    val settings by repo.settings.collectAsState(initial = emptyMap())
+    val scope = rememberCoroutineScope()
+    var provider by remember(settings) { mutableStateOf(settings["stt_provider"] ?: "system") }
 
     Scaffold(
         topBar = {
@@ -48,7 +51,7 @@ fun STTSettingsScreen(
                             selected = provider == option,
                             onClick = {
                                 provider = option
-                                settings.sttProvider = option
+                                scope.launch { repo.updateSetting("stt_provider", option) }
                             },
                             shape = SegmentedButtonDefaults.itemShape(index, 2)
                         ) {

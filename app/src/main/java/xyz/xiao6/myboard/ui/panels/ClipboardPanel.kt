@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.KeyboardHide
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -20,6 +22,9 @@ import xyz.xiao6.myboard.clipboard.ClipboardEntry
 
 /**
  * 剪贴板面板。
+ *
+ * @param onBack 返回上一层（回到键盘主界面），**不是**关闭输入法
+ * @param onHideKeyboard 收起整个键盘
  */
 @Composable
 fun ClipboardPanel(
@@ -27,7 +32,10 @@ fun ClipboardPanel(
     onEntryClick: (ClipboardEntry) -> Unit,
     onDeleteEntry: (ClipboardEntry) -> Unit,
     onClearAll: () -> Unit,
-    onClose: () -> Unit
+    /** 返回键盘主界面（关闭面板），不是关闭输入法 */
+    onBack: () -> Unit,
+    /** 收起整个键盘 */
+    onHideKeyboard: () -> Unit = {}
 ) {
     Column(
         modifier = Modifier
@@ -38,13 +46,19 @@ fun ClipboardPanel(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
+                .padding(horizontal = 8.dp, vertical = 4.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("剪贴板", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            TextButton(onClick = onBack) {
+                Text("返回", fontSize = 12.sp)
+            }
+            Text("剪贴板", fontWeight = FontWeight.Bold, fontSize = 14.sp, modifier = Modifier.weight(1f))
             TextButton(onClick = onClearAll) {
-                Text("清空", color = MaterialTheme.colorScheme.error)
+                Text("清空", color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
+            }
+            IconButton(onClick = onHideKeyboard, modifier = Modifier.size(28.dp)) {
+                Icon(Icons.Default.KeyboardHide, "收起键盘", modifier = Modifier.size(18.dp))
             }
         }
 

@@ -2,6 +2,7 @@ package xyz.xiao6.myboard.toolbar
 
 import xyz.xiao6.myboard.contract.state.BuiltInSchemas
 import xyz.xiao6.myboard.contract.state.Schema
+import xyz.xiao6.myboard.contract.state.TransitionResult
 import xyz.xiao6.myboard.state.KeyboardContextManager
 import xyz.xiao6.myboard.state.OrthogonalRegistry
 
@@ -29,19 +30,32 @@ class LayoutSwitcher(
     }
 
     /**
-     * 获取当前 Schema 的显示名称。
+     * 获取指定 Schema 的显示名称。
      */
-    fun getCurrentSchemaName(): String {
-        val current = contextManager.context.value
-        return when (current.orthogonal.schema) {
+    fun getSchemaDisplayName(schema: Schema): String {
+        return when (schema) {
             BuiltInSchemas.PINYIN -> "拼音"
             BuiltInSchemas.SHUANGPIN_ZIRAN -> "双拼"
             BuiltInSchemas.T9_PINYIN -> "T9"
             BuiltInSchemas.DOUBLE_PINYIN -> "双拼"
             BuiltInSchemas.LATIN_DIRECT -> "英文"
             BuiltInSchemas.ROMAJI -> "假名"
-            else -> current.orthogonal.schema.value
+            else -> schema.value
         }
+    }
+
+    /**
+     * 获取当前 Schema 的显示名称。
+     */
+    fun getCurrentSchemaName(): String {
+        return getSchemaDisplayName(contextManager.context.value.orthogonal.schema)
+    }
+
+    /**
+     * 切换到指定 Schema。
+     */
+    fun switchToSchema(schema: Schema): TransitionResult {
+        return contextManager.switchSchema(schema)
     }
 
     /**

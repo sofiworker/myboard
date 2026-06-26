@@ -1,334 +1,84 @@
 <resources>
     <string name="app_name">MyBoard</string>
+    <string name="common_back">返回</string>
 
-    <string name="common_yes">是</string>
-    <string name="common_no">否</string>
-    <string name="common_close">关闭</string>
+    <!-- Toolbar -->
+    <string name="toolbar_settings">设置</string>
+    <string name="toolbar_hide_keyboard">收起键盘</string>
+    <string name="toolbar_locale_switch">语言切换</string>
+    <string name="toolbar_theme_toggle">主题切换</string>
+    <string name="toolbar_emoji">Emoji</string>
+    <string name="toolbar_symbol">符号</string>
+    <string name="toolbar_clipboard">剪贴板</string>
+    <string name="toolbar_layout_switch">键盘布局</string>
+    <string name="toolbar_voice_input">语音输入</string>
 
-    <string name="onboarding_step_indicator">步骤 %1$d/%2$d</string>
-    <string name="onboarding_back">上一步</string>
-    <string name="onboarding_next">下一步</string>
-    <string name="onboarding_finish">完成</string>
+    <!-- Toolbar Settings -->
+    <string name="toolbar_settings_title">工具栏设置</string>
+    <string name="toolbar_layout_mode">布局模式</string>
+    <string name="toolbar_layout_scrollable">横向滚动</string>
+    <string name="toolbar_layout_scrollable_desc">按钮超出屏幕可横向滚动</string>
+    <string name="toolbar_layout_fixed">固定均分</string>
+    <string name="toolbar_layout_fixed_desc">按钮等分屏幕宽度</string>
+    <string name="toolbar_manage_buttons">按钮管理</string>
+    <string name="toolbar_available_buttons">可添加的按钮</string>
+    <string name="toolbar_add">添加</string>
+    <string name="toolbar_move_up">上移</string>
+    <string name="toolbar_move_down">下移</string>
 
-    <string name="onboarding_enable_title">启用 MyBoard</string>
-    <string name="onboarding_enable_desc">打开系统输入法设置，在列表中启用“MyBoard”。</string>
-    <string name="onboarding_open_ime_settings">打开系统输入法设置</string>
-
-    <string name="onboarding_pick_title">切换到 MyBoard</string>
-    <string name="onboarding_pick_desc">弹出输入法选择器并切换到“MyBoard”。</string>
-    <string name="onboarding_show_ime_picker">弹出输入法选择器</string>
-
-    <string name="onboarding_language_title">选择语言</string>
-    <string name="onboarding_language_locked_hint">请先完成前两步后再选择语言。</string>
-    <string name="onboarding_language_dropdown_label">语言</string>
-    <string name="onboarding_language_dropdown_placeholder">请选择语言</string>
-
-    <string name="onboarding_layout_title">选择布局</string>
-    <string name="onboarding_layout_missing_language">请先选择语言。</string>
-    <string name="onboarding_layout_for_language">语言：%1$s</string>
-    <string name="onboarding_layout_item">%1$s（%2$s）</string>
-    <string name="onboarding_layout_multi_select_hint">支持启用多个布局，之后可通过工具栏进行切换。</string>
-
-    <string name="onboarding_status_enabled">状态：已启用：%1$s</string>
-    <string name="onboarding_status_selected">状态：当前输入法是 MyBoard：%1$s</string>
-    <string name="onboarding_status_ready_for_language">状态：已启用=%1$s，已切换=%2$s</string>
-
-    <string name="onboarding_error_enable_first">请先在系统设置中启用 MyBoard。</string>
-    <string name="onboarding_error_pick_first">请先切换到 MyBoard 作为当前输入法。</string>
-    <string name="onboarding_error_select_language">请选择语言。</string>
-    <string name="onboarding_error_select_layout">请选择布局。</string>
-    <string name="onboarding_error_open_settings_failed">无法打开系统输入法设置。</string>
-    <string name="onboarding_error_imm_unavailable">InputMethodManager 不可用。</string>
-
+    <!-- Settings - Main -->
     <string name="settings_title">MyBoard 设置</string>
-    <string name="settings_open_ime_settings">打开系统输入法设置</string>
-    <string name="settings_show_ime_picker">弹出输入法选择器</string>
-    <string name="settings_reset">重置引导</string>
-
     <string name="settings_section_input_method">输入法</string>
+    <string name="settings_section_keyboard">键盘</string>
     <string name="settings_section_input">输入</string>
-    <string name="settings_section_advanced">高级</string>
-    <string name="settings_section_theme">键盘主题</string>
-    <string name="settings_section_emoji">表情</string>
+    <string name="settings_section_vibration">振动</string>
+    <string name="settings_section_sound">声音</string>
+    <string name="settings_appearance">外观</string>
+    <string name="settings_feedback">声音与振动</string>
+    <string name="settings_about">关于</string>
 
-    <string name="settings_status_ime_enabled_selected">已启用：%1$s · 已切换：%2$s</string>
-    <string name="settings_show_ime_picker_desc">将当前输入法切换为 MyBoard</string>
-    <string name="emoji_delete">删除</string>
-
+    <!-- Settings - Language -->
     <string name="settings_language_layout">语言与布局</string>
-    <string name="settings_status_language_layout">语言：%1$s · 布局：%2$s</string>
     <string name="settings_language_layout_language">语言</string>
     <string name="settings_language_layout_layouts">已启用的布局</string>
-    <string name="settings_default">默认</string>
-
-    <string name="settings_appearance">外观</string>
-    <string name="settings_appearance_desc">主题与视觉</string>
-    <string name="settings_keyboard_theme">键盘主题</string>
-    <string name="settings_theme_import">导入自定义主题</string>
-    <string name="settings_theme_import_desc">导入主题 JSON 文件</string>
-    <string name="settings_theme_import_failed">导入失败，请检查 JSON 文件。</string>
-    <string name="settings_theme_modern">现代</string>
-    <string name="settings_theme_default">经典</string>
-    <string name="settings_theme_sand">暖沙</string>
-    <string name="settings_theme_slate">蓝石板</string>
-    <string name="settings_dictionaries">字典</string>
-    <string name="settings_dictionaries_desc">管理字典与输入特性</string>
-
-    <string name="settings_placeholder_appearance">即将支持：主题选择。</string>
-    <string name="settings_emoji_use_images">显示表情图片</string>
-    <string name="settings_emoji_use_images_desc">在表情面板使用 Twemoji 图片（默认使用字体字形）。</string>
-    <string name="settings_placeholder_dictionaries">即将支持：字典管理。</string>
-    <string name="settings_dictionaries_empty">暂无可用字典。</string>
-    <string name="settings_dictionaries_language">语言：%1$s</string>
-    <string name="settings_dictionaries_enabled_summary">已启用 %1$d/%2$d</string>
-    <string name="settings_dictionaries_enabled_list">已启用：%1$s</string>
-    <string name="settings_dictionaries_enabled_none">无</string>
-    <string name="settings_dictionaries_reset_default">恢复默认</string>
-    <string name="settings_dictionaries_none_for_language">此语言暂无可用字典。</string>
-    <string name="settings_dictionaries_item_id">ID：%1$s</string>
-    <string name="settings_dictionaries_item_layouts">布局：%1$s</string>
-    <string name="settings_dictionaries_not_available">当前布局不可用。</string>
-    <string name="settings_dictionaries_section_overview">已启用字典</string>
-    <string name="settings_dictionaries_section_manage">管理字典</string>
-    <string name="settings_dictionaries_choose_language">选择语言</string>
-    <string name="settings_dictionaries_create_title">新建自定义字典</string>
-    <string name="settings_dictionaries_import_title">导入字典</string>
-    <string name="settings_dictionaries_name">字典名称</string>
-    <string name="settings_dictionaries_id">字典 ID</string>
-    <string name="settings_dictionaries_format">格式</string>
-    <string name="settings_dictionaries_code_scheme">编码方案</string>
-    <string name="settings_dictionaries_choose_file">选择文件</string>
-    <string name="settings_dictionaries_selected_file">已选择：%1$s</string>
-    <string name="settings_dictionaries_create_action">创建</string>
-    <string name="settings_dictionaries_import_action">导入</string>
-    <string name="settings_dictionaries_cancel">取消</string>
-    <string name="settings_dictionaries_add_entry_title">新增词条</string>
-    <string name="settings_dictionaries_entry_word">词条</string>
-    <string name="settings_dictionaries_entry_code">编码</string>
-    <string name="settings_dictionaries_entry_weight">权重</string>
-    <string name="settings_dictionaries_add_entry_action">添加词条</string>
-    <string name="settings_dictionaries_delete_title">删除字典</string>
-    <string name="settings_dictionaries_delete_message">删除“%1$s”及其文件？</string>
-    <string name="settings_dictionaries_delete_action">删除</string>
-    <string name="settings_dictionaries_format_rime_yaml">Rime *.dict.yaml</string>
-    <string name="settings_dictionaries_scheme_pinyin_full">拼音（全拼）</string>
-    <string name="settings_dictionaries_scheme_pinyin_t9">拼音（T9）</string>
-
-    <string name="settings_feedback">声音与振动</string>
-    <string name="settings_feedback_summary">点击音：%1$d%% · 振动：%2$s</string>
-    <string name="settings_input_behavior">删除键行为</string>
-    <string name="settings_input_behavior_summary_enabled">清空 token 后清空输入框 · %1$d ms</string>
-    <string name="settings_input_behavior_summary_disabled">仅清空正在输入的 token</string>
-    <string name="settings_clear_input_after_token_clear">清空 token 后清空输入框</string>
-    <string name="settings_clear_input_after_token_clear_desc">清空所有正在输入的 token 后，可选清空输入框内容。</string>
-    <string name="settings_clear_input_delay">清空延迟</string>
-    <string name="settings_clear_input_delay_desc">清空输入框前延迟：%1$d ms</string>
-    <string name="settings_toolbar">工具栏</string>
-    <string name="settings_toolbar_summary">按钮数量：%1$s</string>
-    <string name="settings_toolbar_limit">按钮数量限制</string>
-    <string name="settings_toolbar_limit_desc">显示按钮数量：%1$s</string>
-    <string name="settings_toolbar_limit_unlimited">无限（超出可滚动）</string>
-    <string name="settings_toolbar_limit_fixed">固定 %1$d 个</string>
-    <string name="settings_toolbar_sort">按钮排序</string>
-    <string name="settings_vibration_follow_system_short">跟随系统</string>
-
-    <string name="settings_suggestions">候选与联想</string>
-    <string name="settings_suggestions_desc">预测与联想设置</string>
-    <string name="settings_suggestions_enabled">启用候选建议</string>
-    <string name="settings_suggestions_learning">个性化学习</string>
-    <string name="settings_suggestions_ngram">N-gram 扩展</string>
-    <string name="settings_suggestions_ngram_desc">将汉字词扩展为 2-3 字联想</string>
-    <string name="settings_suggestions_clear_learning">清空学习数据</string>
-    <string name="settings_suggestions_clear_blocked">清空屏蔽词</string>
-    <string name="settings_suggestions_cloud">云端建议</string>
-    <string name="settings_suggestions_cloud_endpoint">服务地址</string>
-    <string name="settings_suggestions_cloud_auth_type">鉴权方式</string>
-    <string name="settings_suggestions_cloud_auth_value">鉴权内容</string>
-    <string name="settings_suggestions_cloud_headers_json">自定义 Header(JSON)</string>
-    <string name="settings_suggestions_cloud_placeholder">云端同步与词库更新为占位。</string>
-    <string name="settings_suggestions_blocked_hint">已从建议中移除。</string>
-    <string name="suggestions_action_block">不再建议</string>
-    <string name="suggestions_action_demote">降低权重</string>
-
-    <string name="settings_section_sound">声音</string>
-    <string name="settings_click_sound_volume">按键点击音量</string>
-    <string name="settings_click_sound_volume_desc">音量：%1$d%%（0=关闭）</string>
-
-    <string name="settings_section_vibration">振动</string>
-    <string name="settings_vibration_follow_system">按键振动跟随系统</string>
-    <string name="settings_vibration_follow_system_desc">按键振动使用系统触感反馈设置</string>
-    <string name="settings_vibration_strength">按键振动强度</string>
-    <string name="settings_vibration_strength_desc">强度：%1$d%%（0=关闭）</string>
-    <string name="settings_vibration_strength_following_system">跟随系统设置</string>
-
-    <string name="settings_reset_desc">清除引导数据并重新运行引导</string>
-
-    <string name="benchmark_input_title">基准测试</string>
-    <string name="benchmark_input_desc">基准测试</string>
-    <string name="benchmark_input_hint">在这儿输入</string>
-
-    <string name="ime_picker_title">åˆ‡æ¢è¾“å…¥æ³•</string>
-    <string name="ime_picker_desc">ç‚¹å‡»æ‰“å¼€è¾“å…¥æ³•é€‰æ‹©å™¨ã€?</string>
-    <string name="ime_picker_channel_name">è¾“å…¥æ³•</string>
-    <string name="ime_picker_channel_desc">è¾“å…¥æ³•é€‰æ‹©å™¨é€šçŸ¥ã€?</string>
-
-    <string name="settings_suggestions_benchmark_disable">关闭候选条（基准测试）</string>
-    <string name="settings_suggestions_benchmark_disable_desc">基准测试时隐藏候选并停止更新。</string>
-    <string name="settings_benchmark_disable_key_preview">关闭按键预览（基准测试）</string>
-    <string name="settings_benchmark_disable_key_preview_desc">基准测试时关闭按键放大预览弹窗。</string>
-
-    <string name="settings_benchmark_disable_key_decorations">关闭按键装饰（基准测试）</string>
-    <string name="settings_benchmark_disable_key_decorations_desc">基准测试时关闭阴影、描边与提示。</string>
-
-    <string name="settings_benchmark_disable_key_labels">关闭按键标签（基准测试）</string>
-    <string name="settings_benchmark_disable_key_labels_desc">基准测试时隐藏按键文字。</string>
-
-    <string name="settings_debug_touch_logging">触摸调试日志</string>
-    <string name="settings_debug_touch_logging_desc">输出按键触摸移动与命中细节。</string>
-
-    <string name="settings_theme_preview_title">主题预览</string>
-    <string name="settings_theme_studio_title">主题工作台</string>
-    <string name="settings_theme_studio_subtitle">键盘主题的可视化编辑</string>
-    <string name="settings_theme_active">当前主题</string>
-    <string name="settings_theme_change">切换</string>
-    <string name="settings_theme_tab_preview">预览</string>
-    <string name="settings_theme_tab_basic">基础</string>
-    <string name="settings_theme_tab_advanced">高级</string>
-    <string name="settings_theme_palette_title">配色</string>
-    <string name="settings_section_theme_basic">基础主题配色</string>
-    <string name="settings_section_theme_advanced">高级主题</string>
-    <string name="settings_theme_base">基础主题</string>
-    <string name="settings_theme_basic_preview">基础预览</string>
-    <string name="settings_theme_advanced_preview">高级预览</string>
-    <string name="settings_theme_basic_apply">应用基础主题</string>
-    <string name="settings_theme_advanced_apply">应用高级主题</string>
-    <string name="settings_theme_basic_name">自定义基础</string>
-    <string name="settings_theme_advanced_name">自定义高级</string>
-    <string name="settings_theme_reset">重置修改</string>
-    <string name="settings_theme_color_background">背景</string>
-    <string name="settings_theme_color_key_background">按键背景</string>
-    <string name="settings_theme_color_key_pressed">按键按下</string>
-    <string name="settings_theme_color_key_function">功能键</string>
-    <string name="settings_theme_color_key_function_pressed">功能键按下</string>
-    <string name="settings_theme_color_key_text">按键文字</string>
-    <string name="settings_theme_color_key_hint">按键提示</string>
-    <string name="settings_theme_color_accent">强调色</string>
-    <string name="settings_theme_background">键盘背景</string>
-    <string name="settings_theme_background_desc">调整键盘背景颜色或图片。</string>
-    <string name="settings_theme_background_color">背景颜色</string>
-    <string name="settings_theme_background_image">背景图片</string>
-    <string name="settings_theme_key_preview">按键预览</string>
-    <string name="settings_theme_key_editing">编辑：%1$s</string>
-    <string name="settings_theme_key_background">按键背景颜色</string>
-    <string name="settings_theme_key_text">按键文字颜色</string>
-    <string name="settings_theme_key_background_image">按键背景图片</string>
-    <string name="settings_theme_key_clear">清除按键覆盖</string>
-    <string name="settings_theme_preview_unavailable">当前布局无法预览。</string>
-    <string name="settings_theme_image_pick">选择图片</string>
-    <string name="settings_theme_image_clear">清除图片</string>
-    <string name="settings_theme_image_none">无</string>
-    <string name="settings_theme_hex">十六进制</string>
-    <string name="settings_theme_alpha">透明度</string>
-    <string name="settings_theme_red">红</string>
-    <string name="settings_theme_green">绿</string>
-    <string name="settings_theme_blue">蓝</string>
-    <string name="settings_quick_input">输入</string>
-    <string name="settings_quick_input_label">快速输入</string>
-    <string name="settings_quick_input_placeholder">点此弹出键盘</string>
-    <string name="settings_language_layout_search_placeholder">搜索语言</string>
-    <string name="settings_language_layout_no_results">未找到匹配的语言。</string>
-    <string name="settings_language_layout_set_default">设为默认</string>
-    <string name="settings_language_layout_add_custom_title">添加自定义布局</string>
-    <string name="settings_language_layout_add_custom_hint">布局 ID</string>
-    <string name="settings_language_layout_add_custom_action">添加自定义布局</string>
-    <string name="settings_language_layout_custom_tag">%1$s（自定义）</string>
-    <string name="settings_language_layout_menu">语言布局菜单</string>
-    <string name="settings_language_layout_create_custom">创建自定义布局</string>
-    <string name="settings_language_layout_create_title">创建布局</string>
-    <string name="settings_language_layout_create_language">语言</string>
-    <string name="settings_language_layout_create_search">搜索语言</string>
-    <string name="settings_language_layout_create_confirm">打开编辑器</string>
-    <string name="settings_language_layout_create_missing_language">请选择语言。</string>
-    <string name="settings_language_layout_import_json">导入 JSON 布局</string>
-    <string name="settings_language_layout_import_title">导入布局</string>
-    <string name="settings_language_layout_import_file">布局 JSON</string>
-    <string name="settings_language_layout_import_choose_file">选择 JSON</string>
-    <string name="settings_language_layout_import_selected">已选择：%1$s</string>
-    <string name="settings_language_layout_import_language">语言</string>
-    <string name="settings_language_layout_import_name">布局名称</string>
-    <string name="settings_language_layout_import_id_preview">ID：%1$s</string>
-    <string name="settings_language_layout_import_confirm">导入</string>
-    <string name="settings_language_layout_import_missing_file">请选择 JSON 文件。</string>
-    <string name="settings_language_layout_import_missing_language">请选择语言。</string>
-    <string name="settings_language_layout_import_missing_name">请输入布局名称。</string>
-    <string name="settings_language_layout_import_invalid_name">布局名称生成的 ID 无效。</string>
-    <string name="settings_language_layout_import_duplicate">布局 ID 已存在：%1$s</string>
-    <string name="settings_language_layout_import_json_empty">JSON 为空。</string>
-    <string name="settings_language_layout_import_json_invalid">布局 JSON 无效。</string>
-    <string name="settings_language_layout_import_json_invalid_detail">布局无效：%1$s</string>
-    <string name="settings_layout_editor_title">布局编辑器</string>
-    <string name="layout_editor_preview_title">布局预览</string>
-    <string name="layout_editor_name_dialog_title">布局名称</string>
-    <string name="layout_editor_layout_name">布局名称</string>
-    <string name="layout_editor_columns">列数：%1$d</string>
-    <string name="layout_editor_horizontal_gap">水平间距：%1$d dp</string>
-    <string name="layout_editor_vertical_gap">垂直间距：%1$d dp</string>
-    <string name="layout_editor_add_row">新增一行</string>
-    <string name="layout_editor_remove_row">删除一行</string>
-    <string name="layout_editor_row_height">行高</string>
-    <string name="layout_editor_row_label">第 %1$d 行</string>
-    <string name="layout_editor_palette_title">键盘库（拖拽到布局中）</string>
-    <string name="layout_editor_trash_hint">拖到此处删除按键</string>
-    <string name="layout_editor_key_editor">按键编辑</string>
-    <string name="layout_editor_key_type_text">文字</string>
-    <string name="layout_editor_key_type_space">空格</string>
-    <string name="layout_editor_key_type_enter">回车</string>
-    <string name="layout_editor_key_type_backspace">退格</string>
-    <string name="layout_editor_key_type_shift">Shift</string>
-    <string name="layout_editor_key_type_tab">Tab</string>
-    <string name="layout_editor_key_label">按键显示</string>
-    <string name="layout_editor_key_long_press">长按文本</string>
-    <string name="layout_editor_key_function_hint">功能键使用内置行为。</string>
-    <string name="layout_editor_key_delete">删除按键</string>
-    <string name="layout_editor_error_empty_label">文字按键必须有内容。</string>
-    <string name="layout_editor_error_missing_name">必须填写布局名称。</string>
-    <string name="layout_editor_error_duplicate_id">布局 ID 已存在：%1$s</string>
-    <string name="layout_editor_error_invalid_layout">布局无效：%1$s</string>
-    <string name="layout_editor_save">保存布局</string>
-    <string name="layout_editor_key_label_space">空格</string>
-    <string name="layout_editor_key_label_enter">回车</string>
-    <string name="layout_editor_key_label_backspace">退格</string>
-    <string name="layout_editor_key_label_shift">Shift</string>
-    <string name="layout_editor_key_label_tab">Tab</string>
     <string name="settings_language_layout_enabled_title">已启用的语言</string>
-    <string name="settings_language_layout_manage">管理</string>
     <string name="settings_language_layout_enable">启用</string>
-    <string name="settings_language_layout_disable">禁用</string>
-    <string name="settings_language_layout_no_enabled">暂无已启用语言。</string>
-    <string name="settings_language_layout_enabled_layout">布局：%1$s</string>
+    <string name="settings_current_language">默认语言</string>
 
-    <!-- Input mode settings -->
-    <string name="settings_section_input_mode">输入模式</string>
-    <string name="settings_input_mode_title">选择输入模式</string>
-    <string name="settings_input_mode_normal">普通点击输入</string>
-    <string name="settings_input_mode_swype">滑行输入</string>
-    <string name="settings_input_mode_handwriting">手写输入</string>
-    <string name="settings_swype_enable">启用滑行输入</string>
-    <string name="settings_swype_enable_desc">在键盘上滑动手指输入单词</string>
-    <string name="settings_swype_show_trail">显示滑行轨迹</string>
-    <string name="settings_swype_show_trail_desc">滑动时显示轨迹线</string>
-    <string name="settings_handwriting_enable">启用手写输入</string>
-    <string name="settings_handwriting_enable_desc">直接在键盘上书写字符</string>
-    <string name="settings_handwriting_auto_recognize">自动识别手写</string>
-    <string name="settings_handwriting_auto_recognize_desc">暂停后自动识别</string>
-    <string name="settings_handwriting_layout_mode">手写面板布局</string>
-    <string name="settings_handwriting_layout_full_screen">全屏</string>
-    <string name="settings_handwriting_layout_half_screen">半屏</string>
-    <string name="settings_handwriting_layout_overlay">键盘覆盖</string>
-    <string name="settings_handwriting_position">面板位置</string>
-    <string name="settings_handwriting_position_top">顶部</string>
-    <string name="settings_handwriting_position_bottom">底部</string>
+    <!-- Settings - Keyboard -->
+    <string name="settings_toolbar">工具栏</string>
+    <string name="settings_toolbar_manage">管理工具栏按钮</string>
+    <string name="settings_keyboard_height">键盘高度</string>
+    <string name="settings_key_font_size">按键字号</string>
 
-    <string name="handwriting_title">手写输入</string>
+    <!-- Settings - Input -->
+    <string name="settings_input_behavior">输入行为</string>
+    <string name="settings_double_space_period">双击空格输入句号</string>
+    <string name="settings_double_space_period_desc">双击空格键自动输入句号</string>
+    <string name="settings_auto_capitalize">自动大写</string>
+    <string name="settings_auto_capitalize_desc">句首自动大写</string>
 
+    <!-- Settings - Feedback -->
+    <string name="settings_vibration_follow_system">触觉反馈</string>
+    <string name="settings_vibration_follow_system_desc">按键时振动</string>
+    <string name="settings_sound_feedback">声音反馈</string>
+    <string name="settings_sound_feedback_desc">按键时播放声音</string>
+
+    <!-- Settings - Theme -->
+    <string name="settings_theme">主题</string>
+    <string name="settings_theme_mode">主题模式</string>
+    <string name="settings_keyboard_theme">键盘主题</string>
+    <string name="settings_theme_auto">自动</string>
+    <string name="settings_theme_auto_desc">跟随系统深色模式</string>
+    <string name="settings_theme_light">亮色</string>
+    <string name="settings_theme_light_desc">始终使用亮色主题</string>
+    <string name="settings_theme_dark">暗色</string>
+    <string name="settings_theme_dark_desc">始终使用暗色主题</string>
+
+    <!-- Settings - AI -->
+    <string name="settings_voice_input">语音输入</string>
+
+    <!-- Settings - About -->
+    <string name="settings_version">版本</string>
+    <string name="settings_open_source">开源许可</string>
 </resources>
