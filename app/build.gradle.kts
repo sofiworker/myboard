@@ -81,9 +81,6 @@ dependencies {
     implementation(libs.androidx.material3)
     implementation("androidx.compose.material:material-icons-extended")
     implementation(libs.kotlinx.serialization.json)
-    
-    // AppIntro - 引导页面
-    implementation("com.github.AppIntro:AppIntro:6.3.1")
 
     // Room
     implementation("androidx.room:room-runtime:2.6.1")
