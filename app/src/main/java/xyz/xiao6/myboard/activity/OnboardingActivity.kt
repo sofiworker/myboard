@@ -22,7 +22,8 @@ import xyz.xiao6.myboard.ui.onboarding.*
 
 /**
  * 现代化 Compose 引导页。
- * 5 页流程：功能展示 → IME 检测 → 语言选择 → 布局选择 → 完成
+ * 4 页流程：功能展示 → IME 检测 → 语言选择 → 完成
+ * 布局选择以 overlay 模式从语言选择页进入。
  */
 class OnboardingActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -88,14 +89,14 @@ fun OnboardingContent() {
                 .padding(padding)
                 .background(MaterialTheme.colorScheme.background)
         ) {
-            // ---- 方案编辑模式（覆盖在页面之上） ----
+            // ---- 方案编辑模式（overlay） ----
             if (uiState.editingLocale != null) {
                 SchemaSelectionPage(
                     locale = uiState.editingLocale,
                     selectedSchemas = uiState.editingSchemas,
                     onToggleSchema = { viewModel.toggleSchema(it) },
                     onNext = { viewModel.nextSchemaOrFinish() },
-                    onSkip = { viewModel.confirmEditSchemas(); viewModel.setPage(4) }
+                    onSkip = { viewModel.confirmEditSchemas(); viewModel.setPage(3) }
                 )
             } else {
                 // ---- 标准引导页 HorizontalPager ----
@@ -129,7 +130,7 @@ fun OnboardingContent() {
                                 }
                             }
                         )
-                        4 -> CompletionPage(
+                        3 -> CompletionPage(
                             isCompleting = uiState.isCompleting,
                             onComplete = {
                                 viewModel.completeOnboarding {

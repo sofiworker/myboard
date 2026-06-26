@@ -21,7 +21,7 @@ import xyz.xiao6.myboard.state.BuiltInManifests
  */
 data class OnboardingUiState(
     val currentPage: Int = 0,
-    val totalPages: Int = 5,
+    val totalPages: Int = 4,
     val isImeEnabled: Boolean = false,
     val isCheckingIme: Boolean = false,
     val selectedLanguages: Map<LocaleTag, List<Schema>> = emptyMap(),
@@ -219,7 +219,7 @@ class OnboardingViewModel(
             startEditSchemas(selected[nextIndex])
         } else {
             // 所有语言方案确认完毕，跳到完成页
-            setPage(4)
+            setPage(3)
         }
     }
 
