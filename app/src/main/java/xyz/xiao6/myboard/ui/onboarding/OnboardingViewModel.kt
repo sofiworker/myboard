@@ -25,19 +25,16 @@ data class OnboardingUiState(
     val isImeEnabled: Boolean = false,
     val isCheckingIme: Boolean = false,
     val selectedLanguages: Map<LocaleTag, List<Schema>> = emptyMap(),
-    val editingLocale: LocaleTag? = null,
-    val editingSchemas: List<Schema> = emptyList(),
+    /** 正在弹方案选择 Dialog 的语言，null 表示不显示 Dialog */
+    val schemaDialogLocale: LocaleTag? = null,
+    /** Dialog 内临时编辑的方案列表 */
+    val schemaDialogSchemas: List<Schema> = emptyList(),
     val isCompleting: Boolean = false
 )
 
 /**
  * 引导页 ViewModel。
- * 管理 5 页引导流程的状态：
- * 1. 功能展示
- * 2. IME 启用检测
- * 3. 语言选择
- * 4. 布局（方案）选择
- * 5. 完成
+ * 流程：功能展示 → IME 检测 → 语言选择（含行内方案配置） → 完成
  */
 class OnboardingViewModel(
     private val context: Context,
@@ -59,12 +56,11 @@ class OnboardingViewModel(
     }
 
     /**
-     * 预填充语言：系统语言默认选中。
+     * 预填充语言：系统语言默认选中 + 始终有 en-US。
      */
     fun initializeWithSystemLocale() {
         val systemLocale = detectSystemLocale()
         val selected = mutableMapOf<LocaleTag, List<Schema>>()
-        // 默认始终添加 en-US
         val enManifest = BuiltInManifests.all.find { it.locale.value == "en-US" }
         if (enManifest != null) {
             selected[enManifest.locale] = listOf(enManifest.defaults.schema)
@@ -95,22 +91,20 @@ class OnboardingViewModel(
     fun startImeCheck() {
         _uiState.value = _uiState.value.copy(isCheckingIme = true)
         viewModelScope.launch {
-            // 立即检查一次
             val enabled = checkImeEnabled()
             _uiState.value = _uiState.value.copy(isImeEnabled = enabled)
             if (enabled) {
                 _uiState.value = _uiState.value.copy(isCheckingIme = false)
-                setPage(2) // 跳到语言选择
+                setPage(2)
                 return@launch
             }
-            // 未启用时，每 2 秒轮询一次
             var attempts = 0
             while (attempts < 30) {
                 delay(2000)
                 val nowEnabled = checkImeEnabled()
                 if (nowEnabled) {
                     _uiState.value = _uiState.value.copy(isImeEnabled = true, isCheckingIme = false)
-                    setPage(2) // 跳到语言选择
+                    setPage(2)
                     return@launch
                 }
                 attempts++
@@ -131,50 +125,7 @@ class OnboardingViewModel(
         }
     }
 
-    /** 开始编辑某个语言的输入方案。 */
-    fun startEditSchemas(locale: LocaleTag) {
-        val schemas = _uiState.value.selectedLanguages[locale] ?: emptyList()
-        _uiState.value = _uiState.value.copy(
-            editingLocale = locale,
-            editingSchemas = schemas.toList()
-        )
-    }
-
-    /** 切换某个输入方案的选中状态。 */
-    fun toggleSchema(schema: Schema) {
-        val current = _uiState.value.editingSchemas.toMutableList()
-        if (schema in current) {
-            current.remove(schema)
-        } else {
-            current.add(schema)
-        }
-        _uiState.value = _uiState.value.copy(editingSchemas = current)
-    }
-
-    /** 确认语言 + 方案编辑，回到语言选择页。 */
-    fun confirmEditSchemas() {
-        val locale = _uiState.value.editingLocale ?: return
-        val updated = _uiState.value.selectedLanguages.toMutableMap()
-        val validSchemas = _uiState.value.editingSchemas.ifEmpty {
-            // 如果全部取消，给一个默认方案
-            val manifest = BuiltInManifests.all.find { it.locale == locale }
-            listOf(manifest?.defaults?.schema ?: Schema("LATIN_DIRECT"))
-        }
-        updated[locale] = validSchemas
-        _uiState.value = _uiState.value.copy(
-            selectedLanguages = updated,
-            editingLocale = null,
-            editingSchemas = emptyList()
-        )
-    }
-
-    /** 取消方案编辑。 */
-    fun cancelEditSchemas() {
-        _uiState.value = _uiState.value.copy(
-            editingLocale = null,
-            editingSchemas = emptyList()
-        )
-    }
+    // ---- 语言 & 方案选择 ----
 
     /** 勾选/取消 某语言。 */
     fun toggleLanguage(locale: LocaleTag, defaultSchema: Schema) {
@@ -184,58 +135,73 @@ class OnboardingViewModel(
         } else {
             current[locale] = listOf(defaultSchema)
         }
-        reorderWithEnglishDefault(current)
         _uiState.value = _uiState.value.copy(selectedLanguages = current)
     }
 
-    /** 确保 en-US 始终在最前。 */
-    private fun reorderWithEnglishDefault(map: MutableMap<LocaleTag, List<Schema>>) {
-        val en = LocaleTag("en-US")
-        if (en in map && map.keys.first() != en) {
-            val entries = map.entries.toList()
-            map.clear()
-            entries.sortedByDescending { it.key == en }.forEach { (k, v) -> map[k] = v }
-        }
+    /** 打开方案选择 Dialog。 */
+    fun openSchemaDialog(locale: LocaleTag) {
+        val schemas = _uiState.value.selectedLanguages[locale] ?: emptyList()
+        _uiState.value = _uiState.value.copy(
+            schemaDialogLocale = locale,
+            schemaDialogSchemas = schemas.toList()
+        )
     }
 
-    /** 跳到布局选择：为当前选中的语言展示方案编辑。 */
-    fun goToLayoutSelection() {
-        val firstLocale = _uiState.value.selectedLanguages.keys.firstOrNull() ?: return
-        startEditSchemas(firstLocale)
+    /** 关闭方案选择 Dialog（不保存）。 */
+    fun dismissSchemaDialog() {
+        _uiState.value = _uiState.value.copy(
+            schemaDialogLocale = null,
+            schemaDialogSchemas = emptyList()
+        )
     }
 
-    /** 完成当前语言的方案编辑，跳到下一语言或完成页。 */
-    fun nextSchemaOrFinish() {
-        val selected = _uiState.value.selectedLanguages.keys.toList()
-        val currentEditing = _uiState.value.editingLocale
-        val currentIndex = selected.indexOf(currentEditing)
-        val nextIndex = currentIndex + 1
-
-        // 先保存当前编辑
-        confirmEditSchemas()
-
-        if (nextIndex < selected.size) {
-            // 还有下一个语言，编辑它的方案
-            startEditSchemas(selected[nextIndex])
+    /** 切换某个输入方案的选中状态。 */
+    fun toggleDialogSchema(schema: Schema) {
+        val current = _uiState.value.schemaDialogSchemas.toMutableList()
+        if (schema in current) {
+            current.remove(schema)
         } else {
-            // 所有语言方案确认完毕，跳到完成页
-            setPage(3)
+            current.add(schema)
         }
+        _uiState.value = _uiState.value.copy(schemaDialogSchemas = current)
     }
+
+    /** 确认方案选择，保存到语言配置。 */
+    fun confirmSchemaDialog() {
+        val locale = _uiState.value.schemaDialogLocale ?: return
+        var schemas = _uiState.value.schemaDialogSchemas
+        if (schemas.isEmpty()) {
+            // 至少保留一个默认方案
+            val manifest = BuiltInManifests.all.find { it.locale == locale }
+            schemas = listOf(manifest?.defaults?.schema ?: Schema("LATIN_DIRECT"))
+        }
+        val updated = _uiState.value.selectedLanguages.toMutableMap()
+        updated[locale] = schemas
+        _uiState.value = _uiState.value.copy(
+            selectedLanguages = updated,
+            schemaDialogLocale = null,
+            schemaDialogSchemas = emptyList()
+        )
+    }
+
+    /** 完成语言选择，跳到完成页。 */
+    fun finishLanguageSelection() {
+        setPage(3)
+    }
+
+    // ---- 引导完成 ----
 
     /** 完成引导，保存配置到数据库。 */
     fun completeOnboarding(onDone: () -> Unit) {
         _uiState.value = _uiState.value.copy(isCompleting = true)
         viewModelScope.launch {
             try {
-                // 保存语言配置
                 val configs = _uiState.value.selectedLanguages
                 if (configs.isNotEmpty()) {
                     repository.setEnabledLocaleConfigs(configs)
                     val firstLocale = configs.keys.first()
                     repository.updateSetting("current_locale", firstLocale.value)
                 }
-                // 标记引导完成
                 repository.updateSetting("onboarding_completed", "true")
                 onDone()
             } finally {

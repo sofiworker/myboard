@@ -20,12 +20,14 @@ import androidx.compose.ui.unit.sp
 /**
  * 第 2 页：启用 MyBoard 输入法。
  * 引导用户到系统设置启用 IME，并自动检测启用状态。
+ * 用户可手动跳过此步骤进入下一页。
  */
 @Composable
 fun ImeEnablePage(
     isImeEnabled: Boolean,
     isChecking: Boolean,
-    onRefreshCheck: () -> Unit
+    onRefreshCheck: () -> Unit,
+    onSkip: () -> Unit
 ) {
     val context = LocalContext.current
 
@@ -66,7 +68,7 @@ fun ImeEnablePage(
 
         Text(
             text = if (isImeEnabled) "已检测到 MyBoard 输入法，即将进入下一步..."
-                   else "请在系统设置中启用 MyBoard 输入法，然后返回此页面。",
+                   else "请在系统设置中启用 MyBoard 输入法，然后点击下方按钮检测。",
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center
@@ -131,12 +133,26 @@ fun ImeEnablePage(
 
         Spacer(modifier = Modifier.weight(1f))
 
-        // 跳过按钮（已启用时隐藏）
-        if (!isImeEnabled) {
-            TextButton(onClick = onRefreshCheck) {
-                Text("我已启用，下一步")
-            }
-            Spacer(modifier = Modifier.height(24.dp))
+        // "下一步" 按钮 — 即使 IME 未启用也可手动跳过
+        Button(
+            onClick = onSkip,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(52.dp),
+            shape = RoundedCornerShape(12.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.secondary.copy(alpha = 0.85f)
+            )
+        ) {
+            Text("下一步", fontSize = 16.sp)
         }
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = "若未启用 MyBoard，后续可在设置中重新配置",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+            textAlign = TextAlign.Center
+        )
+        Spacer(modifier = Modifier.height(24.dp))
     }
 }

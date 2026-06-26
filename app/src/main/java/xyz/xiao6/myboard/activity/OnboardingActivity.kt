@@ -21,9 +21,8 @@ import xyz.xiao6.myboard.data.repository.SettingsRepository
 import xyz.xiao6.myboard.ui.onboarding.*
 
 /**
- * 现代化 Compose 引导页。
- * 4 页流程：功能展示 → IME 检测 → 语言选择 → 完成
- * 布局选择以 overlay 模式从语言选择页进入。
+ * 引导页。4 页流程：
+ * 功能展示 → IME 检测 → 语言选择（含方案 Dialog） → 完成
  */
 class OnboardingActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -53,12 +52,10 @@ fun OnboardingContent() {
     )
     val coroutineScope = rememberCoroutineScope()
 
-    // 初始化系统语言预选
     LaunchedEffect(Unit) {
         viewModel.initializeWithSystemLocale()
     }
 
-    // 同步 pager 状态与 ViewModel 状态
     LaunchedEffect(pagerState.currentPage) {
         viewModel.setPage(pagerState.currentPage)
     }
@@ -89,68 +86,71 @@ fun OnboardingContent() {
                 .padding(padding)
                 .background(MaterialTheme.colorScheme.background)
         ) {
-            // ---- 方案编辑模式（overlay） ----
-            if (uiState.editingLocale != null) {
-                SchemaSelectionPage(
-                    locale = uiState.editingLocale,
-                    selectedSchemas = uiState.editingSchemas,
-                    onToggleSchema = { viewModel.toggleSchema(it) },
-                    onNext = { viewModel.nextSchemaOrFinish() },
-                    onSkip = { viewModel.confirmEditSchemas(); viewModel.setPage(3) }
-                )
-            } else {
-                // ---- 标准引导页 HorizontalPager ----
-                HorizontalPager(
-                    state = pagerState,
-                    userScrollEnabled = false,
-                    modifier = Modifier.fillMaxSize()
-                ) { page ->
-                    when (page) {
-                        0 -> FeatureShowcasePage(
-                            onNext = {
-                                coroutineScope.launch {
-                                    viewModel.startImeCheck()
-                                    pagerState.animateScrollToPage(1)
-                                }
+            HorizontalPager(
+                state = pagerState,
+                userScrollEnabled = false,
+                modifier = Modifier.fillMaxSize()
+            ) { page ->
+                when (page) {
+                    0 -> FeatureShowcasePage(
+                        onNext = {
+                            coroutineScope.launch {
+                                viewModel.startImeCheck()
+                                pagerState.animateScrollToPage(1)
                             }
-                        )
-                        1 -> ImeEnablePage(
-                            isImeEnabled = uiState.isImeEnabled,
-                            isChecking = uiState.isCheckingIme,
-                            onRefreshCheck = { viewModel.refreshImeCheck() }
-                        )
-                        2 -> LanguageSelectionPage(
-                            selectedLanguages = uiState.selectedLanguages,
-                            onToggleLanguage = { locale, schema ->
-                                viewModel.toggleLanguage(locale, schema)
-                            },
-                            onNext = {
-                                if (uiState.selectedLanguages.isNotEmpty()) {
-                                    viewModel.goToLayoutSelection()
-                                }
+                        }
+                    )
+                    1 -> ImeEnablePage(
+                        isImeEnabled = uiState.isImeEnabled,
+                        isChecking = uiState.isCheckingIme,
+                        onRefreshCheck = { viewModel.refreshImeCheck() },
+                        onSkip = {
+                            coroutineScope.launch {
+                                pagerState.animateScrollToPage(2)
                             }
-                        )
-                        3 -> CompletionPage(
-                            isCompleting = uiState.isCompleting,
-                            onComplete = {
-                                viewModel.completeOnboarding {
-                                    context.startActivity(
-                                        Intent(context, SettingsActivity::class.java)
-                                    )
-                                    (context as? ComponentActivity)?.finish()
-                                }
+                        }
+                    )
+                    2 -> LanguageSelectionPage(
+                        selectedLanguages = uiState.selectedLanguages,
+                        showSchemaDialog = uiState.schemaDialogLocale != null,
+                        schemaDialogLocale = uiState.schemaDialogLocale,
+                        schemaDialogSchemas = uiState.schemaDialogSchemas,
+                        onToggleLanguage = { locale, schema ->
+                            viewModel.toggleLanguage(locale, schema)
+                        },
+                        onOpenSchemaDialog = { viewModel.openSchemaDialog(it) },
+                        onToggleDialogSchema = { viewModel.toggleDialogSchema(it) },
+                        onConfirmSchemaDialog = { viewModel.confirmSchemaDialog() },
+                        onDismissSchemaDialog = { viewModel.dismissSchemaDialog() },
+                        onFinish = { viewModel.finishLanguageSelection() }
+                    )
+                    3 -> CompletionPage(
+                        isCompleting = uiState.isCompleting,
+                        onComplete = {
+                            viewModel.completeOnboarding {
+                                context.startActivity(
+                                    Intent(context, SettingsActivity::class.java)
+                                )
+                                (context as? ComponentActivity)?.finish()
                             }
-                        )
-                    }
+                        }
+                    )
                 }
             }
         }
     }
 
-    // 监听 IME 启用状态 -> 当检测到启用后自动跳页
+    val currentPage = pagerState.currentPage
     LaunchedEffect(uiState.isImeEnabled) {
-        if (uiState.isImeEnabled && pagerState.currentPage == 1) {
+        if (uiState.isImeEnabled && currentPage == 1) {
             pagerState.animateScrollToPage(2)
+        }
+    }
+
+    // 当 ViewModel 切换页面时同步 pager
+    LaunchedEffect(uiState.currentPage) {
+        if (pagerState.currentPage != uiState.currentPage) {
+            pagerState.animateScrollToPage(uiState.currentPage)
         }
     }
 }
