@@ -51,7 +51,7 @@ v2.0 相对历史草稿的核心变更：
 | --- | --- |
 | `layoutId` | 选定布局文件 |
 | `layer`（`LayoutLayer`） | 选定按键内容变体（`NORMAL`/`SHIFTED`/`CAPS_LOCK`/`SYMBOL`/`NUMBER`） |
-| `composingText` / `candidates` / `selectedCandidateIndex` | 候选栏 region 展示 |
+| `composingText` / `candidates` / `selectedCandidateIndex` | 页面框架中的候选栏展示 |
 | `orthogonal` | 决定布局是否支持 Shift（读 `SchemaCapability.supportsShift`，通过 registry 查询） |
 
 布局层**禁止**读写 `KeyboardContext` 以外的运行时状态，禁止维护自己的 `StateMachine`、`currentPage`、`shiftState` 等字段。
@@ -150,6 +150,27 @@ enum class GestureType {
     TAP, LONG_PRESS, DOUBLE_TAP, REPEAT,
     SWIPE_UP, SWIPE_DOWN, SWIPE_LEFT, SWIPE_RIGHT
 }
+
+enum class LayoutActionType {
+    PUSH_TOKEN,
+    COMMIT_TEXT,
+    DELETE,
+    SPACE,
+    ENTER,
+    SWITCH_LAYER,
+    CYCLE_LAYER,
+    SWITCH_LOCALE,
+    SWITCH_SCRIPT,
+    SWITCH_SCHEMA,
+    OPEN_PANEL,
+    CLOSE_PANEL,
+    COMMIT_CANDIDATE,
+    PAGE_NEXT,
+    PAGE_PREV,
+    PAGE_CANDIDATE,
+    RESTORE_PREVIOUS_SCHEMA,
+    NOOP
+}
 ```
 
 ### 3.2 动作定义
@@ -157,7 +178,7 @@ enum class GestureType {
 ```kotlin
 @Serializable
 data class ActionDef(
-    val actionType: String,          // 见 §2.2 合法动作集合
+    val actionType: LayoutActionType, // 见 §2.2 合法动作集合
     val payload: Map<String, JsonElement> = emptyMap()
 )
 
@@ -167,7 +188,7 @@ data class ActionMap(
 )
 ```
 
-`actionType` 是字符串而非枚举，因为外部语言包、用户自定义布局可能引用新动作；合法性校验在 `LayoutRegistry.register` 时完成，未注册的动作会让注册失败。
+代码层必须使用 `LayoutActionType` 等强类型枚举，禁止在业务逻辑中直接比较或分发动作字符串。JSONC 中 `actionType` 的规范写法固定为枚举名的大写下划线形式，例如 `PUSH_TOKEN`、`OPEN_PANEL`、`RESTORE_PREVIOUS_SCHEMA`。解析层不维护历史别名，不做任意驼峰、小写、短横线或拼写相近值的自动猜测；旧内置布局必须整体迁移到标准枚举名。未知 `actionType` 必须在解析或注册阶段失败。外部动作扩展应通过后续扩展注册机制显式加入枚举/注册表，而不是让布局层接受任意字符串。
 
 ### 3.3 按键节点
 
@@ -215,6 +236,7 @@ sealed class HitShape {
 - `styleRef` 替代历史草稿的 `background`/`textColor`。颜色归主题层（`core.md:8`），布局只引用 token 名（如 `"key_function"`、`"key_action"`）。
 - `variants` 按 `LayoutLayer` 名（`NORMAL`/`SHIFTED`/`SYMBOL`/...）提供内容覆盖。布局渲染时读 `KeyboardContext.layer`，把对应 `VariantPatch` 叠加到 `ContentSpec` 上。这就是 Shift 大小写、符号页切换的实现机制——不需要切布局文件，只切 layer。
 - `actions` 是按键的全部行为来源。`ComposeInputView.mapKeyToAction` 的 keyId 硬编码在 v2.0 中必须删除，渲染器只读 `KeyDef.actions`。
+- 布局层不定义 `specialKey`、`KeyType` 或任何等价的特殊键字段。退格、Shift、回车、候选、符号、Emoji、数字页中的固定功能键都只是普通 `KeyDef`；它们的行为只能由 `actions.gestures` 中的 `LayoutActionType` 和 payload 决定。`KeyDef.id` 只用于稳定引用、patch、测试和调试，`styleRef`/`content.icon`/`Region.role`/`Region.tags` 只能影响展示或元数据，禁止参与行为分发。
 - `hitShape` 支持异形按键（游戏键盘 ABXY、圆形键），命中测试用 `Path` + `Region`。
 
 ### 3.4 容器节点（5 种布局类型）
@@ -265,7 +287,7 @@ data class RowLayout(
 data class GridLayout(
     override val id: String,
     val columns: Int,
-    val rows: Int = 0,                      // 0 表示按内容自动
+    val rows: Float = 0f,                   // 0f 表示按内容自动
     val cells: List<GridCell>,
     val rowGap: Float = 0f,
     val colGap: Float = 0f,
@@ -278,13 +300,13 @@ data class GridLayout(
     @Serializable
     data class GridCell(
         val key: KeyDef,
-        val col: Int, val row: Int,
-        val colSpan: Int = 1, val rowSpan: Int = 1
+        val col: Float, val row: Float,
+        val colSpan: Float = 1f, val rowSpan: Float = 1f
     )
 }
 ```
 
-测量规则：按 `columns` 等分列宽，`colSpan`/`rowSpan` 合并单元格。校验：`col + colSpan ≤ columns`，`row + rowSpan ≤ rows`（若 rows>0），同一格不能被多个 cell 占用。T9 的 5×4 布局、数字键盘的 3×4 都用这个。
+测量规则：按 `columns` 等分列宽，`col`/`row` 与 `colSpan`/`rowSpan` 支持 `Float`，用于手机 26 键的半键错位（例如第二行 `col = 0.5f`）。校验：`col + colSpan ≤ columns`，`row + rowSpan ≤ rows`（若 rows>0），同一区间不能被多个 cell 重叠占用。T9 的 5×4 布局、数字键盘的 3×4 仍可使用整数值表达。
 
 **③ LinearLayout —— 线性容器（候选栏、工具栏）**
 
@@ -340,7 +362,7 @@ data class AbsoluteLayout(
 
 手写板、悬浮工具岛、特殊定位键用它。`zIndex` 控制层叠，`anchor` 支持右下角定位。
 
-**⑤ CompositeLayout —— 复合容器（键盘 + 候选 + 工具一体化）**
+**⑤ CompositeLayout —— 可选内部分区容器**
 
 ```kotlin
 @Serializable @SerialName("composite")
@@ -350,28 +372,79 @@ data class CompositeLayout(
     val regions: List<Region>,
     val gap: Float = 0f,
     override val width: Dimension = Dimension.Match,
-    override val height: Dimension = Dimension.Wrap,
+    override val height: Dimension = Dimension.Match,
     override val padding: BoxSpacing = BoxSpacing(),
     override val styleRef: String? = null,
     override val bindings: Bindings? = null
 ) : LayoutContainer()
-```
 
-`Region` 是带语义角色的容器包装（`keyboard`/`candidate`/`toolbar`/`sidebar`/`header`/`footer`）。一个完整的 IME 视图通常是 `CompositeLayout` 包含 `[toolbar/header region, candidate region, keyboard region]`。`bindings.visibleWhen` 让候选栏和工具栏在 composing 状态下互斥显示。
-
-```kotlin
 @Serializable
 data class Region(
     val id: String,
-    val role: RegionRole,                   // keyboard/candidate/toolbar/sidebar/header/footer/popup
+    val role: String? = null,
+    val tags: List<String> = emptyList(),
     val container: LayoutContainer,
     val bindings: Bindings? = null
 )
-
-enum class RegionRole { KEYBOARD, CANDIDATE, TOOLBAR, SIDEBAR, HEADER, FOOTER, POPUP }
 ```
 
-`Region` 解决了历史草稿把候选栏、工具栏、键盘割裂成多个文件的问题：现在它们是同一份布局文档里的不同 region，一起渲染、一起切换。
+`regions` 可以出现在普通 `LayoutDoc.root` 中，但它只表示**当前 layout 内部的区域划分**，不是全局页面 chrome。普通 QWERTY、双拼、T9 可以不用 `regions`，root 直接写 `GridLayout`；候选字/词页、符号页、数字 `1234` 页等复杂布局可以用 `CompositeLayout` 表达左侧滚动栏、中间网格、右侧固定功能键。
+
+禁止把 inline toolbar 或 inline candidate bar 作为每个输入 layout 的固定 region 重复写入。toolbar/候选栏在普通输入态下由键盘页面框架统一切换；`regions` 只管理当前 `LayoutDoc` 自己内部的 rail/content/action 等分区。
+
+`Region.role` 和 `Region.tags` 是开放语义字段，不是枚举。它们用于可读性、调试、patch 定位辅助和未来编辑器分组，例如 `pinyinRail`、`candidateGrid`、`fixedActions` 或 `["scrollable", "candidate"]`。核心业务逻辑不得通过 `when (region.role)` 直接分发；需要稳定引用时优先使用 `Region.id`。解析层不得对 `role` / `tags` 做大小写归一化、别名迁移或拼写纠错，导出时按原值输出。
+
+候选字/词页这类占满整块键盘区域的布局示例：
+
+```jsonc
+{
+  "id": "candidate_words_page",
+  "presentationMode": "FULL_SURFACE",
+  "root": {
+    "type": "composite",
+    "id": "candidate_words_root",
+    "orientation": "HORIZONTAL",
+    "regions": [
+      {
+        "id": "pinyin_rail",
+        "role": "pinyinRail",
+        "tags": ["rail", "scrollable", "pinyin"],
+        "container": {
+          "type": "linear",
+          "id": "pinyin_rail_list",
+          "orientation": "VERTICAL",
+          "width": { "type": "dp", "value": 48 },
+          "children": []
+        }
+      },
+      {
+        "id": "candidate_grid_region",
+        "role": "candidateGrid",
+        "tags": ["content", "candidate", "scrollable"],
+        "container": {
+          "type": "grid",
+          "id": "candidate_grid",
+          "columns": 3,
+          "width": { "type": "weight", "value": 1 },
+          "cells": []
+        }
+      },
+      {
+        "id": "candidate_actions",
+        "role": "fixedActions",
+        "tags": ["fixed", "actions"],
+        "container": {
+          "type": "grid",
+          "id": "candidate_actions_grid",
+          "columns": 1,
+          "width": { "type": "dp", "value": 56 },
+          "cells": []
+        }
+      }
+    ]
+  }
+}
+```
 
 ### 3.5 完整文档结构
 
@@ -382,10 +455,13 @@ data class LayoutDoc(
     val id: String,                          // layoutId，Manifest 通过它引用
     val meta: LayoutMeta = LayoutMeta(),
     val env: LayoutEnv? = null,              // 适配条件
-    val root: LayoutContainer,               // 通常为 CompositeLayout
+    val presentationMode: LayoutPresentationMode = LayoutPresentationMode.CHROME_AND_CONTENT,
+    val root: LayoutContainer,
     val styles: Map<String, StyleRef> = emptyMap(),  // 本布局内的样式别名，最终解析到主题 token
-    val supportedLayers: List<String> = listOf("NORMAL")  // 该布局支持的 LayoutLayer
+    val supportedLayers: List<LayoutLayer> = listOf(LayoutLayer.NORMAL)  // 该布局支持的 LayoutLayer
 )
+
+enum class LayoutPresentationMode { CHROME_AND_CONTENT, FULL_SURFACE }
 
 @Serializable
 data class LayoutMeta(
@@ -403,7 +479,40 @@ data class LayoutEnv(
 )
 ```
 
-`LayoutDoc.root` 通常是一个 `CompositeLayout`，它把候选栏、工具栏、键盘区组合成完整视图。布局文件数量不再爆炸——一个 Locale + Script 组合一份主布局，layer 切换在同一文件内通过 `variants` 完成。
+`presentationMode = CHROME_AND_CONTENT` 是默认模式：页面框架显示 toolbar 或 inline candidate bar，`LayoutDoc.root` 只占内容区。`presentationMode = FULL_SURFACE` 表示该 layout 占满整个键盘页面固定尺寸槽，适合候选字/词页、符号页、数字 `1234` 页等需要覆盖 toolbar + 普通键盘区域的布局。
+
+候选字/词页、符号页、Emoji 页、数字页仍然是普通 `LayoutDoc`：可以使用 `FULL_SURFACE` 和 `CompositeLayout` 组织分类栏、内容网格、固定功能栏，但不能引入页面专属 key 类型。候选格子用 `COMMIT_CANDIDATE` + `payload.index` 引用运行时 `KeyboardContext.candidates[index]`；符号和 Emoji 格子用 `PUSH_TOKEN`；翻页和返回等固定键分别用 `PAGE_PREV`/`PAGE_NEXT`/`CLOSE_PANEL` 等标准动作。
+
+运行时若 `PanelType` 已由 `PanelLayoutResolver` 映射到内置 layoutId（例如 `SYMBOL -> symbols_full_surface`、`EMOJI -> emoji_full_surface`），键盘页面框架必须测量并渲染对应 `LayoutDoc`，而不是再调用旧的专用 panel Composable。未映射的 panel（剪贴板、颜文字、语言/布局切换等）可以继续使用专用 Composable，直到迁移为普通 layout。
+
+### 3.6 JSONC 枚举字段规范
+
+JSONC 中所有对应代码枚举的字段必须使用枚举名的大写下划线形式。代码反序列化后必须得到强类型枚举，业务逻辑不得直接比较或分发字符串。适用字段包括但不限于：
+
+- `actionType`: `PUSH_TOKEN`、`DELETE`、`OPEN_PANEL`
+- `orientation`: `VERTICAL`、`HORIZONTAL`
+- `presentationMode`: `CHROME_AND_CONTENT`、`FULL_SURFACE`
+- `supportedLayers` 与 `payload.layer`: `NORMAL`、`SHIFTED`、`CAPS_LOCK`、`SYMBOL`、`NUMBER`
+- `payload.panel`: `SYMBOL`、`EMOJI`、`CLIPBOARD`
+- `GestureType` map key: `TAP`、`LONG_PRESS`、`SWIPE_UP`
+- `HintPosition` map key: `TOP_CENTER`、`BOTTOM_RIGHT`
+
+解析层不维护历史别名表，不允许对任意驼峰、小写、短横线或拼写相近值做自动归一化。所有内置、语言包和用户导入 JSONC 都必须写标准枚举名；导出或格式化时也必须输出标准枚举名。旧内置布局在实现该约束时必须一次性整体迁移。
+
+`Region.role`、`Region.tags`、`id`、`styleRef`、`meta.tags` 等开放字符串字段不属于枚举字段，不要求大写下划线，也不得被自动归一化。开放字符串字段只能作为声明性元数据或稳定引用使用，不能成为核心行为分发的隐式枚举。
+
+### 3.7 键盘页面固定尺寸约束
+
+所有键盘页面（主键盘、符号面板、Emoji 面板、剪贴板面板、语言/布局切换面板以及后续新增 page）必须共享同一个外层页面尺寸，禁止由单个 `LayoutDoc`、panel 或 page 自行决定外框高度、左右 padding 或左右 margin。
+
+外层页面尺寸的唯一来源是设置数据库：
+
+- `keyboard_height`：键盘页面总高度，单位 dp。
+- `keyboard_horizontal_inset`：键盘页面左右侧统一 inset，单位 dp。
+
+当设置缺失、非法或越界时，启动时必须根据当前屏幕尺寸计算合理默认值并写回数据库。代码层统一通过设置仓库和尺寸策略读取这些值，不能在布局 JSONC、panel Composable 或渲染逻辑中散落 `260.dp`、`200.dp`、`180.dp` 等页面级固定高度。
+
+`CHROME_AND_CONTENT` 布局测量只消费扣除左右 inset 和固定 chrome（候选栏/工具栏）后的内容区域；`FULL_SURFACE` 布局测量消费整个固定键盘页面高度，但仍必须使用同一个外层 `keyboard_height` 和 `keyboard_horizontal_inset`。页面切换时，主键盘、候选页、工具栏页和所有 panel 的外层 `height` 与左右 inset 必须保持一致，防止不同 page 忽大忽小造成 IME 跳变。
 
 ## 4. LayoutEngine —— 测量
 
@@ -420,18 +529,19 @@ data class MeasuredKey(
     val zIndex: Int
 )
 
+data class MeasuredLayout(
+    val doc: LayoutDoc,
+    val keys: List<MeasuredKey>,
+    val viewWidth: Int,
+    val viewHeight: Int,
+    val layer: LayoutLayer,                  // 测量时所用的层，用于缓存键
+    val regions: List<MeasuredRegion> = emptyList()
+)
+
 data class MeasuredRegion(
     val region: Region,
     val rect: RectF,
     val keys: List<MeasuredKey>
-)
-
-data class MeasuredLayout(
-    val doc: LayoutDoc,
-    val regions: List<MeasuredRegion>,
-    val viewWidth: Int,
-    val viewHeight: Int,
-    val layer: LayoutLayer                   // 测量时所用的层，用于缓存键
 )
 ```
 
@@ -445,22 +555,25 @@ class LayoutEngine {
         viewWidth: Int,
         viewHeight: Int
     ): MeasuredLayout {
-        val regions = mutableListOf<MeasuredRegion>()
-        measureContainer(doc.root, 0f, 0f, viewWidth.toFloat(), viewHeight.toFloat(), layer, regions, 0)
-        return MeasuredLayout(doc, regions, viewWidth, viewHeight, layer)
+        if (doc.root is CompositeLayout) {
+            val regions = measureComposite(doc.root, RectF(0f, 0f, viewWidth.toFloat(), viewHeight.toFloat()), layer)
+            return MeasuredLayout(doc, regions.flatMap { it.keys }, viewWidth, viewHeight, layer, regions)
+        }
+        val keys = measureContainer(doc.root, 0f, 0f, viewWidth.toFloat(), viewHeight.toFloat(), layer, 0)
+        return MeasuredLayout(doc, keys, viewWidth, viewHeight, layer)
     }
 
     private fun measureContainer(
         c: LayoutContainer, x: Float, y: Float, w: Float, h: Float,
-        layer: LayoutLayer, out: MutableList<MeasuredRegion>, z: Int
-    ) {
+        layer: LayoutLayer, z: Int
+    ): List<MeasuredKey> {
         val inner = applyPadding(x, y, w, h, c.padding)
-        when (c) {
-            is RowLayout     -> measureRow(c, inner, layer, out, z)
-            is GridLayout    -> measureGrid(c, inner, layer, out, z)
-            is LinearLayout  -> measureLinear(c, inner, layer, out, z)
-            is AbsoluteLayout -> measureAbsolute(c, inner, layer, out, z)
-            is CompositeLayout -> measureComposite(c, inner, layer, out, z)
+        return when (c) {
+            is RowLayout      -> measureRow(c, inner, layer, z)
+            is GridLayout     -> measureGrid(c, inner, layer, z)
+            is LinearLayout   -> measureLinear(c, inner, layer, z)
+            is AbsoluteLayout -> measureAbsolute(c, inner, layer, z)
+            is CompositeLayout -> measureComposite(c, inner, layer).flatMap { it.keys }
         }
     }
 }
@@ -469,8 +582,8 @@ class LayoutEngine {
 **RowLayout 测量**（权重分离，历史草稿算法保留并校正）：
 
 ```kotlin
-private fun measureRow(c: RowLayout, area: RectF, layer: LayoutLayer, out: MutableList<MeasuredRegion>, z: Int) {
-    if (c.keys.isEmpty()) return
+private fun measureRow(c: RowLayout, area: RectF, layer: LayoutLayer, z: Int): List<MeasuredKey> {
+    if (c.keys.isEmpty()) return emptyList()
     var totalWeight = 0f
     var fixedWidth = 0f
     c.keys.forEach { key ->
@@ -484,7 +597,7 @@ private fun measureRow(c: RowLayout, area: RectF, layer: LayoutLayer, out: Mutab
     }
     val available = (area.width() - fixedWidth - c.gap * (c.keys.size - 1)).coerceAtLeast(0f)
     var curX = area.left
-    c.keys.forEach { key ->
+    return c.keys.map { key ->
         val kw = when (val w = effectiveWidth(key, layer)) {
             is Dimension.Dp       -> w.value
             is Dimension.Percent  -> w.value * area.width()
@@ -494,8 +607,9 @@ private fun measureRow(c: RowLayout, area: RectF, layer: LayoutLayer, out: Mutab
         }
         val kh = area.height()
         val content = resolveContent(key, layer)
-        out.addKey(key, content, RectF(curX, area.top, curX + kw, area.top + kh), z)
+        val rect = RectF(curX, area.top, curX + kw, area.top + kh)
         curX += kw + c.gap
+        MeasuredKey(key, content, rect, buildHitPath(key, rect), z)
     }
 }
 ```
@@ -503,32 +617,21 @@ private fun measureRow(c: RowLayout, area: RectF, layer: LayoutLayer, out: Mutab
 **GridLayout 测量**（跨行跨列，支持 T9）：
 
 ```kotlin
-private fun measureGrid(c: GridLayout, area: RectF, layer: LayoutLayer, out: MutableList<MeasuredRegion>, z: Int) {
-    val colWidth = (area.width() - c.colGap * (c.columns - 1)) / c.columns
-    val rowCount = if (c.rows > 0) c.rows else (c.cells.maxOfOrNull { it.row + it.rowSpan } ?: 0)
-    if (rowCount == 0) return
-    val rowHeight = (area.height() - c.rowGap * (rowCount - 1)) / rowCount
-    c.cells.forEach { cell ->
+private fun measureGrid(c: GridLayout, area: RectF, layer: LayoutLayer, z: Int): List<MeasuredKey> {
+    val columns = c.columns.toFloat()
+    val rowCount = if (c.rows > 0f) c.rows else (c.cells.maxOfOrNull { it.row + it.rowSpan } ?: 0f)
+    if (rowCount <= 0f) return emptyList()
+    val colWidth = (area.width() - c.colGap * (columns - 1f)) / columns
+    val rowHeight = (area.height() - c.rowGap * (rowCount - 1f)) / rowCount
+    return c.cells.map { cell ->
         val left = area.left + cell.col * (colWidth + c.colGap)
         val top = area.top + cell.row * (rowHeight + c.rowGap)
-        val w = cell.colSpan * colWidth + c.colGap * (cell.colSpan - 1)
-        val h = cell.rowSpan * rowHeight + c.rowGap * (cell.rowSpan - 1)
+        val w = cell.colSpan * colWidth + c.colGap * (cell.colSpan - 1f)
+        val h = cell.rowSpan * rowHeight + c.rowGap * (cell.rowSpan - 1f)
         val content = resolveContent(cell.key, layer)
-        out.addKey(cell.key, content, RectF(left, top, left + w, top + h), z)
+        val rect = RectF(left, top, left + w, top + h)
+        MeasuredKey(cell.key, content, rect, buildHitPath(cell.key, rect), z)
     }
-}
-```
-
-**CompositeLayout 测量**（按 orientation 分配 region 高度）：
-
-```kotlin
-private fun measureComposite(c: CompositeLayout, area: RectF, layer: LayoutLayer, out: MutableList<MeasuredRegion>, z: Int) {
-    // region 高度分配：keyboard region 用 Match/Wrap，candidate/toolbar 用固定 Dp 或 Wrap
-    // 先测量固定高度 region，剩余给 keyboard region
-    val (fixed, flex) = c.regions.partition { it.container.height is Dimension.Dp || it.container.height is Dimension.Percent }
-    var consumed = 0f
-    val isVertical = c.orientation == Orientation.VERTICAL
-    // ... 按方向累加，flex region 瓜分剩余空间
 }
 ```
 
@@ -561,11 +664,11 @@ private fun buildHitPath(key: KeyDef, rect: RectF): Path {
 }
 ```
 
-命中测试用 `Region.setPath` 做像素级碰撞，从 zIndex 高到低遍历：
+命中测试可用 `android.graphics.Region.setPath` 做像素级碰撞，从 zIndex 高到低遍历：
 
 ```kotlin
 fun findHit(layout: MeasuredLayout, x: Float, y: Float): MeasuredKey? {
-    val allKeys = layout.regions.flatMap { it.keys }.sortedByDescending { it.zIndex }
+    val allKeys = layout.keys.sortedByDescending { it.zIndex }
     val touchRegion = Region()
     for (mk in allKeys) {
         val bounds = Region(mk.rect.left.toInt(), mk.rect.top.toInt(), mk.rect.right.toInt(), mk.rect.bottom.toInt())
@@ -600,7 +703,7 @@ class LayoutMeasurer {
 }
 ```
 
-旋转屏幕、切 layoutId、切 layer 时按需失效。composing/candidates 变化只影响候选栏 region，不触发整个布局重测。
+旋转屏幕、切 layoutId、切 layer 时按需失效。composing/candidates 变化只影响页面框架中的候选栏/工具栏显隐，不触发输入 layout 重测。
 
 ### 4.6 嵌套深度与防失控
 
@@ -677,40 +780,19 @@ Manifest 通过 `layoutId` 引用布局，多个 Schema 可指向同一 `layoutI
 
 ### 6.2 候选栏与组合态显示
 
-候选栏是布局的一个 `role: CANDIDATE` region，通过 `bindings.visibleWhen` 控制显隐：
-
-```json
-{
-  "id": "candidate_region",
-  "role": "CANDIDATE",
-  "bindings": { "visibleWhen": "context.composing" },
-  "container": {
-    "type": "linear",
-    "orientation": "HORIZONTAL",
-    "scroll": { "enabled": true, "direction": "HORIZONTAL" },
-    "children": [
-      { "type": "button", "id": "prev_page", "content": { "label": "‹" }, "actions": { "TAP": { "actionType": "PAGE_PREV" } } },
-      { "type": "candidate_slot", "id": "cand_0", "actions": { "TAP": { "actionType": "COMMIT_CANDIDATE", "payload": { "index": 0 } } } },
-      { "type": "button", "id": "next_page", "content": { "label": "›" }, "actions": { "TAP": { "actionType": "PAGE_NEXT" } } }
-    ]
-  }
-}
-```
-
-`visibleWhen` 表达式求值器读 `KeyboardContext`：
+候选栏不属于当前输入 layout。页面框架读取 `KeyboardContext` 决定 chrome 槽位显示：
 
 | 表达式 | 含义 |
 | --- | --- |
 | `context.composing` | `KeyboardContext.composingText` 非空 |
 | `!context.composing` | 无组合态（显示工具栏） |
-| `context.layer == 'SYMBOL'` | 当前是符号层 |
 | `context.candidates.size > 0` | 有候选 |
 
-候选 slot 的内容（文本、高亮）由渲染层从 `KeyboardContext.candidates[index]` 填充，布局只定义结构和点击动作。候选栏不查字典、不保存 buffer（`core.md:90`）。
+候选 slot 的内容（文本、高亮）由候选栏 Composable 从 `KeyboardContext.candidates[index]` 填充。输入 layout 不查字典、不保存 buffer，也不定义候选栏结构（`core.md:90`）。
 
 ### 6.3 多 Script 共存
 
-同一 Locale 下多个 Script（如 `zh-CN` 下 `HANI` 和 `LATN`）共用同一份主布局，通过 `SWITCH_SCRIPT` 动作在 region 间切换。布局不需要为每个 Script 写一份文件——Script 切换由状态层处理，布局只读 `KeyboardContext.orthogonal.script` 决定是否显示某些 region 或变体。
+同一 Locale 下多个 Script（如 `zh-CN` 下 `HANI` 和 `LATN`）可共用同一份主布局，通过 `SWITCH_SCRIPT` 动作切换状态。布局不需要为每个 Script 写一份文件——Script 切换由状态层处理，输入 layout 只通过按键动作或 `variants` 表达差异。
 
 ### 6.4 RTL 支持
 
@@ -751,7 +833,7 @@ class LayoutHintResolver(private val registry: LayoutRegistry) {
 }
 ```
 
-映射规则在布局层定义（因为布局层知道自己有哪些内置布局），但最终是否切换由状态层决定（`KeyboardContextManager.applyEditorProfile`）。密码框不强切布局，只让候选 region 隐藏（`EditorProfile.candidateDisabled` 作用于 `bindings.visibleWhen`）。
+映射规则在布局层定义（因为布局层知道自己有哪些内置布局），但最终是否切换由状态层决定（`KeyboardContextManager.applyEditorProfile`）。密码框不强切布局，只让页面框架隐藏候选栏（`EditorProfile.candidateDisabled` 不改写输入 layout）。
 
 ## 8. 高度自定义
 
@@ -764,14 +846,14 @@ class LayoutHintResolver(private val registry: LayoutRegistry) {
 | **几何结构**（按键位置、容器类型） | 布局 `LayoutDoc` | 换布局文件 |
 | **输入行为**（按键做什么） | 布局 `KeyDef.actions` + 引擎 Schema | 换 Schema（Manifest 层） |
 | **视觉外观**（颜色、字号、圆角） | 主题 token（`core.md:8`） | 换主题文件 |
-| **组合区域**（候选栏、工具栏） | 布局 `Region` + `bindings` | 改 region 结构 |
+| **页面 chrome**（候选栏、工具栏、panel） | 键盘页面框架 + 设置数据库 | 改页面框架或设置 |
 
 四层独立替换：
 
 - 换 Dvorak：只换布局文件的 `RowLayout.keys` 排列，行为/主题/候选结构不动。
 - 拼音切双拼：只换 `SchemaCapability`（Manifest 层），布局可复用同一份 QWERTY。
 - 换暗色主题：只换主题 token，布局文件零改动（因为布局只引用 `styleRef`）。
-- 调候选栏高度：只改候选 region 的 `height`，键盘 region 不动。
+- 调候选栏/工具栏高度：只改页面框架或设置项，输入 layout 不动。
 
 ### 8.2 跨布局复用与继承
 
@@ -797,7 +879,7 @@ class LayoutHintResolver(private val registry: LayoutRegistry) {
 | `insert_key_after` / `insert_key_before` | 插入按键 |
 | `remove_key` | 删除按键 |
 | `override_style` | 覆盖某按键的 styleRef |
-| `override_region` | 覆盖某 region 的容器 |
+| `override_container` | 覆盖根容器或指定子容器 |
 
 继承链限制深度（默认 3 层），防止循环。
 
@@ -818,7 +900,7 @@ class LayoutHintResolver(private val registry: LayoutRegistry) {
 
 ### 9.1 渲染策略
 
-- **常规布局（按键 < 100）**：Compose `Canvas` 自绘，遍历 `MeasuredLayout.regions[].keys`，避免为每个按键创建独立 Composable（`layout.md` 历史草稿的顾虑保留）。
+- **常规布局（按键 < 100）**：Compose `Canvas` 自绘，遍历 `MeasuredLayout.keys`，避免为每个按键创建独立 Composable（`layout.md` 历史草稿的顾虑保留）。
 - **海量布局（Emoji 页 1000+ 项）**：`LazyVerticalGrid`，此时 `LayoutEngine` 只算列宽行高，每项按需测量。
 - 渲染层只读 `MeasuredLayout` + 主题 token，不读原始 `LayoutDoc`，不重新测量。
 
@@ -835,11 +917,8 @@ fun LayoutRenderer(
 ) {
     val density = LocalDensity.current
     Canvas(modifier = modifier.fillMaxSize()) {
-        measured.regions.forEach { region ->
-            if (!evaluateBindings(region.bindings, context)) return@forEach
-            region.keys.forEach { mk ->
-                drawKey(mk, themeResolver, context)
-            }
+        measured.keys.forEach { mk ->
+            drawKey(mk, themeResolver, context)
         }
     }
     // 手势识别层（overlay）
@@ -856,20 +935,24 @@ class ActionDispatcher(private val pipeline: InputPipeline) {
     fun dispatch(key: KeyDef, gesture: GestureType) {
         val action = key.actions.gestures[gesture] ?: return
         val inputAction = when (action.actionType) {
-            "PUSH_TOKEN"            -> InputAction.PushToken(action.payload["token"]?.jsonPrimitive?.content ?: "")
-            "DELETE"                -> InputAction.Delete
-            "SPACE"                 -> InputAction.Space
-            "ENTER"                 -> InputAction.Enter
-            "SWITCH_LOCALE"         -> InputAction.SwitchLocale(parse(action.payload, "locale"))
-            "SWITCH_SCRIPT"         -> InputAction.SwitchScript(parse(action.payload, "script"))
-            "SWITCH_SCHEMA"         -> InputAction.SwitchSchema(parse(action.payload, "schema"))
-            "SWITCH_LAYER"          -> InputAction.SwitchLayer(parse(action.payload, "layer"))
-            "COMMIT_CANDIDATE"      -> InputAction.CommitCandidate(action.payload["index"]?.jsonPrimitive?.intOrNull ?: 0)
-            "OPEN_PANEL"            -> InputAction.OpenPanel(parse(action.payload, "panel"))
-            "CLOSE_PANEL"           -> InputAction.ClosePanel
-            "RESTORE_PREVIOUS_SCHEMA" -> InputAction.RestorePreviousSchema
-            "PAGE_NEXT", "PAGE_PREV"-> InputAction.PageCandidate(if (action.actionType == "PAGE_NEXT") 1 else -1)
-            else -> InputAction.Noop
+            LayoutActionType.PUSH_TOKEN -> InputAction.PushToken(action.payload["token"]?.jsonPrimitive?.content ?: "")
+            LayoutActionType.COMMIT_TEXT -> InputAction.PushToken(action.payload["text"]?.jsonPrimitive?.content ?: "")
+            LayoutActionType.DELETE -> InputAction.Delete
+            LayoutActionType.SPACE -> InputAction.Space
+            LayoutActionType.ENTER -> InputAction.Enter
+            LayoutActionType.SWITCH_LOCALE -> InputAction.SwitchLocale(parse(action.payload, "locale"))
+            LayoutActionType.SWITCH_SCRIPT -> InputAction.SwitchScript(parse(action.payload, "script"))
+            LayoutActionType.SWITCH_SCHEMA -> InputAction.SwitchSchema(parse(action.payload, "schema"))
+            LayoutActionType.SWITCH_LAYER -> InputAction.SwitchLayer(parse(action.payload, "layer"))
+            LayoutActionType.CYCLE_LAYER -> InputAction.SwitchLayer(nextLayer(action.payload, context.layer))
+            LayoutActionType.COMMIT_CANDIDATE -> InputAction.CommitCandidate(action.payload["index"]?.jsonPrimitive?.intOrNull ?: 0)
+            LayoutActionType.OPEN_PANEL -> InputAction.OpenPanel(parse(action.payload, "panel"))
+            LayoutActionType.CLOSE_PANEL -> InputAction.ClosePanel
+            LayoutActionType.RESTORE_PREVIOUS_SCHEMA -> InputAction.RestorePreviousSchema
+            LayoutActionType.PAGE_NEXT -> InputAction.PageCandidate(1)
+            LayoutActionType.PAGE_PREV -> InputAction.PageCandidate(-1)
+            LayoutActionType.PAGE_CANDIDATE -> InputAction.PageCandidate(parsePageDirection(action.payload))
+            LayoutActionType.NOOP -> InputAction.Noop
         }
         pipeline.handle(inputAction)
     }
@@ -916,9 +999,9 @@ private fun DrawScope.drawKey(mk: MeasuredKey, themeResolver: ThemeResolver, con
    -> KeyboardContextManager.setComposing("n", [你, 尼, ...])
 
 4. KeyboardContext 变化
-   -> LayoutRenderer 重组
-   -> candidate region 的 visibleWhen "context.composing" 变 true，显示候选栏
-   -> toolbar region 的 visibleWhen "!context.composing" 变 false，隐藏工具栏
+    -> LayoutRenderer 重组
+   -> 页面框架检测 composing/candidates，显示候选栏
+   -> 页面框架隐藏工具栏
 ```
 
 布局层全程不查字典、不 commit、不持有 buffer，只观察 `KeyboardContext` 重绘、把触摸转成动作。
@@ -927,7 +1010,7 @@ private fun DrawScope.drawKey(mk: MeasuredKey, themeResolver: ThemeResolver, con
 
 首版必须实现：
 
-- `LayoutDoc` 及全部节点数据模型（`Dimension`、`KeyDef`、5 种 `LayoutContainer`、`Region`）。
+- `LayoutDoc` 及全部节点数据模型（`Dimension`、`KeyDef`、5 种 `LayoutContainer`、`Region`、`LayoutPresentationMode`）。
 - `LayoutParser` 支持 JSONC，解析 `LayoutDoc`。
 - `LayoutEngine` 实现 Row / Grid / Linear / Absolute / Composite 五种测量。
 - `MeasuredLayout` + LRU 缓存 + layer 变体解析。
@@ -956,17 +1039,17 @@ private fun DrawScope.drawKey(mk: MeasuredKey, themeResolver: ThemeResolver, con
 ### 12.2 测量算法
 
 - `RowLayout` 权重分配：3 个 `Weight(1f)` + 1 个 `Weight(2f)` 在宽 300 容器内宽度比为 1:1:1:2。
-- `GridLayout` 跨列：`colSpan=2` 的 cell 宽度 = 2 列 + 1 gap。
+- `GridLayout` 跨列：`colSpan=2f` 的 cell 宽度 = 2 列 + 1 gap；`col=0.5f` 可表达半键错位。
 - `GridLayout` 越界检测：`col + colSpan > columns` 抛 `LayoutConfigException`。
 - `AbsoluteLayout` 锚点：`BOTTOM_RIGHT` anchor 的 item 定位正确。
-- `CompositeLayout` 垂直方向：candidate region 固定 40dp，keyboard region 占剩余高度。
+- 测量结果直接暴露 `MeasuredLayout.keys`；复杂 `CompositeLayout` 额外保留 `MeasuredLayout.regions`，但这些 region 只表示当前 layout 内部分区。
 - 嵌套深度超 10 层抛异常。
 
 ### 12.3 layer 变体
 
 - `layer=NORMAL` 时字母键 label 为小写。
 - `layer=SHIFTED` 时 label 为大写（来自 variant）。
-- `layer=SYMBOL` 时 region 切换（来自 region.bindings.visibleWhen）。
+- `layer=SYMBOL` 时按键内容来自 `KeyDef.variants` 或当前 layout 的动作定义，不通过 region 切换表达。
 
 ### 12.4 命中测试
 
@@ -984,7 +1067,7 @@ private fun DrawScope.drawKey(mk: MeasuredKey, themeResolver: ThemeResolver, con
 ### 12.6 全球化
 
 - 同一份 `qwerty.jsonc` 在 `PINYIN` 和 `LATIN_DIRECT` 下行为不同（前者进 composing，后者直接 commit），证明排列与行为解耦。
-- 候选 region 在 `context.composing` 时显示，无 composing 时隐藏。
+- composing 和 candidates 变化只影响键盘页面框架中的候选栏/工具栏显示，不改写当前输入 layout。
 - 多 Script 共用同一布局文件，切 Script 不切布局文件。
 
 ### 12.7 自定义
@@ -1008,9 +1091,12 @@ private fun DrawScope.drawKey(mk: MeasuredKey, themeResolver: ThemeResolver, con
 - 布局渲染的唯一运行时输入是 `KeyboardContext`；唯一输出口是 `InputPipeline`（经 `ActionDispatcher`）。
 - 物理排列（几何）与输入行为（Schema）解耦：同一布局服务多个 Schema，同一 Schema 可换用多个布局。
 - 按键动作全部数据化，渲染器不硬编码 keyId→动作映射；`ComposeInputView.mapKeyToAction` 必须删除。
+- 禁止引入 `specialKey` 或按 `key.id`、`styleRef`、`Region.role`、`Region.tags` 推断动作；所有页面的交互行为必须来自 `KeyDef.actions.gestures`。
 - 视觉归主题层：按键只引用 `styleRef` token，禁止硬编码颜色。
-- 候选栏、工具栏、键盘区是同一份布局文档的不同 `Region`，通过 `bindings.visibleWhen` 协作显隐。
+- inline toolbar / inline candidate chrome 由页面框架负责槽位和显隐，不在每个输入 layout 中重复定义；`regions` 只用于当前 `LayoutDoc` 内部的复杂分区。
+- `CHROME_AND_CONTENT` 只占 chrome 下方内容区；`FULL_SURFACE` 占满整个固定键盘页面槽，用于候选字/词页、符号页、数字页等特殊布局。
 - `LayoutLayer` 切换（Shift、符号、数字）通过 `KeyDef.variants` 在同一文件内完成，不切布局文件。
+- 键盘页面外框高度与左右 inset 只能来自设置数据库中的 `keyboard_height` / `keyboard_horizontal_inset`；所有 layout/page/panel 必须共用同一尺寸槽，禁止自带页面级高度或左右 margin 造成切换跳变。
 - 布局数据来自内置 / 语言包 / 用户三源，统一经 `LayoutRegistry` 注册校验。
 - 布局继承与 patch 避免复制，Dvorak 等变体只声明差异。
 - 测量结果按 `(layoutId, layer, w, h)` 缓存，状态变化按需失效，composing 变化不触发整体重测。

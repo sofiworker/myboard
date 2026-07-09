@@ -33,6 +33,7 @@ import xyz.xiao6.myboard.data.db.SettingsDatabase
 import xyz.xiao6.myboard.data.entity.ToolbarLayoutMode
 import xyz.xiao6.myboard.data.migration.SpToRoomMigration
 import xyz.xiao6.myboard.data.repository.SettingsRepository
+import xyz.xiao6.myboard.data.settings.KeyboardHeightPolicy
 import xyz.xiao6.myboard.engine.*
 import xyz.xiao6.myboard.engine.builtin.*
 import xyz.xiao6.myboard.layout.*
@@ -45,6 +46,7 @@ import xyz.xiao6.myboard.clipboard.ClipboardManagerWrapper
 import xyz.xiao6.myboard.ui.keyboard.CandidateBar
 import xyz.xiao6.myboard.ui.keyboard.Toolbar
 import xyz.xiao6.myboard.ui.panels.*
+import kotlin.math.roundToInt
 
 /**
  * 重构后的 IME 服务。
@@ -93,6 +95,10 @@ class MyBoardImeService : InputMethodService(), LifecycleOwner, SavedStateRegist
 
     /** 单调递增计数器，每次状态变更 +1，Compose 通过 collectAsState 观察触发重组 */
     private val _uiRevision = mutableLongStateOf(0L)
+
+    private companion object {
+        const val KEYBOARD_CHROME_HEIGHT_DP = 36
+    }
 
     override fun onCreate() {
         super.onCreate()
@@ -205,8 +211,20 @@ class MyBoardImeService : InputMethodService(), LifecycleOwner, SavedStateRegist
         displayPolicyRegistry.register(HiddenDisplayPolicy())
 
         // 注册内置布局
-        val layoutIds = listOf("qwerty", "shuangpin_ziran", "t9_chinese", "hiragana",
-            "qwerty_dvorak", "qwerty_colemak", "qwerty_abc", "phone_dial")
+        val layoutIds = listOf(
+            "qwerty",
+            "shuangpin_ziran",
+            "t9_chinese",
+            "hiragana",
+            "qwerty_dvorak",
+            "qwerty_colemak",
+            "qwerty_abc",
+            "phone_dial",
+            "number",
+            "candidate_words_page",
+            "symbols_full_surface",
+            "emoji_full_surface"
+        )
         layoutIds.forEach { id ->
             val doc = layoutAssetsLoader.load(id)
             if (doc != null) {
@@ -229,8 +247,10 @@ class MyBoardImeService : InputMethodService(), LifecycleOwner, SavedStateRegist
                 // 观察单调递增计数器，确保 updateInputView() 能触发重组
                 @Suppress("UNUSED_VARIABLE")
                 val uiRevision = _uiRevision.longValue
-                val layoutDoc = layoutAssetsLoader.load(context.layoutId)
-                    ?: layoutRegistry.get(context.layoutId)
+                val panelLayoutId = PanelLayoutResolver.layoutIdFor(context.activePanel)
+                val activeLayoutId = panelLayoutId ?: context.layoutId
+                val layoutDoc = layoutAssetsLoader.load(activeLayoutId)
+                    ?: layoutRegistry.get(activeLayoutId)
                 val isDark = themeResolver.isDark()
 
                 // 观察工具栏配置
@@ -240,14 +260,36 @@ class MyBoardImeService : InputMethodService(), LifecycleOwner, SavedStateRegist
                 )
                 // 观察键盘高度设置
                 val allSettings by settingsRepository.settings.collectAsState(initial = emptyMap())
-                val keyboardHeightDp = (allSettings["keyboard_height"]?.toIntOrNull() ?: 260).coerceIn(180, 400)
+                val dm = this@MyBoardImeService.resources.displayMetrics
+                val screenWidthDp = (dm.widthPixels / dm.density).roundToInt()
+                val screenHeightDp = (dm.heightPixels / dm.density).roundToInt()
+                LaunchedEffect(screenHeightDp, screenWidthDp) {
+                    settingsRepository.ensureKeyboardLayoutMetrics(
+                        screenHeightDp = screenHeightDp,
+                        screenWidthDp = screenWidthDp
+                    )
+                }
+                val keyboardHeightDp = KeyboardHeightPolicy.resolve(
+                    storedHeight = allSettings[KeyboardHeightPolicy.KEY_HEIGHT],
+                    screenHeightDp = screenHeightDp
+                ).heightDp
+                val keyboardHorizontalInsetDp = KeyboardHeightPolicy.resolveHorizontalInset(
+                    storedInset = allSettings[KeyboardHeightPolicy.KEY_HORIZONTAL_INSET],
+                    screenWidthDp = screenWidthDp
+                ).insetDp
+                val keyboardContentHeightDp = KeyboardHeightPolicy.contentHeightDp(
+                    pageHeightDp = keyboardHeightDp,
+                    chromeHeightDp = KEYBOARD_CHROME_HEIGHT_DP
+                )
+                val isFullSurfaceLayout = layoutDoc?.presentationMode == LayoutPresentationMode.FULL_SURFACE
+                val layoutMeasureHeightDp = if (isFullSurfaceLayout) keyboardHeightDp else keyboardContentHeightDp
 
                 // 测量布局（使用实际像素尺寸和设备密度）
-                val currentMeasured = remember(context.layoutId, context.layer, keyboardHeightDp) {
+                val currentMeasured = remember(activeLayoutId, context.layer, layoutMeasureHeightDp, keyboardHorizontalInsetDp) {
                     if (layoutDoc != null) {
-                        val dm = this@MyBoardImeService.resources.displayMetrics
-                        val widthPx = dm.widthPixels
-                        val keyboardHeightPx = (keyboardHeightDp * dm.density).toInt()
+                        val horizontalInsetPx = (keyboardHorizontalInsetDp * dm.density).roundToInt()
+                        val widthPx = (dm.widthPixels - horizontalInsetPx * 2).coerceAtLeast(1)
+                        val keyboardHeightPx = (layoutMeasureHeightDp * dm.density).roundToInt()
                         layoutMeasurer.measure(
                             layoutDoc, context.layer,
                             widthPx, keyboardHeightPx,
@@ -259,7 +301,12 @@ class MyBoardImeService : InputMethodService(), LifecycleOwner, SavedStateRegist
                 }
                 measuredLayout = currentMeasured
 
-                Column(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(keyboardHeightDp.dp)
+                        .padding(horizontal = keyboardHorizontalInsetDp.dp)
+                ) {
                     // 通用回调
                     val closePanelAndRefresh: () -> Unit = {
                         serviceScope.launch {
@@ -272,7 +319,8 @@ class MyBoardImeService : InputMethodService(), LifecycleOwner, SavedStateRegist
                     // 面板视图（仅在面板激活时显示）
                     when (context.activePanel) {
                         PanelType.SYMBOL -> {
-                            SymbolPanel(
+                            if (panelLayoutId == null) {
+                                SymbolPanel(
                                 onSymbolClick = { symbol ->
                                     serviceScope.launch {
                                         inputPipeline.handle(InputAction.PushToken(symbol))
@@ -281,10 +329,12 @@ class MyBoardImeService : InputMethodService(), LifecycleOwner, SavedStateRegist
                                 },
                                 onBack = closePanelAndRefresh,
                                 onHideKeyboard = hideKeyboard
-                            )
+                                )
+                            }
                         }
                         PanelType.EMOJI -> {
-                            EmojiPanel(
+                            if (panelLayoutId == null) {
+                                EmojiPanel(
                                 categories = listOf(
                                     Triple("face", "😀", listOf("😀", "😃", "😄", "😁", "😆", "😅", "🤣", "😂", "🙂", "😊", "😇", "🥰", "😍", "🤩", "😘", "😗", "😚", "😙", "🥲", "😋", "😛", "😜", "🤪", "😝")),
                                     Triple("heart", "❤️", listOf("❤️", "🧡", "💛", "💚", "💙", "💜", "🖤", "🤍", "🤎", "💔", "❤️‍🔥", "💕", "💞", "💓", "💗", "💖", "💘", "💝", "💟")),
@@ -298,7 +348,8 @@ class MyBoardImeService : InputMethodService(), LifecycleOwner, SavedStateRegist
                                 },
                                 onBack = closePanelAndRefresh,
                                 onHideKeyboard = hideKeyboard
-                            )
+                                )
+                            }
                         }
                         PanelType.CLIPBOARD -> {
                             ClipboardPanel(
@@ -382,7 +433,7 @@ class MyBoardImeService : InputMethodService(), LifecycleOwner, SavedStateRegist
                     }
 
                     // 工具栏/候选栏切换（仅在无面板时显示）
-                    if (context.activePanel == PanelType.NONE) {
+                    if (context.activePanel == PanelType.NONE && !isFullSurfaceLayout) {
                         if (context.hasCandidates || context.isComposing) {
                             // 候选栏
                             CandidateBar(
@@ -431,7 +482,7 @@ class MyBoardImeService : InputMethodService(), LifecycleOwner, SavedStateRegist
                     }
 
                     // 主键盘
-                    if (currentMeasured != null && context.activePanel == PanelType.NONE) {
+                    if (currentMeasured != null && (context.activePanel == PanelType.NONE || panelLayoutId != null)) {
                         LayoutRenderer(
                             measuredLayout = currentMeasured,
                             context = context,
@@ -447,7 +498,7 @@ class MyBoardImeService : InputMethodService(), LifecycleOwner, SavedStateRegist
                             },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(keyboardHeightDp.dp)
+                                .weight(1f)
                         )
                     }
                 }

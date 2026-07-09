@@ -1,78 +1,57 @@
 {
-  // 字母顺序ABC布局
+  // Alphabetical letters on common mobile keyboard geometry.
   "schemaVersion": "1.0.0",
   "id": "qwerty_abc",
   "meta": {
     "name": "ABC",
-    "description": "Alphabetical ABC layout"
+    "description": "Alphabetical ABC layout on common mobile keyboard geometry"
   },
   "root": {
-    "type": "composite",
-    "id": "root",
-    "orientation": "VERTICAL",
-    "regions": [
-      {
-        "id": "candidate_region",
-        "role": "CANDIDATE",
-        "container": {
-          "type": "linear",
-          "id": "candidate_bar",
-          "orientation": "HORIZONTAL",
-          "children": [],
-          "height": { "type": "dp", "value": 40 }
-        }
-      },
-      {
-        "id": "keyboard_region",
-        "role": "KEYBOARD",
-        "container": {
-          "type": "grid",
-          "id": "keyboard_grid",
-          "columns": 5,
-          "cells": [
-            // Row 1: A B C D E
-            { "key": { "id": "a", "content": { "label": "A" }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "a" } } } } }, "col": 0, "row": 0 },
-            { "key": { "id": "b", "content": { "label": "B" }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "b" } } } } }, "col": 1, "row": 0 },
-            { "key": { "id": "c", "content": { "label": "C" }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "c" } } } } }, "col": 2, "row": 0 },
-            { "key": { "id": "d", "content": { "label": "D" }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "d" } } } } }, "col": 3, "row": 0 },
-            { "key": { "id": "e", "content": { "label": "E" }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "e" } } } } }, "col": 4, "row": 0 },
+    "type": "grid",
+    "id": "keyboard_grid",
+    "columns": 10,
+    "cells": [
+      // Row 1: a b c d e f g h i j
+      { "key": { "id": "a", "content": { "label": "a" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "a" } } } } }, "col": 0, "row": 0 },
+      { "key": { "id": "b", "content": { "label": "b" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "b" } } } } }, "col": 1, "row": 0 },
+      { "key": { "id": "c", "content": { "label": "c" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "c" } } } } }, "col": 2, "row": 0 },
+      { "key": { "id": "d", "content": { "label": "d" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "d" } } } } }, "col": 3, "row": 0 },
+      { "key": { "id": "e", "content": { "label": "e" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "e" } } } } }, "col": 4, "row": 0 },
+      { "key": { "id": "f", "content": { "label": "f" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "f" } } } } }, "col": 5, "row": 0 },
+      { "key": { "id": "g", "content": { "label": "g" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "g" } } } } }, "col": 6, "row": 0 },
+      { "key": { "id": "h", "content": { "label": "h" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "h" } } } } }, "col": 7, "row": 0 },
+      { "key": { "id": "i", "content": { "label": "i" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "i" } } } } }, "col": 8, "row": 0 },
+      { "key": { "id": "j", "content": { "label": "j" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "j" } } } } }, "col": 9, "row": 0 },
 
-            // Row 2: F G H I J
-            { "key": { "id": "f", "content": { "label": "F" }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "f" } } } } }, "col": 0, "row": 1 },
-            { "key": { "id": "g", "content": { "label": "G" }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "g" } } } } }, "col": 1, "row": 1 },
-            { "key": { "id": "h", "content": { "label": "H" }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "h" } } } } }, "col": 2, "row": 1 },
-            { "key": { "id": "i", "content": { "label": "I" }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "i" } } } } }, "col": 3, "row": 1 },
-            { "key": { "id": "j", "content": { "label": "J" }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "j" } } } } }, "col": 4, "row": 1 },
+      // Row 2: k l m n o p q r s, shifted by half a key.
+      { "key": { "id": "k", "content": { "label": "k" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "k" } } } } }, "col": 0.5, "row": 1 },
+      { "key": { "id": "l", "content": { "label": "l" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "l" } } } } }, "col": 1.5, "row": 1 },
+      { "key": { "id": "m", "content": { "label": "m" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "m" } } } } }, "col": 2.5, "row": 1 },
+      { "key": { "id": "n", "content": { "label": "n" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "n" } } } } }, "col": 3.5, "row": 1 },
+      { "key": { "id": "o", "content": { "label": "o" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "o" } } } } }, "col": 4.5, "row": 1 },
+      { "key": { "id": "p", "content": { "label": "p" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "p" } } } } }, "col": 5.5, "row": 1 },
+      { "key": { "id": "q", "content": { "label": "q" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "q" } } } } }, "col": 6.5, "row": 1 },
+      { "key": { "id": "r", "content": { "label": "r" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "r" } } } } }, "col": 7.5, "row": 1 },
+      { "key": { "id": "s", "content": { "label": "s" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "s" } } } } }, "col": 8.5, "row": 1 },
 
-            // Row 3: K L M N O
-            { "key": { "id": "k", "content": { "label": "K" }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "k" } } } } }, "col": 0, "row": 2 },
-            { "key": { "id": "l", "content": { "label": "L" }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "l" } } } } }, "col": 1, "row": 2 },
-            { "key": { "id": "m", "content": { "label": "M" }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "m" } } } } }, "col": 2, "row": 2 },
-            { "key": { "id": "n", "content": { "label": "N" }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "n" } } } } }, "col": 3, "row": 2 },
-            { "key": { "id": "o", "content": { "label": "O" }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "o" } } } } }, "col": 4, "row": 2 },
+      // Row 3: shift t u v w x y z backspace.
+      { "key": { "id": "shift", "styleRef": "key_function", "content": { "label": "@string/keyboard_key_shift", "icon": "ic_shift_filled" }, "actions": { "gestures": { "TAP": { "actionType": "CYCLE_LAYER", "payload": { "layers": ["NORMAL", "SHIFTED"] } } } } }, "col": 0, "row": 2, "colSpan": 1.5 },
+      { "key": { "id": "t", "content": { "label": "t" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "t" } } } } }, "col": 1.5, "row": 2 },
+      { "key": { "id": "u", "content": { "label": "u" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "u" } } } } }, "col": 2.5, "row": 2 },
+      { "key": { "id": "v", "content": { "label": "v" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "v" } } } } }, "col": 3.5, "row": 2 },
+      { "key": { "id": "w", "content": { "label": "w" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "w" } } } } }, "col": 4.5, "row": 2 },
+      { "key": { "id": "x", "content": { "label": "x" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "x" } } } } }, "col": 5.5, "row": 2 },
+      { "key": { "id": "y", "content": { "label": "y" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "y" } } } } }, "col": 6.5, "row": 2 },
+      { "key": { "id": "z", "content": { "label": "z" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "z" } } } } }, "col": 7.5, "row": 2 },
+      { "key": { "id": "backspace", "styleRef": "key_function", "content": { "label": "@string/keyboard_key_backspace", "icon": "ic_backspace_modern" }, "actions": { "gestures": { "TAP": { "actionType": "DELETE", "payload": { "count": 1 } }, "LONG_PRESS": { "actionType": "DELETE", "payload": { "count": 10 } } } }, "repeatable": true }, "col": 8.5, "row": 2, "colSpan": 1.5 },
 
-            // Row 4: P Q R S T
-            { "key": { "id": "p", "content": { "label": "P" }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "p" } } } } }, "col": 0, "row": 3 },
-            { "key": { "id": "q", "content": { "label": "Q" }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "q" } } } } }, "col": 1, "row": 3 },
-            { "key": { "id": "r", "content": { "label": "R" }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "r" } } } } }, "col": 2, "row": 3 },
-            { "key": { "id": "s", "content": { "label": "S" }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "s" } } } } }, "col": 3, "row": 3 },
-            { "key": { "id": "t", "content": { "label": "T" }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "t" } } } } }, "col": 4, "row": 3 },
-
-            // Row 5: U V W X Y
-            { "key": { "id": "u", "content": { "label": "U" }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "u" } } } } }, "col": 0, "row": 4 },
-            { "key": { "id": "v", "content": { "label": "V" }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "v" } } } } }, "col": 1, "row": 4 },
-            { "key": { "id": "w", "content": { "label": "W" }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "w" } } } } }, "col": 2, "row": 4 },
-            { "key": { "id": "x", "content": { "label": "X" }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "x" } } } } }, "col": 3, "row": 4 },
-            { "key": { "id": "y", "content": { "label": "Y" }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "y" } } } } }, "col": 4, "row": 4 },
-
-            // Row 6: Shift Z Space Backspace
-            { "key": { "id": "shift", "styleRef": "key_function", "content": { "icon": "shift" }, "actions": { "gestures": { "TAP": { "actionType": "cycleLayer", "payload": { "layers": ["NORMAL", "SHIFTED"] } } } } }, "col": 0, "row": 5 },
-            { "key": { "id": "z", "content": { "label": "Z" }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": "z" } } } } }, "col": 1, "row": 5 },
-            { "key": { "id": "space", "styleRef": "key_space", "content": { "label": " " }, "actions": { "gestures": { "TAP": { "actionType": "commitToken", "payload": { "token": " " } } } } }, "col": 2, "row": 5 },
-            { "key": { "id": "backspace", "styleRef": "key_function", "content": { "icon": "backspace" }, "actions": { "gestures": { "TAP": { "actionType": "delete", "payload": { "count": 1 } }, "LONG_PRESS": { "actionType": "delete", "payload": { "count": 10 } } } }, "repeatable": true }, "col": 3, "row": 5, "colSpan": 2 }
-          ]
-        }
-      }
+      // Row 4.
+      { "key": { "id": "sym", "styleRef": "key_function", "content": { "label": "?123", "icon": "ic_symbols" }, "actions": { "gestures": { "TAP": { "actionType": "OPEN_PANEL", "payload": { "panel": "SYMBOL" } } } } }, "col": 0, "row": 3, "colSpan": 1.5 },
+      { "key": { "id": "lang", "styleRef": "key_function", "content": { "label": "@string/keyboard_key_language", "icon": "ic_language_switch" }, "actions": { "gestures": { "TAP": { "actionType": "SWITCH_LOCALE" } } } }, "col": 1.5, "row": 3 },
+      { "key": { "id": "comma", "styleRef": "key_function", "content": { "label": "," }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "," } } } } }, "col": 2.5, "row": 3 },
+      { "key": { "id": "space", "styleRef": "key_space", "content": { "label": "@string/keyboard_key_space", "icon": "ic_space" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": " " } } } } }, "col": 3.5, "row": 3, "colSpan": 3.5 },
+      { "key": { "id": "period", "styleRef": "key_function", "content": { "label": "." }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "." } } } } }, "col": 7, "row": 3 },
+      { "key": { "id": "enter", "styleRef": "key_action", "content": { "label": "@string/keyboard_key_enter", "icon": "ic_enter_modern" }, "actions": { "gestures": { "TAP": { "actionType": "ENTER" } } } }, "col": 8, "row": 3, "colSpan": 2 }
     ]
   },
   "supportedLayers": ["NORMAL", "SHIFTED"]

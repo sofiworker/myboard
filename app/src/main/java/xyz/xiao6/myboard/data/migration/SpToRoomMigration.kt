@@ -8,6 +8,7 @@ import xyz.xiao6.myboard.data.entity.SettingsEntity
 import xyz.xiao6.myboard.data.entity.ToolbarItemEntity
 import xyz.xiao6.myboard.data.entity.ToolbarItemType
 import xyz.xiao6.myboard.data.dao.SettingsDao
+import xyz.xiao6.myboard.data.settings.KeyboardHeightPolicy
 
 /**
  * 从 SharedPreferences 迁移数据到 Room。
@@ -95,7 +96,10 @@ class SpToRoomMigration(
             "auto_capitalize", "onboarding_completed"
         )
 
-        private val INT_KEYS = listOf("keyboard_height")
+        private val INT_KEYS = listOf(
+            KeyboardHeightPolicy.KEY_HEIGHT,
+            KeyboardHeightPolicy.KEY_HORIZONTAL_INSET
+        )
 
         private val FLOAT_KEYS = listOf("key_font_size")
 

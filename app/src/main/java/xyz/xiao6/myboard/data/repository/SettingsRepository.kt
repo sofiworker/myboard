@@ -10,6 +10,7 @@ import xyz.xiao6.myboard.data.entity.SettingsEntity
 import xyz.xiao6.myboard.data.entity.ToolbarItemEntity
 import xyz.xiao6.myboard.data.entity.ToolbarLayoutMode
 import xyz.xiao6.myboard.data.entity.ToolbarItemType
+import xyz.xiao6.myboard.data.settings.KeyboardHeightPolicy
 import xyz.xiao6.myboard.contract.state.LocaleTag
 import xyz.xiao6.myboard.contract.state.Schema
 
@@ -29,6 +30,32 @@ class SettingsRepository(private val dao: SettingsDao) {
 
     suspend fun updateSetting(key: String, value: String) {
         dao.upsertSetting(SettingsEntity(key = key, stringValue = value))
+    }
+
+    suspend fun ensureKeyboardLayoutMetrics(
+        screenHeightDp: Int,
+        screenWidthDp: Int
+    ): KeyboardLayoutMetrics {
+        val height = KeyboardHeightPolicy.resolve(
+            storedHeight = getSetting(KeyboardHeightPolicy.KEY_HEIGHT),
+            screenHeightDp = screenHeightDp
+        )
+        if (height.shouldPersist) {
+            updateSetting(KeyboardHeightPolicy.KEY_HEIGHT, height.heightDp.toString())
+        }
+
+        val horizontalInset = KeyboardHeightPolicy.resolveHorizontalInset(
+            storedInset = getSetting(KeyboardHeightPolicy.KEY_HORIZONTAL_INSET),
+            screenWidthDp = screenWidthDp
+        )
+        if (horizontalInset.shouldPersist) {
+            updateSetting(KeyboardHeightPolicy.KEY_HORIZONTAL_INSET, horizontalInset.insetDp.toString())
+        }
+
+        return KeyboardLayoutMetrics(
+            heightDp = height.heightDp,
+            horizontalInsetDp = horizontalInset.insetDp
+        )
     }
 
     // ===== Toolbar 配置 =====
@@ -144,7 +171,6 @@ class SettingsRepository(private val dao: SettingsDao) {
             KEY_ENABLED_LOCALE_CONFIGS to """{"en-US":["LATIN_DIRECT"],"zh-CN":["PINYIN"]}""",
             "theme_mode" to "auto",
             "current_theme" to "default",
-            "keyboard_height" to "260",
             "key_font_size" to "18",
             "haptic_feedback" to "true",
             "sound_feedback" to "false",
@@ -167,4 +193,9 @@ class SettingsRepository(private val dao: SettingsDao) {
             ToolbarItemEntity(type = ToolbarItemType.LAYOUT_SWITCH.name, enabled = true, sortOrder = 5)
         )
     }
+
+    data class KeyboardLayoutMetrics(
+        val heightDp: Int,
+        val horizontalInsetDp: Int
+    )
 }

@@ -49,6 +49,7 @@
     <string name="settings_toolbar">工具栏</string>
     <string name="settings_toolbar_manage">管理工具栏按钮</string>
     <string name="settings_keyboard_height">键盘高度</string>
+    <string name="settings_keyboard_horizontal_inset">键盘左右边距</string>
     <string name="settings_key_font_size">按键字号</string>
 
     <!-- Settings - Input -->
@@ -81,4 +82,15 @@
     <!-- Settings - About -->
     <string name="settings_version">版本</string>
     <string name="settings_open_source">开源许可</string>
+    <!-- Keyboard layout keys -->
+    <string name="keyboard_key_shift">上档</string>
+    <string name="keyboard_key_backspace">退格</string>
+    <string name="keyboard_key_language">语言</string>
+    <string name="keyboard_key_space">空格</string>
+    <string name="keyboard_key_enter">回车</string>
+    <string name="layout_category_recent">常用</string>
+    <string name="layout_category_zh">中文</string>
+    <string name="layout_category_en">英文</string>
+    <string name="layout_category_math">数学</string>
+    <string name="layout_category_order">序号</string>
 </resources>

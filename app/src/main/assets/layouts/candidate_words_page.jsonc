@@ -1,0 +1,91 @@
+{
+  // Full-surface candidate words page. Runtime candidate text is resolved by index.
+  "schemaVersion": "1.0.0",
+  "id": "candidate_words_page",
+  "meta": {
+    "name": "Candidate Words Page",
+    "description": "Full-surface candidate page with left rail, candidate grid, and fixed actions",
+    "tags": ["candidate", "full_surface"]
+  },
+  "presentationMode": "FULL_SURFACE",
+  "root": {
+    "type": "composite",
+    "id": "candidate_words_root",
+    "orientation": "HORIZONTAL",
+    "gap": 6,
+    "padding": { "start": 6, "top": 6, "end": 6, "bottom": 6 },
+    "regions": [
+      {
+        "id": "candidate_pinyin_rail",
+        "role": "pinyinRail",
+        "tags": ["rail", "pinyin", "scrollable"],
+        "container": {
+          "type": "grid",
+          "id": "candidate_pinyin_rail_grid",
+          "columns": 1,
+          "rows": 5,
+          "rowGap": 4,
+          "width": { "type": "dp", "value": 48 },
+          "cells": [
+            { "key": { "id": "pinyin_0", "styleRef": "key_function", "content": { "label": "ni" }, "actions": { "gestures": { "TAP": { "actionType": "NOOP" } } } }, "col": 0, "row": 0 },
+            { "key": { "id": "pinyin_1", "styleRef": "key_function", "content": { "label": "hao" }, "actions": { "gestures": { "TAP": { "actionType": "NOOP" } } } }, "col": 0, "row": 1 },
+            { "key": { "id": "pinyin_2", "styleRef": "key_function", "content": { "label": "ma" }, "actions": { "gestures": { "TAP": { "actionType": "NOOP" } } } }, "col": 0, "row": 2 },
+            { "key": { "id": "pinyin_3", "styleRef": "key_function", "content": { "label": "shi" }, "actions": { "gestures": { "TAP": { "actionType": "NOOP" } } } }, "col": 0, "row": 3 },
+            { "key": { "id": "pinyin_4", "styleRef": "key_function", "content": { "label": "de" }, "actions": { "gestures": { "TAP": { "actionType": "NOOP" } } } }, "col": 0, "row": 4 }
+          ]
+        }
+      },
+      {
+        "id": "candidate_grid_region",
+        "role": "candidateGrid",
+        "tags": ["content", "candidate", "grid"],
+        "container": {
+          "type": "grid",
+          "id": "candidate_grid",
+          "columns": 3,
+          "rows": 5,
+          "rowGap": 4,
+          "colGap": 4,
+          "width": { "type": "weight", "value": 1 },
+          "cells": [
+            { "key": { "id": "candidate_0", "styleRef": "key_candidate", "content": { "label": "1" }, "actions": { "gestures": { "TAP": { "actionType": "COMMIT_CANDIDATE", "payload": { "index": 0 } } } } }, "col": 0, "row": 0 },
+            { "key": { "id": "candidate_1", "styleRef": "key_candidate", "content": { "label": "2" }, "actions": { "gestures": { "TAP": { "actionType": "COMMIT_CANDIDATE", "payload": { "index": 1 } } } } }, "col": 1, "row": 0 },
+            { "key": { "id": "candidate_2", "styleRef": "key_candidate", "content": { "label": "3" }, "actions": { "gestures": { "TAP": { "actionType": "COMMIT_CANDIDATE", "payload": { "index": 2 } } } } }, "col": 2, "row": 0 },
+            { "key": { "id": "candidate_3", "styleRef": "key_candidate", "content": { "label": "4" }, "actions": { "gestures": { "TAP": { "actionType": "COMMIT_CANDIDATE", "payload": { "index": 3 } } } } }, "col": 0, "row": 1 },
+            { "key": { "id": "candidate_4", "styleRef": "key_candidate", "content": { "label": "5" }, "actions": { "gestures": { "TAP": { "actionType": "COMMIT_CANDIDATE", "payload": { "index": 4 } } } } }, "col": 1, "row": 1 },
+            { "key": { "id": "candidate_5", "styleRef": "key_candidate", "content": { "label": "6" }, "actions": { "gestures": { "TAP": { "actionType": "COMMIT_CANDIDATE", "payload": { "index": 5 } } } } }, "col": 2, "row": 1 },
+            { "key": { "id": "candidate_6", "styleRef": "key_candidate", "content": { "label": "7" }, "actions": { "gestures": { "TAP": { "actionType": "COMMIT_CANDIDATE", "payload": { "index": 6 } } } } }, "col": 0, "row": 2 },
+            { "key": { "id": "candidate_7", "styleRef": "key_candidate", "content": { "label": "8" }, "actions": { "gestures": { "TAP": { "actionType": "COMMIT_CANDIDATE", "payload": { "index": 7 } } } } }, "col": 1, "row": 2 },
+            { "key": { "id": "candidate_8", "styleRef": "key_candidate", "content": { "label": "9" }, "actions": { "gestures": { "TAP": { "actionType": "COMMIT_CANDIDATE", "payload": { "index": 8 } } } } }, "col": 2, "row": 2 },
+            { "key": { "id": "candidate_9", "styleRef": "key_candidate", "content": { "label": "10" }, "actions": { "gestures": { "TAP": { "actionType": "COMMIT_CANDIDATE", "payload": { "index": 9 } } } } }, "col": 0, "row": 3 },
+            { "key": { "id": "candidate_10", "styleRef": "key_candidate", "content": { "label": "11" }, "actions": { "gestures": { "TAP": { "actionType": "COMMIT_CANDIDATE", "payload": { "index": 10 } } } } }, "col": 1, "row": 3 },
+            { "key": { "id": "candidate_11", "styleRef": "key_candidate", "content": { "label": "12" }, "actions": { "gestures": { "TAP": { "actionType": "COMMIT_CANDIDATE", "payload": { "index": 11 } } } } }, "col": 2, "row": 3 },
+            { "key": { "id": "candidate_12", "styleRef": "key_candidate", "content": { "label": "13" }, "actions": { "gestures": { "TAP": { "actionType": "COMMIT_CANDIDATE", "payload": { "index": 12 } } } } }, "col": 0, "row": 4 },
+            { "key": { "id": "candidate_13", "styleRef": "key_candidate", "content": { "label": "14" }, "actions": { "gestures": { "TAP": { "actionType": "COMMIT_CANDIDATE", "payload": { "index": 13 } } } } }, "col": 1, "row": 4 },
+            { "key": { "id": "candidate_14", "styleRef": "key_candidate", "content": { "label": "15" }, "actions": { "gestures": { "TAP": { "actionType": "COMMIT_CANDIDATE", "payload": { "index": 14 } } } } }, "col": 2, "row": 4 }
+          ]
+        }
+      },
+      {
+        "id": "candidate_actions",
+        "role": "fixedActions",
+        "tags": ["actions", "fixed"],
+        "container": {
+          "type": "grid",
+          "id": "candidate_actions_grid",
+          "columns": 1,
+          "rows": 5,
+          "rowGap": 4,
+          "width": { "type": "dp", "value": 56 },
+          "cells": [
+            { "key": { "id": "candidate_page_prev", "styleRef": "key_function", "content": { "label": "↑" }, "actions": { "gestures": { "TAP": { "actionType": "PAGE_PREV" } } } }, "col": 0, "row": 0 },
+            { "key": { "id": "candidate_page_next", "styleRef": "key_function", "content": { "label": "↓" }, "actions": { "gestures": { "TAP": { "actionType": "PAGE_NEXT" } } } }, "col": 0, "row": 1 },
+            { "key": { "id": "candidate_backspace", "styleRef": "key_function", "content": { "label": "@string/keyboard_key_backspace", "icon": "ic_backspace_modern" }, "actions": { "gestures": { "TAP": { "actionType": "DELETE", "payload": { "count": 1 } } } } }, "col": 0, "row": 2 },
+            { "key": { "id": "candidate_return", "styleRef": "key_action", "content": { "label": "@string/common_back" }, "actions": { "gestures": { "TAP": { "actionType": "CLOSE_PANEL" } } } }, "col": 0, "row": 3, "rowSpan": 2 }
+          ]
+        }
+      }
+    ]
+  },
+  "supportedLayers": ["NORMAL"]
+}

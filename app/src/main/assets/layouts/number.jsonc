@@ -1,0 +1,41 @@
+{
+  // Numeric keyboard layout used by LayoutHint.NUMBER.
+  "schemaVersion": "1.0.0",
+  "id": "number",
+  "meta": {
+    "name": "Number",
+    "description": "Numeric keyboard layout for number input fields",
+    "tags": ["number", "numeric"]
+  },
+  "root": {
+    "type": "grid",
+    "id": "number_grid",
+    "columns": 4,
+    "rows": 4,
+    "rowGap": 6,
+    "colGap": 6,
+    "padding": { "start": 6, "top": 6, "end": 6, "bottom": 6 },
+    "cells": [
+      { "key": { "id": "num_1", "content": { "label": "1" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "1" } } } } }, "col": 0, "row": 0 },
+      { "key": { "id": "num_2", "content": { "label": "2" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "2" } } } } }, "col": 1, "row": 0 },
+      { "key": { "id": "num_3", "content": { "label": "3" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "3" } } } } }, "col": 2, "row": 0 },
+      { "key": { "id": "backspace", "styleRef": "key_function", "content": { "label": "@string/keyboard_key_backspace", "icon": "ic_backspace_modern" }, "actions": { "gestures": { "TAP": { "actionType": "DELETE", "payload": { "count": 1 } }, "LONG_PRESS": { "actionType": "DELETE", "payload": { "count": 10 } } } }, "repeatable": true }, "col": 3, "row": 0 },
+
+      { "key": { "id": "num_4", "content": { "label": "4" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "4" } } } } }, "col": 0, "row": 1 },
+      { "key": { "id": "num_5", "content": { "label": "5" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "5" } } } } }, "col": 1, "row": 1 },
+      { "key": { "id": "num_6", "content": { "label": "6" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "6" } } } } }, "col": 2, "row": 1 },
+      { "key": { "id": "num_plus", "styleRef": "key_function", "content": { "label": "+" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "+" } } } } }, "col": 3, "row": 1 },
+
+      { "key": { "id": "num_7", "content": { "label": "7" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "7" } } } } }, "col": 0, "row": 2 },
+      { "key": { "id": "num_8", "content": { "label": "8" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "8" } } } } }, "col": 1, "row": 2 },
+      { "key": { "id": "num_9", "content": { "label": "9" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "9" } } } } }, "col": 2, "row": 2 },
+      { "key": { "id": "num_minus", "styleRef": "key_function", "content": { "label": "-" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "-" } } } } }, "col": 3, "row": 2 },
+
+      { "key": { "id": "abc", "styleRef": "key_action", "content": { "label": "ABC" }, "actions": { "gestures": { "TAP": { "actionType": "CLOSE_PANEL" } } } }, "col": 0, "row": 3 },
+      { "key": { "id": "num_0", "content": { "label": "0" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "0" } } } } }, "col": 1, "row": 3 },
+      { "key": { "id": "num_decimal", "styleRef": "key_function", "content": { "label": "." }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "." } } } } }, "col": 2, "row": 3 },
+      { "key": { "id": "enter", "styleRef": "key_action", "content": { "label": "@string/keyboard_key_enter", "icon": "ic_enter_modern" }, "actions": { "gestures": { "TAP": { "actionType": "ENTER" } } } }, "col": 3, "row": 3 }
+    ]
+  },
+  "supportedLayers": ["NORMAL"]
+}

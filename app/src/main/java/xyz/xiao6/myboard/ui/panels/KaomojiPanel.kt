@@ -39,7 +39,7 @@ fun KaomojiPanel(
 
     Column(
         modifier = Modifier
-            .fillMaxWidth()
+            .fillMaxSize()
             .background(Color(0xFFF1F3F4))
     ) {
         // 标题栏
@@ -80,7 +80,7 @@ fun KaomojiPanel(
         LazyColumn(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(200.dp)
+                .weight(1f)
                 .padding(8.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {

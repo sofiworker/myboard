@@ -39,7 +39,7 @@ fun EmojiPanel(
 
     Column(
         modifier = Modifier
-            .fillMaxWidth()
+            .fillMaxSize()
             .background(Color(0xFFF1F3F4))
     ) {
         // 标题栏
@@ -81,7 +81,7 @@ fun EmojiPanel(
             columns = GridCells.Fixed(8),
             modifier = Modifier
                 .fillMaxWidth()
-                .height(200.dp)
+                .weight(1f)
                 .padding(8.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp),
             horizontalArrangement = Arrangement.spacedBy(4.dp)

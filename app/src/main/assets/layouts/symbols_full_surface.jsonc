@@ -1,0 +1,106 @@
+{
+  // Full-surface symbols page with category rail, symbol grid, and fixed actions.
+  "schemaVersion": "1.0.0",
+  "id": "symbols_full_surface",
+  "meta": {
+    "name": "Symbols Full Surface",
+    "description": "Symbol panel layout inspired by common mobile IME symbol pages",
+    "tags": ["symbol", "full_surface"]
+  },
+  "presentationMode": "FULL_SURFACE",
+  "root": {
+    "type": "composite",
+    "id": "symbols_root",
+    "orientation": "HORIZONTAL",
+    "gap": 6,
+    "padding": { "start": 6, "top": 6, "end": 6, "bottom": 6 },
+    "regions": [
+      {
+        "id": "symbol_category_rail",
+        "role": "categoryRail",
+        "tags": ["category", "rail"],
+        "container": {
+          "type": "grid",
+          "id": "symbol_category_grid",
+          "columns": 1,
+          "rows": 5,
+          "rowGap": 4,
+          "width": { "type": "dp", "value": 54 },
+          "cells": [
+            { "key": { "id": "cat_recent", "styleRef": "key_action", "content": { "label": "@string/layout_category_recent" }, "actions": { "gestures": { "TAP": { "actionType": "NOOP" } } } }, "col": 0, "row": 0 },
+            { "key": { "id": "cat_zh", "styleRef": "key_function", "content": { "label": "@string/layout_category_zh" }, "actions": { "gestures": { "TAP": { "actionType": "NOOP" } } } }, "col": 0, "row": 1 },
+            { "key": { "id": "cat_en", "styleRef": "key_function", "content": { "label": "@string/layout_category_en" }, "actions": { "gestures": { "TAP": { "actionType": "NOOP" } } } }, "col": 0, "row": 2 },
+            { "key": { "id": "cat_math", "styleRef": "key_function", "content": { "label": "@string/layout_category_math" }, "actions": { "gestures": { "TAP": { "actionType": "NOOP" } } } }, "col": 0, "row": 3 },
+            { "key": { "id": "cat_order", "styleRef": "key_function", "content": { "label": "@string/layout_category_order" }, "actions": { "gestures": { "TAP": { "actionType": "NOOP" } } } }, "col": 0, "row": 4 }
+          ]
+        }
+      },
+      {
+        "id": "symbol_grid_region",
+        "role": "symbolGrid",
+        "tags": ["content", "symbol", "grid"],
+        "container": {
+          "type": "grid",
+          "id": "symbol_grid",
+          "columns": 6,
+          "rows": 5,
+          "rowGap": 4,
+          "colGap": 4,
+          "width": { "type": "weight", "value": 1 },
+          "cells": [
+            { "key": { "id": "sym_comma_cn", "content": { "label": "，" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "，" } } } } }, "col": 0, "row": 0 },
+            { "key": { "id": "sym_period_cn", "content": { "label": "。" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "。" } } } } }, "col": 1, "row": 0 },
+            { "key": { "id": "sym_question_cn", "content": { "label": "？" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "？" } } } } }, "col": 2, "row": 0 },
+            { "key": { "id": "sym_exclaim_cn", "content": { "label": "！" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "！" } } } } }, "col": 3, "row": 0 },
+            { "key": { "id": "sym_colon_cn", "content": { "label": "：" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "：" } } } } }, "col": 4, "row": 0 },
+            { "key": { "id": "sym_semicolon_cn", "content": { "label": "；" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "；" } } } } }, "col": 5, "row": 0 },
+            { "key": { "id": "sym_quote_left", "content": { "label": "“" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "“" } } } } }, "col": 0, "row": 1 },
+            { "key": { "id": "sym_quote_right", "content": { "label": "”" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "”" } } } } }, "col": 1, "row": 1 },
+            { "key": { "id": "sym_book_left", "content": { "label": "《" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "《" } } } } }, "col": 2, "row": 1 },
+            { "key": { "id": "sym_book_right", "content": { "label": "》" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "》" } } } } }, "col": 3, "row": 1 },
+            { "key": { "id": "sym_paren_left", "content": { "label": "（" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "（" } } } } }, "col": 4, "row": 1 },
+            { "key": { "id": "sym_paren_right", "content": { "label": "）" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "）" } } } } }, "col": 5, "row": 1 },
+            { "key": { "id": "sym_at", "content": { "label": "@" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "@" } } } } }, "col": 0, "row": 2 },
+            { "key": { "id": "sym_hash", "content": { "label": "#" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "#" } } } } }, "col": 1, "row": 2 },
+            { "key": { "id": "sym_percent", "content": { "label": "%" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "%" } } } } }, "col": 2, "row": 2 },
+            { "key": { "id": "sym_amp", "content": { "label": "&" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "&" } } } } }, "col": 3, "row": 2 },
+            { "key": { "id": "sym_star", "content": { "label": "*" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "*" } } } } }, "col": 4, "row": 2 },
+            { "key": { "id": "sym_plus", "content": { "label": "+" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "+" } } } } }, "col": 5, "row": 2 },
+            { "key": { "id": "sym_equal", "content": { "label": "=" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "=" } } } } }, "col": 0, "row": 3 },
+            { "key": { "id": "sym_minus", "content": { "label": "-" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "-" } } } } }, "col": 1, "row": 3 },
+            { "key": { "id": "sym_slash", "content": { "label": "/" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "/" } } } } }, "col": 2, "row": 3 },
+            { "key": { "id": "sym_backslash", "content": { "label": "\\" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "\\" } } } } }, "col": 3, "row": 3 },
+            { "key": { "id": "sym_pipe", "content": { "label": "|" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "|" } } } } }, "col": 4, "row": 3 },
+            { "key": { "id": "sym_tilde", "content": { "label": "~" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "~" } } } } }, "col": 5, "row": 3 },
+            { "key": { "id": "sym_yuan", "content": { "label": "¥" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "¥" } } } } }, "col": 0, "row": 4 },
+            { "key": { "id": "sym_dollar", "content": { "label": "$" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "$" } } } } }, "col": 1, "row": 4 },
+            { "key": { "id": "sym_euro", "content": { "label": "€" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "€" } } } } }, "col": 2, "row": 4 },
+            { "key": { "id": "sym_pound", "content": { "label": "£" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "£" } } } } }, "col": 3, "row": 4 },
+            { "key": { "id": "sym_section", "content": { "label": "§" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "§" } } } } }, "col": 4, "row": 4 },
+            { "key": { "id": "sym_bullet", "content": { "label": "•" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "•" } } } } }, "col": 5, "row": 4 }
+          ]
+        }
+      },
+      {
+        "id": "symbol_actions",
+        "role": "fixedActions",
+        "tags": ["actions", "fixed"],
+        "container": {
+          "type": "grid",
+          "id": "symbol_actions_grid",
+          "columns": 1,
+          "rows": 5,
+          "rowGap": 4,
+          "width": { "type": "dp", "value": 56 },
+          "cells": [
+            { "key": { "id": "symbol_page_prev", "styleRef": "key_function", "content": { "label": "↑" }, "actions": { "gestures": { "TAP": { "actionType": "PAGE_PREV" } } } }, "col": 0, "row": 0 },
+            { "key": { "id": "symbol_page_next", "styleRef": "key_function", "content": { "label": "↓" }, "actions": { "gestures": { "TAP": { "actionType": "PAGE_NEXT" } } } }, "col": 0, "row": 1 },
+            { "key": { "id": "symbol_backspace", "styleRef": "key_function", "content": { "label": "@string/keyboard_key_backspace", "icon": "ic_backspace_modern" }, "actions": { "gestures": { "TAP": { "actionType": "DELETE", "payload": { "count": 1 } } } } }, "col": 0, "row": 2 },
+            { "key": { "id": "symbol_return", "styleRef": "key_action", "content": { "label": "ABC" }, "actions": { "gestures": { "TAP": { "actionType": "CLOSE_PANEL" } } } }, "col": 0, "row": 3, "rowSpan": 2 }
+          ]
+        }
+      }
+    ]
+  },
+  "supportedLayers": ["NORMAL"]
+}

@@ -27,7 +27,7 @@ object BuiltInLayouts {
             actions = ActionMap(
                 gestures = mapOf(
                     GestureType.TAP to ActionDef(
-                        actionType = "commitToken",
+                        actionType = LayoutActionType.PUSH_TOKEN,
                         payload = mapOf(
                             "token" to kotlinx.serialization.json.JsonPrimitive(id)
                         )
@@ -37,7 +37,7 @@ object BuiltInLayouts {
         )
     }
     
-    private fun actionKey(id: String, label: String, actionType: String, payload: Map<String, kotlinx.serialization.json.JsonElement> = emptyMap()): KeyDef {
+    private fun actionKey(id: String, label: String, actionType: LayoutActionType, payload: Map<String, kotlinx.serialization.json.JsonElement> = emptyMap()): KeyDef {
         return KeyDef(
             id = id,
             styleRef = "key_function",
@@ -53,32 +53,12 @@ object BuiltInLayouts {
     val qwerty: LayoutDoc = LayoutDoc(
         id = "qwerty",
         meta = LayoutMeta(name = "QWERTY", description = "Standard QWERTY keyboard"),
-        root = CompositeLayout(
-            id = "root",
-            orientation = Orientation.VERTICAL,
-            regions = listOf(
-                Region(
-                    id = "candidate_region",
-                    role = RegionRole.CANDIDATE,
-                    container = LinearLayout(
-                        id = "candidate_bar",
-                        orientation = Orientation.HORIZONTAL,
-                        children = emptyList(),
-                        height = Dimension.Dp(40f)
-                    )
-                ),
-                Region(
-                    id = "keyboard_region",
-                    role = RegionRole.KEYBOARD,
-                    container = GridLayout(
-                        id = "keyboard_grid",
-                        columns = 10,
-                        cells = buildQwertyCells()
-                    )
-                )
-            )
+        root = GridLayout(
+            id = "keyboard_grid",
+            columns = 10,
+            cells = buildQwertyCells()
         ),
-        supportedLayers = listOf("NORMAL", "SHIFTED", "CAPS_LOCK")
+        supportedLayers = listOf(LayoutLayer.NORMAL, LayoutLayer.SHIFTED, LayoutLayer.CAPS_LOCK)
     )
     
     private fun buildQwertyCells(): List<GridLayout.GridCell> {
@@ -111,7 +91,7 @@ object BuiltInLayouts {
                     styleRef = "key_action",
                     content = ContentSpec(label = "Enter"),
                     actions = ActionMap(
-                        gestures = mapOf(GestureType.TAP to ActionDef(actionType = "performEditorAction"))
+                        gestures = mapOf(GestureType.TAP to ActionDef(actionType = LayoutActionType.ENTER))
                     )
                 ), 9f, 1f
             ),
@@ -126,11 +106,11 @@ object BuiltInLayouts {
                     actions = ActionMap(
                         gestures = mapOf(
                             GestureType.TAP to ActionDef(
-                                actionType = "cycleLayer",
+                                actionType = LayoutActionType.CYCLE_LAYER,
                                 payload = mapOf(
                                     "layers" to kotlinx.serialization.json.JsonArray(
-                                        listOf("NORMAL", "SHIFTED", "CAPS_LOCK").map { 
-                                            kotlinx.serialization.json.JsonPrimitive(it) 
+                                        listOf(LayoutLayer.NORMAL, LayoutLayer.SHIFTED, LayoutLayer.CAPS_LOCK).map {
+                                            kotlinx.serialization.json.JsonPrimitive(it.name)
                                         }
                                     )
                                 )
@@ -154,8 +134,8 @@ object BuiltInLayouts {
                     width = Dimension.Weight(1.5f),
                     actions = ActionMap(
                         gestures = mapOf(
-                            GestureType.TAP to ActionDef(actionType = "delete", payload = mapOf("count" to kotlinx.serialization.json.JsonPrimitive(1))),
-                            GestureType.LONG_PRESS to ActionDef(actionType = "delete", payload = mapOf("count" to kotlinx.serialization.json.JsonPrimitive(10)))
+                            GestureType.TAP to ActionDef(actionType = LayoutActionType.DELETE, payload = mapOf("count" to kotlinx.serialization.json.JsonPrimitive(1))),
+                            GestureType.LONG_PRESS to ActionDef(actionType = LayoutActionType.DELETE, payload = mapOf("count" to kotlinx.serialization.json.JsonPrimitive(10)))
                         )
                     ),
                     repeatable = true
@@ -169,7 +149,7 @@ object BuiltInLayouts {
                     styleRef = "key_function",
                     content = ContentSpec(icon = "lang"),
                     actions = ActionMap(
-                        gestures = mapOf(GestureType.TAP to ActionDef(actionType = "switchLocale"))
+                        gestures = mapOf(GestureType.TAP to ActionDef(actionType = LayoutActionType.SWITCH_LOCALE))
                     )
                 ), 0f, 3f
             ),
@@ -179,7 +159,7 @@ object BuiltInLayouts {
                     styleRef = "key_function",
                     content = ContentSpec(label = ","),
                     actions = ActionMap(
-                        gestures = mapOf(GestureType.TAP to ActionDef(actionType = "commitToken", payload = mapOf("token" to kotlinx.serialization.json.JsonPrimitive(","))))
+                        gestures = mapOf(GestureType.TAP to ActionDef(actionType = LayoutActionType.PUSH_TOKEN, payload = mapOf("token" to kotlinx.serialization.json.JsonPrimitive(","))))
                     )
                 ), 1f, 3f
             ),
@@ -190,7 +170,7 @@ object BuiltInLayouts {
                     content = ContentSpec(label = "Space"),
                     width = Dimension.Weight(5f),
                     actions = ActionMap(
-                        gestures = mapOf(GestureType.TAP to ActionDef(actionType = "commitToken", payload = mapOf("token" to kotlinx.serialization.json.JsonPrimitive(" "))))
+                        gestures = mapOf(GestureType.TAP to ActionDef(actionType = LayoutActionType.PUSH_TOKEN, payload = mapOf("token" to kotlinx.serialization.json.JsonPrimitive(" "))))
                     )
                 ), 2f, 3f, colSpan = 5f
             ),
@@ -200,7 +180,7 @@ object BuiltInLayouts {
                     styleRef = "key_function",
                     content = ContentSpec(label = "."),
                     actions = ActionMap(
-                        gestures = mapOf(GestureType.TAP to ActionDef(actionType = "commitToken", payload = mapOf("token" to kotlinx.serialization.json.JsonPrimitive("."))))
+                        gestures = mapOf(GestureType.TAP to ActionDef(actionType = LayoutActionType.PUSH_TOKEN, payload = mapOf("token" to kotlinx.serialization.json.JsonPrimitive("."))))
                     )
                 ), 7f, 3f
             ),
@@ -211,7 +191,7 @@ object BuiltInLayouts {
                     content = ContentSpec(label = "?123"),
                     width = Dimension.Weight(2f),
                     actions = ActionMap(
-                        gestures = mapOf(GestureType.TAP to ActionDef(actionType = "openPanel", payload = mapOf("panel" to kotlinx.serialization.json.JsonPrimitive("SYMBOL_PANEL"))))
+                        gestures = mapOf(GestureType.TAP to ActionDef(actionType = LayoutActionType.OPEN_PANEL, payload = mapOf("panel" to kotlinx.serialization.json.JsonPrimitive(PanelType.SYMBOL.name))))
                     )
                 ), 8f, 3f, colSpan = 2f
             )

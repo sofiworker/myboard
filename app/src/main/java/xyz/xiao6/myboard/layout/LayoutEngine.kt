@@ -2,33 +2,35 @@ package xyz.xiao6.myboard.layout
 
 import android.graphics.Path
 import android.graphics.RectF
-import xyz.xiao6.myboard.contract.input.*
-import xyz.xiao6.myboard.contract.layout.*
-import xyz.xiao6.myboard.contract.manifest.*
-import xyz.xiao6.myboard.contract.theme.*
-import xyz.xiao6.myboard.contract.engine.*
-import xyz.xiao6.myboard.contract.bridge.*
-import xyz.xiao6.myboard.contract.registry.*
-import xyz.xiao6.myboard.contract.panel.*
-import xyz.xiao6.myboard.contract.language.*
-import xyz.xiao6.myboard.contract.state.*
+import xyz.xiao6.myboard.contract.layout.AbsoluteLayout
+import xyz.xiao6.myboard.contract.layout.CompositeLayout
+import xyz.xiao6.myboard.contract.layout.Dimension
+import xyz.xiao6.myboard.contract.layout.GridLayout
+import xyz.xiao6.myboard.contract.layout.HintPosition
+import xyz.xiao6.myboard.contract.layout.HitShape
+import xyz.xiao6.myboard.contract.layout.KeyDef
+import xyz.xiao6.myboard.contract.layout.LayoutContainer
+import xyz.xiao6.myboard.contract.layout.LayoutDoc
+import xyz.xiao6.myboard.contract.layout.LayoutNode
+import xyz.xiao6.myboard.contract.layout.LinearLayout
+import xyz.xiao6.myboard.contract.layout.MeasuredKey
+import xyz.xiao6.myboard.contract.layout.MeasuredLayout
+import xyz.xiao6.myboard.contract.layout.MeasuredRegion
+import xyz.xiao6.myboard.contract.layout.Orientation
+import xyz.xiao6.myboard.contract.layout.Region
+import xyz.xiao6.myboard.contract.layout.RowLayout
+import xyz.xiao6.myboard.contract.state.LayoutLayer
 
 /**
- * 布局测量引擎。
- * 对 5 种容器类型（Row/Grid/Linear/Absolute/Composite）进行测量。
- * 输出 MeasuredLayout。
+ * Measures a layout document into a flat key list plus optional region metadata.
+ *
+ * Inline toolbar/candidate chrome is owned by the page frame. Composite regions
+ * are for the current layout's own internal areas, such as rails and content.
  */
 object LayoutEngine {
-    
-    /** 默认 key dp 高度 */
+
     private const val DEFAULT_KEY_HEIGHT_DP = 46f
-    
-    /** 默认候选栏 dp 高度 */
-    private const val DEFAULT_CANDIDATE_HEIGHT_DP = 40f
-    
-    /**
-     * 测量布局文档，返回 MeasuredLayout。
-     */
+
     fun measure(
         doc: LayoutDoc,
         layer: LayoutLayer,
@@ -36,75 +38,156 @@ object LayoutEngine {
         viewHeightPx: Int,
         density: Float = 2.0f
     ): MeasuredLayout {
-        val regions = mutableListOf<MeasuredRegion>()
-        
-        when (val root = doc.root) {
-            is CompositeLayout -> {
-                // 复合布局：测量每个 region
-                for (region in root.regions) {
-                    val measured = measureRegion(region, viewWidthPx, viewHeightPx, density)
-                    regions.add(measured)
-                }
-            }
-            else -> {
-                // 单容器：包装为 region
-                val region = Region(
-                    id = "root",
-                    role = RegionRole.KEYBOARD,
-                    container = root
-                )
-                val measured = measureRegion(region, viewWidthPx, viewHeightPx, density)
-                regions.add(measured)
-            }
+        if (doc.root is CompositeLayout) {
+            val regions = measureComposite(
+                composite = doc.root,
+                area = RectF(0f, 0f, viewWidthPx.toFloat(), viewHeightPx.toFloat()),
+                density = density
+            )
+            return MeasuredLayout(
+                doc = doc,
+                keys = regions.flatMap { it.keys },
+                viewWidth = viewWidthPx,
+                viewHeight = viewHeightPx,
+                layer = layer,
+                regions = regions
+            )
         }
-        
+
         return MeasuredLayout(
             doc = doc,
-            regions = regions,
+            keys = measureContainer(doc.root, viewWidthPx, viewHeightPx, density),
             viewWidth = viewWidthPx,
             viewHeight = viewHeightPx,
             layer = layer
         )
     }
-    
-    private fun measureRegion(
-        region: Region,
+
+    private fun measureContainer(
+        container: LayoutContainer,
         viewWidthPx: Int,
         viewHeightPx: Int,
         density: Float
-    ): MeasuredRegion {
-        val container = region.container
+    ): List<MeasuredKey> {
+        return measureContainer(container, viewWidthPx, viewHeightPx, density, originX = 0f, originY = 0f)
+    }
+
+    private fun measureContainer(
+        container: LayoutContainer,
+        viewWidthPx: Int,
+        viewHeightPx: Int,
+        density: Float,
+        originX: Float,
+        originY: Float
+    ): List<MeasuredKey> {
         val padding = container.padding
-        
-        // 计算容器可用空间
         val containerW = resolveDimension(container.width, viewWidthPx.toFloat(), density, 1f)
         val containerH = resolveDimension(container.height, viewHeightPx.toFloat(), density, 1f)
-        
+
         val innerW = containerW - (padding.start + padding.end) * density
         val innerH = containerH - (padding.top + padding.bottom) * density
-        
-        val offsetX = padding.start * density
-        val offsetY = padding.top * density
-        
-        val keys = when (container) {
+        val offsetX = originX + padding.start * density
+        val offsetY = originY + padding.top * density
+
+        return when (container) {
             is RowLayout -> measureRow(container, offsetX, offsetY, innerW, innerH, density)
             is GridLayout -> measureGrid(container, offsetX, offsetY, innerW, innerH, density)
             is LinearLayout -> measureLinear(container, offsetX, offsetY, innerW, innerH, density)
             is AbsoluteLayout -> measureAbsolute(container, offsetX, offsetY, innerW, innerH, density)
-            is CompositeLayout -> emptyList()
+            is CompositeLayout -> measureComposite(
+                composite = container,
+                area = RectF(originX, originY, originX + containerW, originY + containerH),
+                density = density
+            ).flatMap { it.keys }
         }
-        
-        return MeasuredRegion(
-            region = region,
-            rect = RectF(0f, 0f, containerW, containerH),
-            keys = keys
-        )
     }
-    
-    /**
-     * Row 容器测量。
-     * 水平排列 keys，使用 weight 分配宽度。
-     */
+
+    private fun measureComposite(
+        composite: CompositeLayout,
+        area: RectF,
+        density: Float
+    ): List<MeasuredRegion> {
+        if (composite.regions.isEmpty()) return emptyList()
+
+        val padding = composite.padding
+        val gapPx = composite.gap * density
+        val contentLeft = area.left + padding.start * density
+        val contentTop = area.top + padding.top * density
+        val contentRight = area.right - padding.end * density
+        val contentBottom = area.bottom - padding.bottom * density
+        val contentWidth = (contentRight - contentLeft).coerceAtLeast(0f)
+        val contentHeight = (contentBottom - contentTop).coerceAtLeast(0f)
+        val horizontal = composite.orientation == Orientation.HORIZONTAL
+        val mainSize = if (horizontal) contentWidth else contentHeight
+
+        var fixedSize = 0f
+        var totalWeight = 0f
+        val mainDimensions = composite.regions.map { region ->
+            if (horizontal) region.container.width else region.container.height
+        }
+
+        mainDimensions.forEach { dimension ->
+            when (dimension) {
+                is Dimension.Weight -> totalWeight += dimension.value
+                is Dimension.Match -> totalWeight += 1f
+                is Dimension.Dp -> fixedSize += dimension.value * density
+                is Dimension.Percent -> fixedSize += dimension.value / 100f * mainSize
+                is Dimension.RatioW -> fixedSize += dimension.value * mainSize
+                is Dimension.Wrap -> fixedSize += DEFAULT_KEY_HEIGHT_DP * density
+            }
+        }
+
+        val totalGap = gapPx * (composite.regions.size - 1).coerceAtLeast(0)
+        val remaining = (mainSize - fixedSize - totalGap).coerceAtLeast(0f)
+        val weightUnit = if (totalWeight > 0f) remaining / totalWeight else 0f
+        var cursor = if (horizontal) contentLeft else contentTop
+
+        return composite.regions.mapIndexed { index, region ->
+            val dimension = mainDimensions[index]
+            val regionMainSize = when (dimension) {
+                is Dimension.Weight -> dimension.value * weightUnit
+                is Dimension.Match -> weightUnit
+                is Dimension.Dp -> dimension.value * density
+                is Dimension.Percent -> dimension.value / 100f * mainSize
+                is Dimension.RatioW -> dimension.value * mainSize
+                is Dimension.Wrap -> DEFAULT_KEY_HEIGHT_DP * density
+            }.coerceAtLeast(0f)
+
+            val rect = if (horizontal) {
+                RectF(cursor, contentTop, cursor + regionMainSize, contentBottom)
+            } else {
+                RectF(contentLeft, cursor, contentRight, cursor + regionMainSize)
+            }
+            cursor += regionMainSize + gapPx
+
+            MeasuredRegion(
+                region = region,
+                rect = rect,
+                keys = measureContainerInBounds(region.container, rect, density)
+            )
+        }
+    }
+
+    private fun measureContainerInBounds(
+        container: LayoutContainer,
+        bounds: RectF,
+        density: Float
+    ): List<MeasuredKey> {
+        val padding = container.padding
+        val innerW = bounds.width() - (padding.start + padding.end) * density
+        val innerH = bounds.height() - (padding.top + padding.bottom) * density
+        val offsetX = bounds.left + padding.start * density
+        val offsetY = bounds.top + padding.top * density
+
+        return when (container) {
+            is RowLayout -> measureRow(container, offsetX, offsetY, innerW, innerH, density)
+            is GridLayout -> measureGrid(container, offsetX, offsetY, innerW, innerH, density)
+            is LinearLayout -> measureLinear(container, offsetX, offsetY, innerW, innerH, density)
+            is AbsoluteLayout -> measureAbsolute(container, offsetX, offsetY, innerW, innerH, density)
+            is CompositeLayout -> measureComposite(container, bounds, density).flatMap { it.keys }
+        }
+    }
+
     private fun measureRow(
         row: RowLayout,
         offsetX: Float,
@@ -115,57 +198,43 @@ object LayoutEngine {
     ): List<MeasuredKey> {
         val keys = row.keys
         if (keys.isEmpty()) return emptyList()
-        
+
         val gap = row.gap * density
         val totalGap = gap * (keys.size - 1)
-        
-        // 计算 weight 总和
+
         var totalWeight = 0f
         var fixedWidth = 0f
         for (key in keys) {
-            when (val w = key.width) {
-                is Dimension.Weight -> totalWeight += w.value
-                is Dimension.Dp -> fixedWidth += w.value * density
+            when (val width = key.width) {
+                is Dimension.Weight -> totalWeight += width.value
+                is Dimension.Dp -> fixedWidth += width.value * density
                 is Dimension.Wrap -> fixedWidth += DEFAULT_KEY_HEIGHT_DP * density
-                is Dimension.Match -> { /* 不处理，视为 weight=1 */ totalWeight += 1f }
-                is Dimension.Percent -> fixedWidth += w.value / 100f * innerW
-                is Dimension.RatioW -> fixedWidth += w.value * innerH
+                is Dimension.Match -> totalWeight += 1f
+                is Dimension.Percent -> fixedWidth += width.value / 100f * innerW
+                is Dimension.RatioW -> fixedWidth += width.value * innerH
             }
         }
-        
+
         val remainingW = innerW - fixedWidth - totalGap
         val weightUnit = if (totalWeight > 0) remainingW / totalWeight else 0f
-        
         var x = offsetX
-        val measuredKeys = mutableListOf<MeasuredKey>()
-        
-        for (key in keys) {
+
+        return keys.map { key ->
             val keyW = resolveDimension(key.width, innerW, density, weightUnit)
             val keyH = resolveDimension(key.height, innerH, density, weightUnit)
-            
             val rect = RectF(x, offsetY, x + keyW, offsetY + keyH)
-            val hitPath = createHitPath(key, rect)
-            
-            measuredKeys.add(
-                MeasuredKey(
-                    key = key,
-                    resolvedContent = key.content,
-                    rect = rect,
-                    hitPath = hitPath,
-                    zIndex = 0
-                )
-            )
-            
             x += keyW + gap
+
+            MeasuredKey(
+                key = key,
+                resolvedContent = key.content,
+                rect = rect,
+                hitPath = createHitPath(key, rect),
+                zIndex = 0
+            )
         }
-        
-        return measuredKeys
     }
-    
-    /**
-     * Grid 容器测量。
-     * 网格布局，使用 cells 指定行列位置。
-     */
+
     private fun measureGrid(
         grid: GridLayout,
         offsetX: Float,
@@ -176,46 +245,36 @@ object LayoutEngine {
     ): List<MeasuredKey> {
         val cells = grid.cells
         if (cells.isEmpty()) return emptyList()
-        
+
         val columns = grid.columns.toFloat()
-        val rows = if (grid.rows > 0) grid.rows.toFloat() else {
+        val rows = if (grid.rows > 0) {
+            grid.rows
+        } else {
             cells.maxOfOrNull { it.row + it.rowSpan } ?: 1f
         }
-        
+
         val colGap = grid.colGap * density
         val rowGap = grid.rowGap * density
-        
         val cellW = (innerW - colGap * (columns - 1f)) / columns
         val cellH = (innerH - rowGap * (rows - 1f)) / rows
-        
-        val measuredKeys = mutableListOf<MeasuredKey>()
-        
-        for (cell in cells) {
+
+        return cells.map { cell ->
             val x = offsetX + cell.col * (cellW + colGap)
             val y = offsetY + cell.row * (cellH + rowGap)
             val w = cell.colSpan * cellW + (cell.colSpan - 1f) * colGap
             val h = cell.rowSpan * cellH + (cell.rowSpan - 1f) * rowGap
-            
             val rect = RectF(x, y, x + w, y + h)
-            val hitPath = createHitPath(cell.key, rect)
-            
-            measuredKeys.add(
-                MeasuredKey(
-                    key = cell.key,
-                    resolvedContent = cell.key.content,
-                    rect = rect,
-                    hitPath = hitPath,
-                    zIndex = 0
-                )
+
+            MeasuredKey(
+                key = cell.key,
+                resolvedContent = cell.key.content,
+                rect = rect,
+                hitPath = createHitPath(cell.key, rect),
+                zIndex = 0
             )
         }
-        
-        return measuredKeys
     }
-    
-    /**
-     * Linear 容器测量（候选栏、工具栏）。
-     */
+
     private fun measureLinear(
         linear: LinearLayout,
         offsetX: Float,
@@ -224,55 +283,60 @@ object LayoutEngine {
         innerH: Float,
         density: Float
     ): List<MeasuredKey> {
-        val children = linear.children
-        if (children.isEmpty()) return emptyList()
-        
+        if (linear.children.isEmpty()) return emptyList()
+
         val gap = linear.gap * density
         val isHorizontal = linear.orientation == Orientation.HORIZONTAL
-        
         var pos = if (isHorizontal) offsetX else offsetY
         val measuredKeys = mutableListOf<MeasuredKey>()
-        
-        for (child in children) {
+
+        for (child in linear.children) {
             when (child) {
                 is LayoutNode.KeyNode -> {
                     val key = child.key
                     val keyW = resolveDimension(key.width, innerW, density, 1f)
                     val keyH = resolveDimension(key.height, innerH, density, 1f)
-                    
                     val rect = if (isHorizontal) {
                         RectF(pos, offsetY, pos + keyW, offsetY + keyH)
                     } else {
                         RectF(offsetX, pos, offsetX + keyW, pos + keyH)
                     }
-                    
-                    val hitPath = createHitPath(key, rect)
-                    
+
                     measuredKeys.add(
                         MeasuredKey(
                             key = key,
                             resolvedContent = key.content,
                             rect = rect,
-                            hitPath = hitPath,
+                            hitPath = createHitPath(key, rect),
                             zIndex = 0
                         )
                     )
-                    
                     pos += (if (isHorizontal) keyW else keyH) + gap
                 }
+
                 is LayoutNode.SpacerNode -> {
-                    val spacerSize = resolveDimension(child.width, innerW, density, 1f)
+                    val spacerSize = if (isHorizontal) {
+                        resolveDimension(child.width, innerW, density, 1f)
+                    } else {
+                        resolveDimension(child.height, innerH, density, 1f)
+                    }
                     pos += spacerSize + gap
+                }
+
+                is LayoutNode.DividerNode -> {
+                    val dividerSize = if (isHorizontal) {
+                        resolveDimension(child.width, innerW, density, 1f)
+                    } else {
+                        resolveDimension(child.height, innerH, density, 1f)
+                    }
+                    pos += dividerSize + gap
                 }
             }
         }
-        
+
         return measuredKeys
     }
-    
-    /**
-     * Absolute 容器测量（浮层、特殊键）。
-     */
+
     private fun measureAbsolute(
         absolute: AbsoluteLayout,
         offsetX: Float,
@@ -281,49 +345,48 @@ object LayoutEngine {
         innerH: Float,
         density: Float
     ): List<MeasuredKey> {
-        val items = absolute.items
-        if (items.isEmpty()) return emptyList()
-        
-        val measuredKeys = mutableListOf<MeasuredKey>()
-        
-        for (item in items) {
+        if (absolute.items.isEmpty()) return emptyList()
+
+        return absolute.items.map { item ->
             val x = resolveDimension(item.x, innerW, density, 1f)
             val y = resolveDimension(item.y, innerH, density, 1f)
             val w = resolveDimension(item.width, innerW, density, 1f)
             val h = resolveDimension(item.height, innerH, density, 1f)
-            
-            // 根据 anchor 调整位置
+
             val adjustedX = when (item.anchor) {
-                HintPosition.TOP_LEFT, HintPosition.CENTER_LEFT, HintPosition.BOTTOM_LEFT -> offsetX + x
-                HintPosition.TOP_CENTER, HintPosition.CENTER, HintPosition.BOTTOM_CENTER -> offsetX + x - w / 2
-                HintPosition.TOP_RIGHT, HintPosition.CENTER_RIGHT, HintPosition.BOTTOM_RIGHT -> offsetX + x - w
+                HintPosition.TOP_LEFT,
+                HintPosition.CENTER_LEFT,
+                HintPosition.BOTTOM_LEFT -> offsetX + x
+                HintPosition.TOP_CENTER,
+                HintPosition.CENTER,
+                HintPosition.BOTTOM_CENTER -> offsetX + x - w / 2
+                HintPosition.TOP_RIGHT,
+                HintPosition.CENTER_RIGHT,
+                HintPosition.BOTTOM_RIGHT -> offsetX + x - w
             }
             val adjustedY = when (item.anchor) {
-                HintPosition.TOP_LEFT, HintPosition.TOP_CENTER, HintPosition.TOP_RIGHT -> offsetY + y
-                HintPosition.CENTER_LEFT, HintPosition.CENTER, HintPosition.CENTER_RIGHT -> offsetY + y - h / 2
-                HintPosition.BOTTOM_LEFT, HintPosition.BOTTOM_CENTER, HintPosition.BOTTOM_RIGHT -> offsetY + y - h
+                HintPosition.TOP_LEFT,
+                HintPosition.TOP_CENTER,
+                HintPosition.TOP_RIGHT -> offsetY + y
+                HintPosition.CENTER_LEFT,
+                HintPosition.CENTER,
+                HintPosition.CENTER_RIGHT -> offsetY + y - h / 2
+                HintPosition.BOTTOM_LEFT,
+                HintPosition.BOTTOM_CENTER,
+                HintPosition.BOTTOM_RIGHT -> offsetY + y - h
             }
-            
+
             val rect = RectF(adjustedX, adjustedY, adjustedX + w, adjustedY + h)
-            val hitPath = createHitPath(item.key, rect)
-            
-            measuredKeys.add(
-                MeasuredKey(
-                    key = item.key,
-                    resolvedContent = item.key.content,
-                    rect = rect,
-                    hitPath = hitPath,
-                    zIndex = item.zIndex
-                )
+            MeasuredKey(
+                key = item.key,
+                resolvedContent = item.key.content,
+                rect = rect,
+                hitPath = createHitPath(item.key, rect),
+                zIndex = item.zIndex
             )
-        }
-        
-        return measuredKeys.sortedBy { it.zIndex }
+        }.sortedBy { it.zIndex }
     }
-    
-    /**
-     * 解析 Dimension 为像素值。
-     */
+
     private fun resolveDimension(
         dim: Dimension,
         parentSize: Float,
@@ -339,31 +402,23 @@ object LayoutEngine {
             is Dimension.RatioW -> dim.value * parentSize
         }
     }
-    
-    /**
-     * 创建命中区域 Path。
-     */
+
     private fun createHitPath(key: KeyDef, rect: RectF): Path {
         return when (val shape = key.hitShape) {
-            is HitShape.Rect -> {
-                Path().apply {
-                    addRoundRect(rect, shape.cornerRadius, shape.cornerRadius, Path.Direction.CW)
-                }
+            is HitShape.Rect -> Path().apply {
+                addRoundRect(rect, shape.cornerRadius, shape.cornerRadius, Path.Direction.CW)
             }
-            is HitShape.Circle -> {
-                Path().apply {
-                    addCircle(shape.cx, shape.cy, shape.r, Path.Direction.CW)
-                }
+
+            is HitShape.Circle -> Path().apply {
+                addCircle(shape.cx, shape.cy, shape.r, Path.Direction.CW)
             }
-            is HitShape.Rounded -> {
-                Path().apply {
-                    addRoundRect(rect, shape.cornerRadius, shape.cornerRadius, Path.Direction.CW)
-                }
+
+            is HitShape.Rounded -> Path().apply {
+                addRoundRect(rect, shape.cornerRadius, shape.cornerRadius, Path.Direction.CW)
             }
-            null -> {
-                Path().apply {
-                    addRect(rect, Path.Direction.CW)
-                }
+
+            null -> Path().apply {
+                addRect(rect, Path.Direction.CW)
             }
         }
     }

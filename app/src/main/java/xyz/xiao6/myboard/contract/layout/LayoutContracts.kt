@@ -4,158 +4,325 @@ import android.graphics.Path
 import android.graphics.RectF
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonElement
+import xyz.xiao6.myboard.common.SchemaVersion
+import xyz.xiao6.myboard.contract.state.LayoutLayer
 
 /**
- * 按键模型。
- * type=CHAR 时 TAP 动作自动推断为 commitToken(output 或 id)。
- * 其他 KeyType 有默认 TAP 动作（见 ActionResolver）。
- * longPress / swipeActions 优先级高于默认 TAP 动作。
+ * Layout v2 data contract.
+ *
+ * The model matches docs/layout.md and bundled layout JSONC root/key structure.
+ * Layouts describe key geometry, presentation, actions and optional internal
+ * regions. Keyboard chrome such as inline toolbar/candidate switching is owned
+ * by the page frame.
  */
-@Serializable
-data class KeyModel(
-    val id: String,
-    val type: KeyType = KeyType.CHAR,
-    val label: String? = null,
-    val output: String? = null,
-    val icon: String? = null,
-    val width: Dimension? = null,
-    val height: Dimension? = null,
-    val hint: Map<HintPosition, String> = emptyMap(),
-    val longPress: List<KeyAction>? = null,
-    val swipeActions: Map<Direction, KeyAction>? = null,
-    val style: String? = null
-)
 
-@Serializable
-enum class KeyType {
-    CHAR, FUNCTION, SPACE, ENTER, BACKSPACE, SHIFT,
-    SYMBOL_SWITCH, EMOJI_SWITCH, EMPTY, PLACEHOLDER
-}
-
-@Serializable
-data class KeyAction(
-    val action: String,
-    val payload: Map<String, String> = emptyMap()
-)
-
-@Serializable
-enum class Direction { UP, DOWN, LEFT, RIGHT }
-
-/**
- * 角标位置。
- */
-@Serializable
-enum class HintPosition {
-    TOP_LEFT, TOP_CENTER, TOP_RIGHT,
-    CENTER_LEFT, CENTER, CENTER_RIGHT,
-    BOTTOM_LEFT, BOTTOM_CENTER, BOTTOM_RIGHT
-}
-
-/**
- * 尺寸多态类型。
- * JSONC 简化表达通过自定义解析器实现：
- * null → MATCH_PARENT, -1 → WRAP_CONTENT,
- * 5 → Weight(5), 40 → Dp(40)
- */
 @Serializable
 sealed class Dimension {
-    @Serializable @SerialName("match") data object MATCH_PARENT : Dimension()
-    @Serializable @SerialName("wrap") data object WRAP_CONTENT : Dimension()
-    @Serializable @SerialName("weight") data class Weight(val value: Float = 1f) : Dimension()
-    @Serializable @SerialName("dp") data class Dp(val value: Float) : Dimension()
+    @Serializable
+    @SerialName("match")
+    data object Match : Dimension()
+
+    @Serializable
+    @SerialName("wrap")
+    data object Wrap : Dimension()
+
+    @Serializable
+    @SerialName("weight")
+    data class Weight(val value: Float = 1f) : Dimension()
+
+    @Serializable
+    @SerialName("dp")
+    data class Dp(val value: Float) : Dimension()
+
+    @Serializable
+    @SerialName("percent")
+    data class Percent(val value: Float) : Dimension()
+
+    @Serializable
+    @SerialName("ratio_w")
+    data class RatioW(val value: Float) : Dimension()
 }
 
-/**
- * 布局容器（5 种类型）。
- */
+@Serializable
+data class BoxSpacing(
+    val start: Float = 0f,
+    val top: Float = 0f,
+    val end: Float = 0f,
+    val bottom: Float = 0f
+)
+
+@Serializable
+enum class Orientation {
+    VERTICAL,
+    HORIZONTAL
+}
+
+@Serializable
+enum class Gravity {
+    START,
+    CENTER,
+    END,
+    SPACE_BETWEEN,
+    SPACE_AROUND,
+    SPACE_EVENLY,
+    STRETCH
+}
+
+@Serializable
+enum class HintPosition {
+    TOP_LEFT,
+    TOP_CENTER,
+    TOP_RIGHT,
+    CENTER_LEFT,
+    CENTER,
+    CENTER_RIGHT,
+    BOTTOM_LEFT,
+    BOTTOM_CENTER,
+    BOTTOM_RIGHT
+}
+
+@Serializable
+enum class GestureType {
+    TAP,
+    LONG_PRESS,
+    DOUBLE_TAP,
+    REPEAT,
+    SWIPE_UP,
+    SWIPE_DOWN,
+    SWIPE_LEFT,
+    SWIPE_RIGHT
+}
+
+@Serializable
+enum class LayoutActionType {
+    PUSH_TOKEN,
+    COMMIT_TEXT,
+    DELETE,
+    SPACE,
+    ENTER,
+    SWITCH_LAYER,
+    CYCLE_LAYER,
+    SWITCH_LOCALE,
+    SWITCH_SCRIPT,
+    SWITCH_SCHEMA,
+    OPEN_PANEL,
+    CLOSE_PANEL,
+    COMMIT_CANDIDATE,
+    PAGE_NEXT,
+    PAGE_PREV,
+    PAGE_CANDIDATE,
+    RESTORE_PREVIOUS_SCHEMA,
+    NOOP
+}
+
+@Serializable
+data class ActionDef(
+    val actionType: LayoutActionType,
+    val payload: Map<String, JsonElement> = emptyMap()
+)
+
+@Serializable
+data class ActionMap(
+    val gestures: Map<GestureType, ActionDef> = emptyMap()
+)
+
+@Serializable
+data class ContentSpec(
+    val label: String? = null,
+    val icon: String? = null,
+    val hint: Map<HintPosition, String> = emptyMap()
+)
+
+@Serializable
+data class VariantPatch(
+    val label: String? = null,
+    val icon: String? = null,
+    val hint: Map<HintPosition, String>? = null,
+    val visible: Boolean = true
+)
+
+@Serializable
+sealed class HitShape {
+    @Serializable
+    @SerialName("rect")
+    data class Rect(val cornerRadius: Float = 0f) : HitShape()
+
+    @Serializable
+    @SerialName("circle")
+    data class Circle(val cx: Float, val cy: Float, val r: Float) : HitShape()
+
+    @Serializable
+    @SerialName("rounded")
+    data class Rounded(val cornerRadius: Float) : HitShape()
+}
+
+@Serializable
+data class KeyDef(
+    val id: String,
+    val styleRef: String? = null,
+    val content: ContentSpec = ContentSpec(),
+    val actions: ActionMap = ActionMap(),
+    val width: Dimension = Dimension.Weight(1f),
+    val height: Dimension = Dimension.Match,
+    val variants: Map<String, VariantPatch> = emptyMap(),
+    val hitShape: HitShape? = null,
+    val repeatable: Boolean = false,
+    val longPressDelay: Int = 400,
+    val repeatInterval: Int = 50
+)
+
+@Serializable
+data class Bindings(
+    val visibleWhen: String? = null,
+    val enabledWhen: String? = null
+)
+
+@Serializable
+sealed class LayoutNode {
+    @Serializable
+    @SerialName("key")
+    data class KeyNode(val key: KeyDef) : LayoutNode()
+
+    @Serializable
+    @SerialName("spacer")
+    data class SpacerNode(
+        val width: Dimension = Dimension.Weight(1f),
+        val height: Dimension = Dimension.Match
+    ) : LayoutNode()
+
+    @Serializable
+    @SerialName("divider")
+    data class DividerNode(
+        val width: Dimension = Dimension.Dp(1f),
+        val height: Dimension = Dimension.Match
+    ) : LayoutNode()
+}
+
 @Serializable
 sealed class LayoutContainer {
-    abstract val width: Dimension?
-    abstract val height: Dimension?
+    abstract val id: String
+    abstract val width: Dimension
+    abstract val height: Dimension
+    abstract val padding: BoxSpacing
+    abstract val styleRef: String?
+    abstract val bindings: Bindings?
 }
 
-/**
- * 1. 行布局（标准 QWERTY 行）。
- */
-@Serializable @SerialName("row")
+@Serializable
+@SerialName("row")
 data class RowLayout(
-    val keys: List<KeyModel>,
-    val keySpacing: Float = 0f,
-    override val width: Dimension? = null,
-    override val height: Dimension? = null
+    override val id: String,
+    val keys: List<KeyDef>,
+    val gap: Float = 0f,
+    val gravity: Gravity = Gravity.START,
+    override val width: Dimension = Dimension.Match,
+    override val height: Dimension = Dimension.Wrap,
+    override val padding: BoxSpacing = BoxSpacing(),
+    override val styleRef: String? = null,
+    override val bindings: Bindings? = null
 ) : LayoutContainer()
 
-/**
- * 2. 网格布局（T9/数字键盘）。
- */
-@Serializable @SerialName("grid")
+@Serializable
+@SerialName("grid")
 data class GridLayout(
-    val rows: Int,
-    val cols: Int,
-    val keys: List<GridKey>,
-    val rowSpacing: Float = 0f,
-    val colSpacing: Float = 0f,
-    override val width: Dimension? = null,
-    override val height: Dimension? = null
+    override val id: String,
+    val columns: Int,
+    val rows: Float = 0f,
+    val cells: List<GridCell>,
+    val rowGap: Float = 0f,
+    val colGap: Float = 0f,
+    override val width: Dimension = Dimension.Match,
+    override val height: Dimension = Dimension.Match,
+    override val padding: BoxSpacing = BoxSpacing(),
+    override val styleRef: String? = null,
+    override val bindings: Bindings? = null
 ) : LayoutContainer() {
     @Serializable
-    data class GridKey(
-        val key: KeyModel,
-        val row: Int,
-        val col: Int,
-        val rowSpan: Int = 1,
-        val colSpan: Int = 1
+    data class GridCell(
+        val key: KeyDef,
+        val col: Float,
+        val row: Float,
+        val colSpan: Float = 1f,
+        val rowSpan: Float = 1f
     )
 }
 
-/**
- * 3. 流式布局（符号页、自适应换行）。
- */
-@Serializable @SerialName("flow")
-data class FlowLayout(
-    val keys: List<KeyModel>,
-    val maxCols: Int? = null,
-    val horizontalSpacing: Float = 0f,
-    val verticalSpacing: Float = 0f,
-    override val width: Dimension? = null,
-    override val height: Dimension? = null
+@Serializable
+@SerialName("linear")
+data class LinearLayout(
+    override val id: String,
+    val orientation: Orientation,
+    val children: List<LayoutNode> = emptyList(),
+    val gap: Float = 0f,
+    val gravity: Gravity = Gravity.START,
+    val scroll: ScrollSpec? = null,
+    override val width: Dimension = Dimension.Match,
+    override val height: Dimension = Dimension.Wrap,
+    override val padding: BoxSpacing = BoxSpacing(),
+    override val styleRef: String? = null,
+    override val bindings: Bindings? = null
 ) : LayoutContainer()
 
-/**
- * 4. 绝对布局（不规则跨行跨列）。
- */
-@Serializable @SerialName("absolute")
+@Serializable
+data class ScrollSpec(
+    val enabled: Boolean = true,
+    val direction: Orientation = Orientation.HORIZONTAL,
+    val paging: Boolean = false
+)
+
+@Serializable
+@SerialName("absolute")
 data class AbsoluteLayout(
-    val keys: List<AbsoluteKey>,
-    override val width: Dimension? = null,
-    override val height: Dimension? = null
+    override val id: String,
+    val items: List<AbsoluteItem>,
+    override val width: Dimension = Dimension.Match,
+    override val height: Dimension = Dimension.Match,
+    override val padding: BoxSpacing = BoxSpacing(),
+    override val styleRef: String? = null,
+    override val bindings: Bindings? = null
 ) : LayoutContainer() {
     @Serializable
-    data class AbsoluteKey(
-        val key: KeyModel,
-        val x: Float,
-        val y: Float,
-        val w: Float,
-        val h: Float,
+    data class AbsoluteItem(
+        val key: KeyDef,
+        val x: Dimension,
+        val y: Dimension,
+        val width: Dimension,
+        val height: Dimension,
         val anchor: HintPosition = HintPosition.TOP_LEFT,
         val zIndex: Int = 0
     )
 }
 
-/**
- * 5. 复合布局（容器嵌套）。
- */
-@Serializable @SerialName("composite")
+@Serializable
+@SerialName("composite")
 data class CompositeLayout(
-    val children: List<LayoutContainer>,
-    val orientation: String = "vertical",
-    override val width: Dimension? = null,
-    override val height: Dimension? = null
+    override val id: String,
+    val orientation: Orientation,
+    val regions: List<Region>,
+    val gap: Float = 0f,
+    override val width: Dimension = Dimension.Match,
+    override val height: Dimension = Dimension.Match,
+    override val padding: BoxSpacing = BoxSpacing(),
+    override val styleRef: String? = null,
+    override val bindings: Bindings? = null
 ) : LayoutContainer()
 
-/**
- * 布局元数据。
- */
+@Serializable
+data class Region(
+    val id: String,
+    val role: String? = null,
+    val tags: List<String> = emptyList(),
+    val container: LayoutContainer,
+    val bindings: Bindings? = null
+)
+
+@Serializable
+enum class LayoutPresentationMode {
+    CHROME_AND_CONTENT,
+    FULL_SURFACE
+}
+
 @Serializable
 data class LayoutMeta(
     val name: String? = null,
@@ -164,34 +331,43 @@ data class LayoutMeta(
     val tags: List<String> = emptyList()
 )
 
-/**
- * 布局文档。
- */
 @Serializable
-data class LayoutDoc(
-    val schemaVersion: String = "1.0.0",
-    val id: String,
-    val meta: LayoutMeta? = null,
-    val supportedLayers: List<String>? = null,
-    val layout: LayoutContainer
+data class LayoutEnv(
+    val orientation: Orientation? = null,
+    val minWidthDp: Float? = null,
+    val maxWidthDp: Float? = null
 )
 
-/**
- * 测量输出：按键。
- */
+@Serializable
+data class LayoutDoc(
+    val schemaVersion: String = SchemaVersion.CURRENT_STR,
+    val id: String,
+    val meta: LayoutMeta = LayoutMeta(),
+    val env: LayoutEnv? = null,
+    val presentationMode: LayoutPresentationMode = LayoutPresentationMode.CHROME_AND_CONTENT,
+    val root: LayoutContainer,
+    val supportedLayers: List<LayoutLayer> = listOf(LayoutLayer.NORMAL)
+)
+
 data class MeasuredKey(
-    val key: KeyModel,
+    val key: KeyDef,
+    val resolvedContent: ContentSpec,
     val rect: RectF,
-    val hitPath: Path? = null,
+    val hitPath: Path,
     val zIndex: Int = 0
 )
 
-/**
- * 测量输出：完整布局（拍平为全量 key 列表）。
- */
 data class MeasuredLayout(
     val doc: LayoutDoc,
     val keys: List<MeasuredKey>,
     val viewWidth: Int,
-    val viewHeight: Int
+    val viewHeight: Int,
+    val layer: LayoutLayer,
+    val regions: List<MeasuredRegion> = emptyList()
+)
+
+data class MeasuredRegion(
+    val region: Region,
+    val rect: RectF,
+    val keys: List<MeasuredKey>
 )

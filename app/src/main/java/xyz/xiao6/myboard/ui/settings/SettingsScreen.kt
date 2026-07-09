@@ -11,12 +11,14 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import xyz.xiao6.myboard.R
 import xyz.xiao6.myboard.data.repository.SettingsRepository
+import xyz.xiao6.myboard.data.settings.KeyboardHeightPolicy
 
 /**
  * 设置主页面 — 所有设置项均从 SettingsRepository 单一来源读取。
@@ -37,6 +39,15 @@ fun SettingsScreen(
     )
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val configuration = LocalConfiguration.current
+    val keyboardHeight = KeyboardHeightPolicy.resolve(
+        storedHeight = uiState.settings[KeyboardHeightPolicy.KEY_HEIGHT],
+        screenHeightDp = configuration.screenHeightDp
+    ).heightDp.toFloat()
+    val keyboardHorizontalInset = KeyboardHeightPolicy.resolveHorizontalInset(
+        storedInset = uiState.settings[KeyboardHeightPolicy.KEY_HORIZONTAL_INSET],
+        screenWidthDp = configuration.screenWidthDp
+    ).insetDp.toFloat()
 
     Scaffold(
         topBar = {
@@ -81,9 +92,18 @@ fun SettingsScreen(
             item {
                 SliderItem(
                     title = stringResource(R.string.settings_keyboard_height),
-                    value = (uiState.settings["keyboard_height"] ?: "260").toFloatOrNull() ?: 260f,
-                    onValueChange = { viewModel.updateSetting("keyboard_height", it.toInt().toString()) },
-                    valueRange = 180f..400f,
+                    value = keyboardHeight,
+                    onValueChange = { viewModel.updateSetting(KeyboardHeightPolicy.KEY_HEIGHT, it.toInt().toString()) },
+                    valueRange = KeyboardHeightPolicy.MIN_HEIGHT_DP.toFloat()..KeyboardHeightPolicy.MAX_HEIGHT_DP.toFloat(),
+                    suffix = "dp"
+                )
+            }
+            item {
+                SliderItem(
+                    title = stringResource(R.string.settings_keyboard_horizontal_inset),
+                    value = keyboardHorizontalInset,
+                    onValueChange = { viewModel.updateSetting(KeyboardHeightPolicy.KEY_HORIZONTAL_INSET, it.toInt().toString()) },
+                    valueRange = KeyboardHeightPolicy.MIN_HORIZONTAL_INSET_DP.toFloat()..KeyboardHeightPolicy.MAX_HORIZONTAL_INSET_DP.toFloat(),
                     suffix = "dp"
                 )
             }

@@ -4,6 +4,9 @@ import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -22,7 +25,16 @@ class SettingsActivity : AppCompatActivity() {
         setContent {
             MaterialTheme {
                 val navController = rememberNavController()
-                val repo = SettingsRepository(SettingsDatabase.getInstance(this@SettingsActivity).settingsDao())
+                val repo = remember {
+                    SettingsRepository(SettingsDatabase.getInstance(this@SettingsActivity).settingsDao())
+                }
+                val configuration = LocalConfiguration.current
+                LaunchedEffect(configuration.screenHeightDp, configuration.screenWidthDp) {
+                    repo.ensureKeyboardLayoutMetrics(
+                        screenHeightDp = configuration.screenHeightDp,
+                        screenWidthDp = configuration.screenWidthDp
+                    )
+                }
 
                 NavHost(navController = navController, startDestination = "settings") {
                     composable("settings") {

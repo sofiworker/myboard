@@ -13,6 +13,7 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.rememberTextMeasurer
@@ -42,6 +43,13 @@ fun LayoutRenderer(
     modifier: Modifier = Modifier
 ) {
     val textMeasurer = rememberTextMeasurer()
+    val androidContext = LocalContext.current
+    val labelLookup = remember(androidContext) {
+        { key: String ->
+            val resId = androidContext.resources.getIdentifier(key, "string", androidContext.packageName)
+            if (resId == 0) null else androidContext.getString(resId)
+        }
+    }
     var pressedKeyId by remember { mutableStateOf<String?>(null) }
     val actionDispatcher = remember { ActionDispatcher() }
     
@@ -106,16 +114,14 @@ fun LayoutRenderer(
                 }
             }
     ) {
-        drawMeasuredLayout(measuredLayout, themeResolver, textMeasurer, pressedKeyId)
+        drawMeasuredLayout(measuredLayout, themeResolver, textMeasurer, pressedKeyId, labelLookup)
     }
 }
 
 private fun findHitKey(pos: Offset, layout: MeasuredLayout): MeasuredKey? {
-    for (region in layout.regions) {
-        for (key in region.keys) {
-            if (key.rect.contains(pos.x, pos.y)) {
-                return key
-            }
+    for (key in layout.keys) {
+        if (key.rect.contains(pos.x, pos.y)) {
+            return key
         }
     }
     return null
@@ -125,56 +131,56 @@ private fun DrawScope.drawMeasuredLayout(
     layout: MeasuredLayout,
     themeResolver: ThemeResolver,
     textMeasurer: androidx.compose.ui.text.TextMeasurer,
-    pressedKeyId: String?
+    pressedKeyId: String?,
+    labelLookup: (String) -> String?
 ) {
-    for (region in layout.regions) {
-        for (measuredKey in region.keys) {
-            val key = measuredKey.key
-            val isPressed = key.id == pressedKeyId
-            
-            val styleRef = key.styleRef ?: "key_default"
-            val style = themeResolver.resolveKeyStyle(styleRef)
-            
-            val bgColor = if (isPressed) style.pressedBackground else style.background
-            
-            val cornerRadius = style.cornerRadius
-            
-            drawRoundRect(
-                color = bgColor,
-                topLeft = Offset(measuredKey.rect.left, measuredKey.rect.top),
-                size = Size(measuredKey.rect.width(), measuredKey.rect.height()),
-                cornerRadius = CornerRadius(cornerRadius)
-            )
-            
-            drawRoundRect(
-                color = Color(0x1A000000),
-                topLeft = Offset(measuredKey.rect.left, measuredKey.rect.top),
-                size = Size(measuredKey.rect.width(), measuredKey.rect.height()),
-                cornerRadius = CornerRadius(cornerRadius),
-                style = Stroke(width = 0.5f)
-            )
-            
-            val label = measuredKey.resolvedContent.label
-            if (label != null && label.isNotBlank()) {
-                val textColor = if (isPressed) style.pressedTextColor
-                                else style.textColor
-                val fontSize = style.fontSize.sp
-                val textStyle = TextStyle(color = textColor, fontSize = fontSize)
-                val measured = textMeasurer.measure(label, textStyle)
-                val x = measuredKey.rect.centerX() - measured.size.width / 2f
-                val y = measuredKey.rect.centerY() - measured.size.height / 2f
-                drawText(measured, topLeft = Offset(x, y))
-            }
-            
-            for ((position, hintText) in measuredKey.resolvedContent.hint) {
-                if (hintText.isNotBlank()) {
-                    val hintColor = themeResolver.resolveKeyStyle("key_default").iconTint
-                    val hintStyle = TextStyle(color = hintColor, fontSize = 9.sp)
-                    val hintMeasured = textMeasurer.measure(hintText, hintStyle)
-                    
-                    val (hx, hy) = resolveHintPosition(position, measuredKey.rect, hintMeasured.size.width.toFloat(), hintMeasured.size.height.toFloat())
-                    drawText(hintMeasured, topLeft = Offset(hx, hy))
-                }
+    for (measuredKey in layout.keys) {
+        val key = measuredKey.key
+        val isPressed = key.id == pressedKeyId
+
+        val styleRef = key.styleRef ?: "key_default"
+        val style = themeResolver.resolveKeyStyle(styleRef)
+
+        val bgColor = if (isPressed) style.pressedBackground else style.background
+
+        val cornerRadius = style.cornerRadius
+
+        drawRoundRect(
+            color = bgColor,
+            topLeft = Offset(measuredKey.rect.left, measuredKey.rect.top),
+            size = Size(measuredKey.rect.width(), measuredKey.rect.height()),
+            cornerRadius = CornerRadius(cornerRadius)
+        )
+
+        drawRoundRect(
+            color = Color(0x1A000000),
+            topLeft = Offset(measuredKey.rect.left, measuredKey.rect.top),
+            size = Size(measuredKey.rect.width(), measuredKey.rect.height()),
+            cornerRadius = CornerRadius(cornerRadius),
+            style = Stroke(width = 0.5f)
+        )
+
+        val label = LayoutTextResolver.resolve(measuredKey.resolvedContent.label, labelLookup)
+        if (label != null && label.isNotBlank()) {
+            val textColor = if (isPressed) style.pressedTextColor
+                            else style.textColor
+            val fontSize = style.fontSize.sp
+            val textStyle = TextStyle(color = textColor, fontSize = fontSize)
+            val measured = textMeasurer.measure(label, textStyle)
+            val x = measuredKey.rect.centerX() - measured.size.width / 2f
+            val y = measuredKey.rect.centerY() - measured.size.height / 2f
+            drawText(measured, topLeft = Offset(x, y))
+        }
+
+        for ((position, hintText) in measuredKey.resolvedContent.hint) {
+            val resolvedHint = LayoutTextResolver.resolve(hintText, labelLookup)
+            if (!resolvedHint.isNullOrBlank()) {
+                val hintColor = themeResolver.resolveKeyStyle("key_default").iconTint
+                val hintStyle = TextStyle(color = hintColor, fontSize = 9.sp)
+                val hintMeasured = textMeasurer.measure(resolvedHint, hintStyle)
+
+                val (hx, hy) = resolveHintPosition(position, measuredKey.rect, hintMeasured.size.width.toFloat(), hintMeasured.size.height.toFloat())
+                drawText(hintMeasured, topLeft = Offset(hx, hy))
             }
         }
     }

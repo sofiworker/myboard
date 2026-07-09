@@ -49,6 +49,7 @@
     <string name="settings_toolbar">Toolbar</string>
     <string name="settings_toolbar_manage">Manage toolbar buttons</string>
     <string name="settings_keyboard_height">Keyboard Height</string>
+    <string name="settings_keyboard_horizontal_inset">Keyboard Side Padding</string>
     <string name="settings_key_font_size">Key Font Size</string>
 
     <!-- Settings - Input -->
@@ -81,4 +82,16 @@
     <!-- Settings - About -->
     <string name="settings_version">Version</string>
     <string name="settings_open_source">Open Source Licenses</string>
+
+    <!-- Keyboard layout keys -->
+    <string name="keyboard_key_shift">Shift</string>
+    <string name="keyboard_key_backspace">Del</string>
+    <string name="keyboard_key_language">Lang</string>
+    <string name="keyboard_key_space">Space</string>
+    <string name="keyboard_key_enter">Enter</string>
+    <string name="layout_category_recent">Recent</string>
+    <string name="layout_category_zh">CN</string>
+    <string name="layout_category_en">EN</string>
+    <string name="layout_category_math">Math</string>
+    <string name="layout_category_order">No.</string>
 </resources>

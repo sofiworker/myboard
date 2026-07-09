@@ -32,7 +32,7 @@ fun PlaceholderPanel(
 ) {
     Column(
         modifier = modifier
-            .fillMaxWidth()
+            .fillMaxSize()
             .background(Color(0xFFF1F3F4))
     ) {
         Row(
@@ -53,7 +53,7 @@ fun PlaceholderPanel(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(120.dp),
+                .weight(1f),
             contentAlignment = Alignment.Center
         ) {
             Text(

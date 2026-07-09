@@ -1,0 +1,111 @@
+{
+  // Full-surface emoji page with top categories, emoji grid, and bottom actions.
+  "schemaVersion": "1.0.0",
+  "id": "emoji_full_surface",
+  "meta": {
+    "name": "Emoji Full Surface",
+    "description": "Emoji panel layout inspired by common mobile IME emoji pages",
+    "tags": ["emoji", "full_surface"]
+  },
+  "presentationMode": "FULL_SURFACE",
+  "root": {
+    "type": "composite",
+    "id": "emoji_root",
+    "orientation": "VERTICAL",
+    "gap": 6,
+    "padding": { "start": 6, "top": 6, "end": 6, "bottom": 6 },
+    "regions": [
+      {
+        "id": "emoji_category_bar",
+        "role": "categoryBar",
+        "tags": ["category", "top"],
+        "container": {
+          "type": "grid",
+          "id": "emoji_category_grid",
+          "columns": 8,
+          "rows": 1,
+          "colGap": 4,
+          "height": { "type": "dp", "value": 40 },
+          "cells": [
+            { "key": { "id": "emoji_recent", "styleRef": "key_action", "content": { "label": "⌚" }, "actions": { "gestures": { "TAP": { "actionType": "NOOP" } } } }, "col": 0, "row": 0 },
+            { "key": { "id": "emoji_face", "styleRef": "key_function", "content": { "label": "😀" }, "actions": { "gestures": { "TAP": { "actionType": "NOOP" } } } }, "col": 1, "row": 0 },
+            { "key": { "id": "emoji_people", "styleRef": "key_function", "content": { "label": "👍" }, "actions": { "gestures": { "TAP": { "actionType": "NOOP" } } } }, "col": 2, "row": 0 },
+            { "key": { "id": "emoji_heart", "styleRef": "key_function", "content": { "label": "❤️" }, "actions": { "gestures": { "TAP": { "actionType": "NOOP" } } } }, "col": 3, "row": 0 },
+            { "key": { "id": "emoji_food", "styleRef": "key_function", "content": { "label": "🍜" }, "actions": { "gestures": { "TAP": { "actionType": "NOOP" } } } }, "col": 4, "row": 0 },
+            { "key": { "id": "emoji_activity", "styleRef": "key_function", "content": { "label": "⚽" }, "actions": { "gestures": { "TAP": { "actionType": "NOOP" } } } }, "col": 5, "row": 0 },
+            { "key": { "id": "emoji_travel", "styleRef": "key_function", "content": { "label": "🚗" }, "actions": { "gestures": { "TAP": { "actionType": "NOOP" } } } }, "col": 6, "row": 0 },
+            { "key": { "id": "emoji_symbol", "styleRef": "key_function", "content": { "label": "🔣" }, "actions": { "gestures": { "TAP": { "actionType": "OPEN_PANEL", "payload": { "panel": "SYMBOL" } } } } }, "col": 7, "row": 0 }
+          ]
+        }
+      },
+      {
+        "id": "emoji_grid_region",
+        "role": "emojiGrid",
+        "tags": ["content", "emoji", "grid"],
+        "container": {
+          "type": "grid",
+          "id": "emoji_grid",
+          "columns": 8,
+          "rows": 4,
+          "rowGap": 4,
+          "colGap": 4,
+          "height": { "type": "weight", "value": 1 },
+          "cells": [
+            { "key": { "id": "emoji_00", "content": { "label": "😀" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "😀" } } } } }, "col": 0, "row": 0 },
+            { "key": { "id": "emoji_01", "content": { "label": "😄" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "😄" } } } } }, "col": 1, "row": 0 },
+            { "key": { "id": "emoji_02", "content": { "label": "😁" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "😁" } } } } }, "col": 2, "row": 0 },
+            { "key": { "id": "emoji_03", "content": { "label": "😂" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "😂" } } } } }, "col": 3, "row": 0 },
+            { "key": { "id": "emoji_04", "content": { "label": "🤣" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "🤣" } } } } }, "col": 4, "row": 0 },
+            { "key": { "id": "emoji_05", "content": { "label": "😊" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "😊" } } } } }, "col": 5, "row": 0 },
+            { "key": { "id": "emoji_06", "content": { "label": "😍" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "😍" } } } } }, "col": 6, "row": 0 },
+            { "key": { "id": "emoji_07", "content": { "label": "😘" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "😘" } } } } }, "col": 7, "row": 0 },
+            { "key": { "id": "emoji_08", "content": { "label": "😎" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "😎" } } } } }, "col": 0, "row": 1 },
+            { "key": { "id": "emoji_09", "content": { "label": "🤔" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "🤔" } } } } }, "col": 1, "row": 1 },
+            { "key": { "id": "emoji_10", "content": { "label": "😢" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "😢" } } } } }, "col": 2, "row": 1 },
+            { "key": { "id": "emoji_11", "content": { "label": "😭" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "😭" } } } } }, "col": 3, "row": 1 },
+            { "key": { "id": "emoji_12", "content": { "label": "😡" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "😡" } } } } }, "col": 4, "row": 1 },
+            { "key": { "id": "emoji_13", "content": { "label": "👍" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "👍" } } } } }, "col": 5, "row": 1 },
+            { "key": { "id": "emoji_14", "content": { "label": "👏" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "👏" } } } } }, "col": 6, "row": 1 },
+            { "key": { "id": "emoji_15", "content": { "label": "🙏" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "🙏" } } } } }, "col": 7, "row": 1 },
+            { "key": { "id": "emoji_16", "content": { "label": "❤️" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "❤️" } } } } }, "col": 0, "row": 2 },
+            { "key": { "id": "emoji_17", "content": { "label": "💔" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "💔" } } } } }, "col": 1, "row": 2 },
+            { "key": { "id": "emoji_18", "content": { "label": "🎉" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "🎉" } } } } }, "col": 2, "row": 2 },
+            { "key": { "id": "emoji_19", "content": { "label": "🔥" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "🔥" } } } } }, "col": 3, "row": 2 },
+            { "key": { "id": "emoji_20", "content": { "label": "⭐" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "⭐" } } } } }, "col": 4, "row": 2 },
+            { "key": { "id": "emoji_21", "content": { "label": "🌹" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "🌹" } } } } }, "col": 5, "row": 2 },
+            { "key": { "id": "emoji_22", "content": { "label": "☕" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "☕" } } } } }, "col": 6, "row": 2 },
+            { "key": { "id": "emoji_23", "content": { "label": "🍜" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "🍜" } } } } }, "col": 7, "row": 2 },
+            { "key": { "id": "emoji_24", "content": { "label": "🎂" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "🎂" } } } } }, "col": 0, "row": 3 },
+            { "key": { "id": "emoji_25", "content": { "label": "🎁" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "🎁" } } } } }, "col": 1, "row": 3 },
+            { "key": { "id": "emoji_26", "content": { "label": "💯" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "💯" } } } } }, "col": 2, "row": 3 },
+            { "key": { "id": "emoji_27", "content": { "label": "✅" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "✅" } } } } }, "col": 3, "row": 3 },
+            { "key": { "id": "emoji_28", "content": { "label": "❌" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "❌" } } } } }, "col": 4, "row": 3 },
+            { "key": { "id": "emoji_29", "content": { "label": "❓" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "❓" } } } } }, "col": 5, "row": 3 },
+            { "key": { "id": "emoji_30", "content": { "label": "⚠" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "⚠" } } } } }, "col": 6, "row": 3 },
+            { "key": { "id": "emoji_31", "content": { "label": "🔔" }, "actions": { "gestures": { "TAP": { "actionType": "PUSH_TOKEN", "payload": { "token": "🔔" } } } } }, "col": 7, "row": 3 }
+          ]
+        }
+      },
+      {
+        "id": "emoji_action_bar",
+        "role": "actionBar",
+        "tags": ["actions", "bottom"],
+        "container": {
+          "type": "grid",
+          "id": "emoji_actions_grid",
+          "columns": 8,
+          "rows": 1,
+          "colGap": 4,
+          "height": { "type": "dp", "value": 48 },
+          "cells": [
+            { "key": { "id": "emoji_return_abc", "styleRef": "key_action", "content": { "label": "ABC" }, "actions": { "gestures": { "TAP": { "actionType": "CLOSE_PANEL" } } } }, "col": 0, "row": 0, "colSpan": 2 },
+            { "key": { "id": "emoji_space", "styleRef": "key_space", "content": { "label": "@string/keyboard_key_space", "icon": "ic_space" }, "actions": { "gestures": { "TAP": { "actionType": "SPACE" } } } }, "col": 2, "row": 0, "colSpan": 4 },
+            { "key": { "id": "emoji_backspace", "styleRef": "key_function", "content": { "label": "@string/keyboard_key_backspace", "icon": "ic_backspace_modern" }, "actions": { "gestures": { "TAP": { "actionType": "DELETE", "payload": { "count": 1 } } } } }, "col": 6, "row": 0 },
+            { "key": { "id": "emoji_enter", "styleRef": "key_action", "content": { "label": "@string/keyboard_key_enter", "icon": "ic_enter_modern" }, "actions": { "gestures": { "TAP": { "actionType": "ENTER" } } } }, "col": 7, "row": 0 }
+          ]
+        }
+      }
+    ]
+  },
+  "supportedLayers": ["NORMAL"]
+}

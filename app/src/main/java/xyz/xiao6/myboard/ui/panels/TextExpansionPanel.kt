@@ -33,7 +33,7 @@ fun TextExpansionPanel(
 
     Column(
         modifier = Modifier
-            .fillMaxWidth()
+            .fillMaxSize()
             .background(Color(0xFFF1F3F4))
     ) {
         // 标题栏
@@ -59,7 +59,7 @@ fun TextExpansionPanel(
         LazyColumn(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(200.dp)
+                .weight(1f)
                 .padding(horizontal = 8.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {

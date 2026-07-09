@@ -10,6 +10,8 @@ import xyz.xiao6.myboard.contract.registry.*
 import xyz.xiao6.myboard.contract.panel.*
 import xyz.xiao6.myboard.contract.language.*
 import xyz.xiao6.myboard.contract.state.*
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonPrimitive
 
 /**
  * 动作分发器。
@@ -25,48 +27,37 @@ class ActionDispatcher {
     
     private fun resolveAction(actionDef: ActionDef, context: KeyboardContext): InputAction {
         return when (actionDef.actionType) {
-            "commitToken" -> {
-                val token = actionDef.payload["token"]?.let { 
-                    (it as? kotlinx.serialization.json.JsonPrimitive)?.content 
-                } ?: ""
+            LayoutActionType.PUSH_TOKEN -> {
+                val token = actionDef.stringPayload("token") ?: ""
                 val text = applyLayerTransform(token, context)
                 InputAction.PushToken(text)
             }
             
-            "commitText" -> {
-                val text = actionDef.payload["text"]?.let {
-                    (it as? kotlinx.serialization.json.JsonPrimitive)?.content
-                } ?: ""
+            LayoutActionType.COMMIT_TEXT -> {
+                val text = actionDef.stringPayload("text") ?: ""
                 InputAction.PushToken(text)
             }
             
-            "delete" -> InputAction.Delete
-            "space" -> InputAction.Space
-            "enter" -> InputAction.Enter
+            LayoutActionType.DELETE -> InputAction.Delete
+            LayoutActionType.SPACE -> InputAction.Space
+            LayoutActionType.ENTER -> InputAction.Enter
             
-            "switchLayer" -> {
-                val layer = actionDef.payload["layer"]?.let {
-                    (it as? kotlinx.serialization.json.JsonPrimitive)?.content
-                } ?: "NORMAL"
-                InputAction.SwitchLayer(parseLayer(layer))
+            LayoutActionType.SWITCH_LAYER -> {
+                val layer = actionDef.enumPayload<LayoutLayer>("layer") ?: return InputAction.Noop
+                InputAction.SwitchLayer(layer)
             }
             
-            "cycleLayer" -> {
-                val layers = actionDef.payload["layers"]?.let { element ->
-                    (element as? kotlinx.serialization.json.JsonArray)?.mapNotNull {
-                        (it as? kotlinx.serialization.json.JsonPrimitive)?.content
-                    }
-                } ?: listOf("NORMAL", "SHIFTED", "CAPS_LOCK")
+            LayoutActionType.CYCLE_LAYER -> {
+                val layers = actionDef.enumListPayload<LayoutLayer>("layers")
+                    .ifEmpty { listOf(LayoutLayer.NORMAL, LayoutLayer.SHIFTED, LayoutLayer.CAPS_LOCK) }
                 
-                val currentIdx = layers.indexOf(context.layer.name)
+                val currentIdx = layers.indexOf(context.layer)
                 val nextIdx = (currentIdx + 1) % layers.size
-                InputAction.SwitchLayer(parseLayer(layers[nextIdx]))
+                InputAction.SwitchLayer(layers[nextIdx])
             }
             
-            "switchLocale" -> {
-                val locale = actionDef.payload["locale"]?.let {
-                    (it as? kotlinx.serialization.json.JsonPrimitive)?.content
-                }
+            LayoutActionType.SWITCH_LOCALE -> {
+                val locale = actionDef.stringPayload("locale")
                 if (locale != null) {
                     InputAction.SwitchLocale(LocaleTag(locale))
                 } else {
@@ -74,38 +65,37 @@ class ActionDispatcher {
                 }
             }
             
-            "switchSchema" -> {
-                val schema = actionDef.payload["schema"]?.let {
-                    (it as? kotlinx.serialization.json.JsonPrimitive)?.content
-                } ?: return InputAction.Noop
+            LayoutActionType.SWITCH_SCRIPT -> {
+                val script = actionDef.enumPayload<Script>("script") ?: return InputAction.Noop
+                InputAction.SwitchScript(script)
+            }
+            
+            LayoutActionType.SWITCH_SCHEMA -> {
+                val schema = actionDef.stringPayload("schema") ?: return InputAction.Noop
                 InputAction.SwitchSchema(Schema(schema))
             }
             
-            "openPanel" -> {
-                val panel = actionDef.payload["panel"]?.let {
-                    (it as? kotlinx.serialization.json.JsonPrimitive)?.content
-                } ?: return InputAction.Noop
-                InputAction.OpenPanel(parsePanel(panel))
+            LayoutActionType.OPEN_PANEL -> {
+                val panel = actionDef.enumPayload<PanelType>("panel") ?: return InputAction.Noop
+                InputAction.OpenPanel(panel)
             }
             
-            "closePanel" -> InputAction.ClosePanel
+            LayoutActionType.CLOSE_PANEL -> InputAction.ClosePanel
             
-            "selectCandidate" -> {
-                val index = actionDef.payload["index"]?.let {
-                    (it as? kotlinx.serialization.json.JsonPrimitive)?.content?.toIntOrNull()
-                } ?: -1
+            LayoutActionType.COMMIT_CANDIDATE -> {
+                val index = actionDef.intPayload("index") ?: -1
                 InputAction.CommitCandidate(index)
             }
             
-            "pageCandidate" -> {
-                val direction = actionDef.payload["direction"]?.let {
-                    (it as? kotlinx.serialization.json.JsonPrimitive)?.content
-                } ?: "next"
+            LayoutActionType.PAGE_NEXT -> InputAction.PageCandidate(1)
+            LayoutActionType.PAGE_PREV -> InputAction.PageCandidate(-1)
+            LayoutActionType.PAGE_CANDIDATE -> {
+                val direction = actionDef.stringPayload("direction") ?: "next"
                 InputAction.PageCandidate(if (direction == "next") 1 else -1)
             }
             
-            "noop" -> InputAction.Noop
-            else -> InputAction.Noop
+            LayoutActionType.RESTORE_PREVIOUS_SCHEMA -> InputAction.RestorePreviousSchema
+            LayoutActionType.NOOP -> InputAction.Noop
         }
     }
     
@@ -118,26 +108,21 @@ class ActionDispatcher {
         }
     }
     
-    private fun parseLayer(name: String): LayoutLayer {
-        return when (name.uppercase()) {
-            "NORMAL" -> LayoutLayer.NORMAL
-            "SHIFTED" -> LayoutLayer.SHIFTED
-            "CAPS_LOCK" -> LayoutLayer.CAPS_LOCK
-            else -> LayoutLayer.NORMAL
-        }
-    }
-    
-    private fun parsePanel(name: String): PanelType {
-        return when (name.uppercase()) {
-            "NONE" -> PanelType.NONE
-            "EMOJI" -> PanelType.EMOJI
-            "SYMBOL" -> PanelType.SYMBOL
-            "CLIPBOARD" -> PanelType.CLIPBOARD
-            "LLM" -> PanelType.LLM
-            "STT" -> PanelType.STT
-            "KAOMOJI" -> PanelType.KAOMOJI
-            "TEXT_EXPANSION" -> PanelType.TEXT_EXPANSION
-            else -> PanelType.NONE
-        }
-    }
+    private fun ActionDef.stringPayload(key: String): String? =
+        (payload[key] as? JsonPrimitive)?.content
+
+    private fun ActionDef.intPayload(key: String): Int? =
+        stringPayload(key)?.toIntOrNull()
+
+    private inline fun <reified T : Enum<T>> ActionDef.enumPayload(key: String): T? =
+        stringPayload(key)?.let { value -> runCatching { enumValueOf<T>(value) }.getOrNull() }
+
+    private inline fun <reified T : Enum<T>> ActionDef.enumListPayload(key: String): List<T> =
+        (payload[key] as? JsonArray)
+            ?.mapNotNull { element ->
+                (element as? JsonPrimitive)?.content?.let { value ->
+                    runCatching { enumValueOf<T>(value) }.getOrNull()
+                }
+            }
+            ?: emptyList()
 }

@@ -39,7 +39,7 @@ fun ClipboardPanel(
 ) {
     Column(
         modifier = Modifier
-            .fillMaxWidth()
+            .fillMaxSize()
             .background(Color(0xFFF1F3F4))
     ) {
         // 标题栏
@@ -66,7 +66,7 @@ fun ClipboardPanel(
         LazyColumn(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(200.dp)
+                .weight(1f)
                 .padding(horizontal = 8.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
