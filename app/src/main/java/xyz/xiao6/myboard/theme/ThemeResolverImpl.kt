@@ -6,6 +6,7 @@ import androidx.compose.ui.graphics.toArgb
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import xyz.xiao6.myboard.contract.theme.ChromeColors
 import xyz.xiao6.myboard.contract.theme.FeedbackPolicy
 import xyz.xiao6.myboard.contract.theme.HapticToken
 import xyz.xiao6.myboard.contract.theme.KeyStyle
@@ -90,6 +91,18 @@ class ThemeResolverImpl(
         return FeedbackPolicy(
             hapticTokens = hapticTokens,
             soundTokens = soundTokens
+        )
+    }
+
+    override fun resolveChromeColors(): ChromeColors {
+        val colors = _doc.value.colors
+        return ChromeColors(
+            background = parseColorToCompose(colors.background),
+            surface = parseColorToCompose(colors.surface),
+            candidateBackground = parseColorToCompose(colors.candidateBackground),
+            candidateText = parseColorToCompose(colors.candidateText),
+            candidateHighlight = parseColorToCompose(colors.candidateHighlight),
+            keyHint = parseColorToCompose(colors.keyHint)
         )
     }
 

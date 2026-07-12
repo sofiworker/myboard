@@ -1,6 +1,9 @@
 <resources>
     <string name="app_name">MyBoard</string>
     <string name="common_back">Back</string>
+    <string name="common_done">Done</string>
+    <string name="common_edit">Edit</string>
+    <string name="common_remove">Remove</string>
 
     <!-- Toolbar -->
     <string name="toolbar_settings">Settings</string>
@@ -33,17 +36,36 @@
     <string name="settings_section_input">Input</string>
     <string name="settings_section_vibration">Vibration</string>
     <string name="settings_section_sound">Sound</string>
+    <string name="settings_section_ai">AI</string>
     <string name="settings_appearance">Appearance</string>
     <string name="settings_feedback">Sound &amp; Vibration</string>
+    <string name="settings_feedback_desc">Haptics and key sounds</string>
     <string name="settings_about">About</string>
 
     <!-- Settings - Language -->
     <string name="settings_language_layout">Language &amp; Layout</string>
+    <string name="settings_language_and_input">Languages &amp; input</string>
     <string name="settings_language_layout_language">Language</string>
     <string name="settings_language_layout_layouts">Enabled Layouts</string>
-    <string name="settings_language_layout_enabled_title">Enabled Languages</string>
+    <string name="settings_language_layout_enabled_title">Enabled languages</string>
     <string name="settings_language_layout_enable">Enable</string>
     <string name="settings_current_language">Default Language</string>
+    <string name="settings_language_add">Add language</string>
+    <string name="settings_language_search">Search languages</string>
+    <string name="settings_language_no_schema">No input methods</string>
+    <string name="settings_language_set_default">Set default</string>
+    <string name="settings_language_current_badge">Default</string>
+    <string name="settings_language_schemas_title">Input methods</string>
+
+    <!-- Schema display names -->
+    <string name="schema_pinyin">Pinyin</string>
+    <string name="schema_shuangpin">Shuangpin</string>
+    <string name="schema_t9_pinyin">T9 Pinyin</string>
+    <string name="schema_double_pinyin">Double Pinyin</string>
+    <string name="schema_latin_direct">QWERTY</string>
+    <string name="schema_romaji">Romaji / Kana</string>
+    <string name="schema_voice">Voice</string>
+    <string name="schema_handwriting">Handwriting</string>
 
     <!-- Settings - Keyboard -->
     <string name="settings_toolbar">Toolbar</string>
@@ -78,6 +100,21 @@
 
     <!-- Settings - AI -->
     <string name="settings_voice_input">Voice Input</string>
+    <string name="settings_llm">LLM</string>
+    <string name="settings_llm_title">LLM Settings</string>
+    <string name="settings_llm_provider">Provider</string>
+    <string name="settings_llm_provider_disabled">Off</string>
+    <string name="settings_llm_provider_local">On-device</string>
+    <string name="settings_llm_provider_cloud">Cloud</string>
+    <string name="settings_llm_cloud">Cloud configuration</string>
+    <string name="settings_llm_api_key">API Key</string>
+    <string name="settings_llm_endpoint">Endpoint</string>
+    <string name="settings_stt_title">Voice Input Settings</string>
+    <string name="settings_stt_provider">Speech provider</string>
+    <string name="settings_stt_provider_system">System</string>
+    <string name="settings_stt_provider_on_device">On-device</string>
+    <string name="settings_stt_provider_system_desc">Use Android system speech recognition</string>
+    <string name="settings_stt_provider_on_device_desc">Use on-device model (coming soon)</string>
 
     <!-- Settings - About -->
     <string name="settings_version">Version</string>

@@ -28,7 +28,7 @@
       "textColor": "#E8EAED",
       "pressedTextColor": "#E8EAED",
       "fontSize": 18.0,
-      "cornerRadius": 8.0,
+      "cornerRadius": 10.0,
       "iconTint": "#E8EAED"
     },
     "key_function": {
@@ -37,17 +37,17 @@
       "textColor": "#E8EAED",
       "pressedTextColor": "#E8EAED",
       "fontSize": 14.0,
-      "cornerRadius": 8.0,
+      "cornerRadius": 10.0,
       "iconTint": "#E8EAED"
     },
     "key_action": {
-      "background": "#3C3C3C",
-      "pressedBackground": "#4A4A4A",
-      "textColor": "#E8EAED",
-      "pressedTextColor": "#E8EAED",
+      "background": "#8AB4F8",
+      "pressedBackground": "#669DF6",
+      "textColor": "#1E1E1E",
+      "pressedTextColor": "#1E1E1E",
       "fontSize": 14.0,
-      "cornerRadius": 8.0,
-      "iconTint": "#E8EAED"
+      "cornerRadius": 10.0,
+      "iconTint": "#1E1E1E"
     },
     "key_space": {
       "background": "#3C3C3C",

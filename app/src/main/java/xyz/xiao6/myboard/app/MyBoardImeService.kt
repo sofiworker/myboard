@@ -3,6 +3,7 @@ package xyz.xiao6.myboard.app
 import android.inputmethodservice.InputMethodService
 import android.view.View
 import android.view.inputmethod.EditorInfo
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -97,7 +98,7 @@ class MyBoardImeService : InputMethodService(), LifecycleOwner, SavedStateRegist
     private val _uiRevision = mutableLongStateOf(0L)
 
     private companion object {
-        const val KEYBOARD_CHROME_HEIGHT_DP = 36
+        const val KEYBOARD_CHROME_HEIGHT_DP = 40
     }
 
     override fun onCreate() {
@@ -301,10 +302,13 @@ class MyBoardImeService : InputMethodService(), LifecycleOwner, SavedStateRegist
                 }
                 measuredLayout = currentMeasured
 
+                val chrome = themeResolver.resolveChromeColors()
+
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(keyboardHeightDp.dp)
+                        .background(chrome.background)
                         .padding(horizontal = keyboardHorizontalInsetDp.dp)
                 ) {
                     // 通用回调
@@ -445,6 +449,7 @@ class MyBoardImeService : InputMethodService(), LifecycleOwner, SavedStateRegist
                                         updateInputView()
                                     }
                                 },
+                                chrome = chrome,
                                 modifier = Modifier.fillMaxWidth()
                             )
                         } else {
@@ -453,6 +458,7 @@ class MyBoardImeService : InputMethodService(), LifecycleOwner, SavedStateRegist
                                 items = toolbarItems.filter { it.enabled },
                                 layoutMode = toolbarLayoutMode,
                                 isDark = isDark,
+                                chrome = chrome,
                                 onSettingsClick = {
                                     val intent = android.content.Intent(
                                         this@MyBoardImeService,

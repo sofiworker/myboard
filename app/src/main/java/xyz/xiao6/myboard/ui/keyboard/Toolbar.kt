@@ -1,71 +1,90 @@
 package xyz.xiao6.myboard.ui.keyboard
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.ContentPaste
+import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.EmojiEmotions
+import androidx.compose.material.icons.filled.Keyboard
+import androidx.compose.material.icons.filled.KeyboardHide
+import androidx.compose.material.icons.filled.Language
+import androidx.compose.material.icons.filled.LightMode
+import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import xyz.xiao6.myboard.R
 import xyz.xiao6.myboard.contract.state.PanelType
+import xyz.xiao6.myboard.contract.theme.ChromeColors
 import xyz.xiao6.myboard.data.entity.ToolbarItemEntity
-import xyz.xiao6.myboard.data.entity.ToolbarLayoutMode
 import xyz.xiao6.myboard.data.entity.ToolbarItemType
+import xyz.xiao6.myboard.data.entity.ToolbarLayoutMode
 
 /**
  * 三区布局 Toolbar：左侧固定 ⚙ / 中间可配置按钮 / 右侧固定 ↓ 收起键盘。
- *
- * @param items 已启用且按 sortOrder 排序的工具栏按钮列表
- * @param layoutMode 中间区布局模式：SCROLLABLE 横向滚动 / FIXED 固定均分
- * @param isDark 当前是否为暗色模式
- * @param onSettingsClick 跳转设置回调
- * @param onHideKeyboard 收起键盘回调
- * @param onThemeToggle 主题切换回调
- * @param onPanelOpen 打开面板回调
  */
 @Composable
 fun Toolbar(
     items: List<ToolbarItemEntity>,
     layoutMode: ToolbarLayoutMode,
     isDark: Boolean,
+    chrome: ChromeColors,
     onSettingsClick: () -> Unit,
     onHideKeyboard: () -> Unit,
     onThemeToggle: () -> Unit,
     onPanelOpen: (PanelType) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val iconTint = if (isDark) {
+        chrome.candidateText.copy(alpha = 0.85f)
+    } else {
+        chrome.candidateText.copy(alpha = 0.72f)
+    }
+
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .height(36.dp)
+            .height(40.dp)
+            .background(chrome.surface)
             .padding(horizontal = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // ===== 左侧固定：设置 =====
         ToolbarIconButton(
             icon = Icons.Default.Settings,
             contentDescription = stringResource(R.string.toolbar_settings),
+            tint = iconTint,
             onClick = onSettingsClick
         )
 
-        // ===== 中间区：可配置按钮 =====
         when (layoutMode) {
             ToolbarLayoutMode.SCROLLABLE -> {
                 LazyRow(
                     modifier = Modifier.weight(1f),
                     verticalAlignment = Alignment.CenterVertically,
-                    contentPadding = PaddingValues(horizontal = 4.dp),
-                    horizontalArrangement = Arrangement.spacedBy(2.dp)
+                    horizontalArrangement = Arrangement.spacedBy(0.dp)
                 ) {
                     items(items.size) { index ->
                         ToolbarMiddleButton(
                             type = ToolbarItemType.valueOf(items[index].type),
                             isDark = isDark,
+                            tint = iconTint,
                             onThemeToggle = onThemeToggle,
                             onPanelOpen = onPanelOpen
                         )
@@ -82,6 +101,7 @@ fun Toolbar(
                         ToolbarMiddleButton(
                             type = ToolbarItemType.valueOf(item.type),
                             isDark = isDark,
+                            tint = iconTint,
                             onThemeToggle = onThemeToggle,
                             onPanelOpen = onPanelOpen
                         )
@@ -90,10 +110,10 @@ fun Toolbar(
             }
         }
 
-        // ===== 右侧固定：收起键盘 =====
         ToolbarIconButton(
             icon = Icons.Default.KeyboardHide,
             contentDescription = stringResource(R.string.toolbar_hide_keyboard),
+            tint = iconTint,
             onClick = onHideKeyboard
         )
     }
@@ -103,12 +123,15 @@ fun Toolbar(
 private fun ToolbarMiddleButton(
     type: ToolbarItemType,
     isDark: Boolean,
+    tint: Color,
     onThemeToggle: () -> Unit,
     onPanelOpen: (PanelType) -> Unit
 ) {
     val (icon, desc) = when (type) {
         ToolbarItemType.LOCALE_SWITCH -> Icons.Default.Language to stringResource(R.string.toolbar_locale_switch)
-        ToolbarItemType.THEME_TOGGLE -> (if (isDark) Icons.Default.LightMode else Icons.Default.DarkMode) to stringResource(R.string.toolbar_theme_toggle)
+        ToolbarItemType.THEME_TOGGLE ->
+            (if (isDark) Icons.Default.LightMode else Icons.Default.DarkMode) to
+                stringResource(R.string.toolbar_theme_toggle)
         ToolbarItemType.EMOJI -> Icons.Default.EmojiEmotions to stringResource(R.string.toolbar_emoji)
         ToolbarItemType.SYMBOL -> Icons.Default.Star to stringResource(R.string.toolbar_symbol)
         ToolbarItemType.CLIPBOARD -> Icons.Default.ContentPaste to stringResource(R.string.toolbar_clipboard)
@@ -119,19 +142,16 @@ private fun ToolbarMiddleButton(
     ToolbarIconButton(
         icon = icon,
         contentDescription = desc,
+        tint = tint,
         onClick = {
             when (type) {
-                ToolbarItemType.LOCALE_SWITCH -> {
-                    onPanelOpen(PanelType.LOCALE_SWITCH)
-                }
+                ToolbarItemType.LOCALE_SWITCH -> onPanelOpen(PanelType.LOCALE_SWITCH)
                 ToolbarItemType.THEME_TOGGLE -> onThemeToggle()
                 ToolbarItemType.EMOJI -> onPanelOpen(PanelType.EMOJI)
                 ToolbarItemType.SYMBOL -> onPanelOpen(PanelType.SYMBOL)
                 ToolbarItemType.CLIPBOARD -> onPanelOpen(PanelType.CLIPBOARD)
-                ToolbarItemType.LAYOUT_SWITCH -> {
-                    onPanelOpen(PanelType.LAYOUT_SWITCH)
-                }
-                ToolbarItemType.VOICE_INPUT -> { /* 预留 */ }
+                ToolbarItemType.LAYOUT_SWITCH -> onPanelOpen(PanelType.LAYOUT_SWITCH)
+                ToolbarItemType.VOICE_INPUT -> { /* reserved */ }
             }
         }
     )
@@ -141,17 +161,20 @@ private fun ToolbarMiddleButton(
 private fun ToolbarIconButton(
     icon: ImageVector,
     contentDescription: String,
+    tint: Color,
     onClick: () -> Unit
 ) {
     IconButton(
         onClick = onClick,
-        modifier = Modifier.size(32.dp)
+        modifier = Modifier
+            .size(36.dp)
+            .clip(CircleShape)
     ) {
         Icon(
-            icon,
+            imageVector = icon,
             contentDescription = contentDescription,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(18.dp)
+            tint = tint,
+            modifier = Modifier.size(20.dp)
         )
     }
 }

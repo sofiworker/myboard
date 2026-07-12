@@ -1,6 +1,9 @@
 <resources>
     <string name="app_name">MyBoard</string>
     <string name="common_back">返回</string>
+    <string name="common_done">完成</string>
+    <string name="common_edit">编辑</string>
+    <string name="common_remove">移除</string>
 
     <!-- Toolbar -->
     <string name="toolbar_settings">设置</string>
@@ -33,17 +36,36 @@
     <string name="settings_section_input">输入</string>
     <string name="settings_section_vibration">振动</string>
     <string name="settings_section_sound">声音</string>
+    <string name="settings_section_ai">AI</string>
     <string name="settings_appearance">外观</string>
     <string name="settings_feedback">声音与振动</string>
+    <string name="settings_feedback_desc">触觉反馈与按键音</string>
     <string name="settings_about">关于</string>
 
     <!-- Settings - Language -->
     <string name="settings_language_layout">语言与布局</string>
+    <string name="settings_language_and_input">语言和输入法</string>
     <string name="settings_language_layout_language">语言</string>
     <string name="settings_language_layout_layouts">已启用的布局</string>
     <string name="settings_language_layout_enabled_title">已启用的语言</string>
     <string name="settings_language_layout_enable">启用</string>
     <string name="settings_current_language">默认语言</string>
+    <string name="settings_language_add">添加语言</string>
+    <string name="settings_language_search">搜索语言</string>
+    <string name="settings_language_no_schema">无输入方案</string>
+    <string name="settings_language_set_default">设为默认</string>
+    <string name="settings_language_current_badge">默认</string>
+    <string name="settings_language_schemas_title">输入方案</string>
+
+    <!-- Schema display names -->
+    <string name="schema_pinyin">拼音</string>
+    <string name="schema_shuangpin">双拼</string>
+    <string name="schema_t9_pinyin">T9 拼音</string>
+    <string name="schema_double_pinyin">自然码双拼</string>
+    <string name="schema_latin_direct">QWERTY</string>
+    <string name="schema_romaji">假名</string>
+    <string name="schema_voice">语音</string>
+    <string name="schema_handwriting">手写</string>
 
     <!-- Settings - Keyboard -->
     <string name="settings_toolbar">工具栏</string>
@@ -78,10 +100,26 @@
 
     <!-- Settings - AI -->
     <string name="settings_voice_input">语音输入</string>
+    <string name="settings_llm">LLM</string>
+    <string name="settings_llm_title">LLM 设置</string>
+    <string name="settings_llm_provider">服务提供方</string>
+    <string name="settings_llm_provider_disabled">关闭</string>
+    <string name="settings_llm_provider_local">端侧</string>
+    <string name="settings_llm_provider_cloud">云端</string>
+    <string name="settings_llm_cloud">云端配置</string>
+    <string name="settings_llm_api_key">API Key</string>
+    <string name="settings_llm_endpoint">接口地址</string>
+    <string name="settings_stt_title">语音输入设置</string>
+    <string name="settings_stt_provider">识别服务</string>
+    <string name="settings_stt_provider_system">系统</string>
+    <string name="settings_stt_provider_on_device">端侧</string>
+    <string name="settings_stt_provider_system_desc">使用 Android 系统语音识别</string>
+    <string name="settings_stt_provider_on_device_desc">使用端侧模型（待接入）</string>
 
     <!-- Settings - About -->
     <string name="settings_version">版本</string>
     <string name="settings_open_source">开源许可</string>
+
     <!-- Keyboard layout keys -->
     <string name="keyboard_key_shift">上档</string>
     <string name="keyboard_key_backspace">退格</string>

@@ -34,7 +34,7 @@ object BuiltInThemes {
                 textColor = "#202124",
                 pressedTextColor = "#202124",
                 fontSize = 18f,
-                cornerRadius = 8f,
+                cornerRadius = 10f,
                 iconTint = "#202124"
             ),
             "key_function" to KeyStyleDef(
@@ -43,7 +43,7 @@ object BuiltInThemes {
                 textColor = "#202124",
                 pressedTextColor = "#202124",
                 fontSize = 14f,
-                cornerRadius = 8f,
+                cornerRadius = 10f,
                 iconTint = "#202124"
             ),
             "key_action" to KeyStyleDef(
@@ -52,7 +52,7 @@ object BuiltInThemes {
                 textColor = "#FFFFFF",
                 pressedTextColor = "#FFFFFF",
                 fontSize = 14f,
-                cornerRadius = 8f,
+                cornerRadius = 10f,
                 iconTint = "#FFFFFF"
             ),
             "key_space" to KeyStyleDef(
@@ -116,7 +116,7 @@ object BuiltInThemes {
                 textColor = "#E8EAED",
                 pressedTextColor = "#E8EAED",
                 fontSize = 18f,
-                cornerRadius = 8f,
+                cornerRadius = 10f,
                 iconTint = "#E8EAED"
             ),
             "key_function" to KeyStyleDef(
@@ -125,7 +125,7 @@ object BuiltInThemes {
                 textColor = "#E8EAED",
                 pressedTextColor = "#E8EAED",
                 fontSize = 14f,
-                cornerRadius = 8f,
+                cornerRadius = 10f,
                 iconTint = "#E8EAED"
             ),
             "key_action" to KeyStyleDef(
@@ -134,7 +134,7 @@ object BuiltInThemes {
                 textColor = "#1E1E1E",
                 pressedTextColor = "#1E1E1E",
                 fontSize = 14f,
-                cornerRadius = 8f,
+                cornerRadius = 10f,
                 iconTint = "#1E1E1E"
             ),
             "key_space" to KeyStyleDef(

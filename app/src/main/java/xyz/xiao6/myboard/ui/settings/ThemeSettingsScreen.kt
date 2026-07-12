@@ -1,118 +1,117 @@
 package xyz.xiao6.myboard.ui.settings
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import xyz.xiao6.myboard.R
+import xyz.xiao6.myboard.data.db.SettingsDatabase
 import xyz.xiao6.myboard.data.repository.SettingsRepository
 import xyz.xiao6.myboard.theme.BuiltInThemes
 import xyz.xiao6.myboard.theme.ThemeDoc
 
-/**
- * 主题设置页面。
- * 包含主题模式（自动/亮色/暗色）和键盘主题选择。
- */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ThemeSettingsScreen(
     onBack: () -> Unit,
     viewModel: SettingsViewModel = viewModel(
         factory = SettingsViewModel.Factory(
             SettingsRepository(
-                xyz.xiao6.myboard.data.db.SettingsDatabase.getInstance(
-                    androidx.compose.ui.platform.LocalContext.current
-                ).settingsDao()
+                SettingsDatabase.getInstance(LocalContext.current).settingsDao()
             )
         )
     )
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val themeMode = uiState.settings["theme_mode"] ?: "auto"
-    val currentThemeId = uiState.settings["current_theme"] ?: "default"
+    val currentThemeId = uiState.settings["current_theme"] ?: "default_light"
     val themes = BuiltInThemes.all
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.settings_theme)) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.common_back))
-                    }
-                }
-            )
-        }
+    SettingsScaffold(
+        title = stringResource(R.string.settings_theme),
+        onBack = onBack
     ) { padding ->
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+                .padding(horizontal = 16.dp)
         ) {
-            // 主题模式
+            item { SettingsSectionHeader(stringResource(R.string.settings_theme_mode)) }
             item {
-                Text(
-                    stringResource(R.string.settings_theme_mode),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(vertical = 8.dp)
-                )
+                SettingsGroup {
+                    ThemeModeOption(
+                        label = stringResource(R.string.settings_theme_auto),
+                        description = stringResource(R.string.settings_theme_auto_desc),
+                        selected = themeMode == "auto",
+                        onClick = { viewModel.updateSetting("theme_mode", "auto") },
+                        showDivider = true
+                    )
+                    ThemeModeOption(
+                        label = stringResource(R.string.settings_theme_light),
+                        description = stringResource(R.string.settings_theme_light_desc),
+                        selected = themeMode == "light",
+                        onClick = { viewModel.updateSetting("theme_mode", "light") },
+                        showDivider = true
+                    )
+                    ThemeModeOption(
+                        label = stringResource(R.string.settings_theme_dark),
+                        description = stringResource(R.string.settings_theme_dark_desc),
+                        selected = themeMode == "dark",
+                        onClick = { viewModel.updateSetting("theme_mode", "dark") }
+                    )
+                }
+            }
+
+            item {
+                Spacer(modifier = Modifier.height(4.dp))
+                SettingsSectionHeader(stringResource(R.string.settings_keyboard_theme))
             }
             item {
-                Card(modifier = Modifier.fillMaxWidth()) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        ThemeModeOption(
-                            label = stringResource(R.string.settings_theme_auto),
-                            description = stringResource(R.string.settings_theme_auto_desc),
-                            selected = themeMode == "auto",
-                            onClick = { viewModel.updateSetting("theme_mode", "auto") }
-                        )
-                        ThemeModeOption(
-                            label = stringResource(R.string.settings_theme_light),
-                            description = stringResource(R.string.settings_theme_light_desc),
-                            selected = themeMode == "light",
-                            onClick = { viewModel.updateSetting("theme_mode", "light") }
-                        )
-                        ThemeModeOption(
-                            label = stringResource(R.string.settings_theme_dark),
-                            description = stringResource(R.string.settings_theme_dark_desc),
-                            selected = themeMode == "dark",
-                            onClick = { viewModel.updateSetting("theme_mode", "dark") }
+                SettingsGroup {
+                    themes.forEachIndexed { index, theme ->
+                        ThemeItem(
+                            theme = theme,
+                            isSelected = theme.id == currentThemeId ||
+                                (currentThemeId == "default" && theme.id == "default_light"),
+                            onClick = { viewModel.updateSetting("current_theme", theme.id) },
+                            showDivider = index < themes.lastIndex
                         )
                     }
                 }
             }
 
-            // 键盘主题
-            item {
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    stringResource(R.string.settings_keyboard_theme),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(vertical = 8.dp)
-                )
-            }
-            items(themes.size) { index ->
-                val theme = themes[index]
-                ThemeItem(
-                    theme = theme,
-                    isSelected = theme.id == currentThemeId,
-                    onClick = { viewModel.updateSetting("current_theme", theme.id) }
-                )
-            }
-
-            item { Spacer(modifier = Modifier.height(32.dp)) }
+            item { Spacer(modifier = Modifier.height(40.dp)) }
         }
     }
 }
@@ -122,21 +121,29 @@ private fun ThemeModeOption(
     label: String,
     description: String,
     selected: Boolean,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    showDivider: Boolean = false
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        RadioButton(selected = selected, onClick = onClick)
-        Spacer(modifier = Modifier.width(8.dp))
-        Column {
-            Text(label, style = MaterialTheme.typography.bodyLarge)
-            Text(description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    Column {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onClick)
+                .padding(horizontal = 8.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            RadioButton(selected = selected, onClick = onClick)
+            Spacer(modifier = Modifier.width(4.dp))
+            Column {
+                Text(label, style = MaterialTheme.typography.bodyLarge)
+                Text(
+                    description,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
+        if (showDivider) SettingsGroupDivider()
     }
 }
 
@@ -144,38 +151,86 @@ private fun ThemeModeOption(
 private fun ThemeItem(
     theme: ThemeDoc,
     isSelected: Boolean,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    showDivider: Boolean = false
 ) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
-        colors = CardDefaults.cardColors(
-            containerColor = if (isSelected) {
-                MaterialTheme.colorScheme.primaryContainer
-            } else {
-                MaterialTheme.colorScheme.surface
-            }
-        )
-    ) {
+    Column {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
+                .clickable(onClick = onClick)
+                .padding(horizontal = 14.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column {
-                Text(theme.name, style = MaterialTheme.typography.titleMedium)
+            ThemeSwatch(theme = theme)
+            Spacer(modifier = Modifier.width(14.dp))
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    theme.id,
+                    text = theme.name,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
+                )
+                Text(
+                    text = if (theme.dark) {
+                        stringResource(R.string.settings_theme_dark)
+                    } else {
+                        stringResource(R.string.settings_theme_light)
+                    },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             if (isSelected) {
-                Text("✓", color = MaterialTheme.colorScheme.primary)
+                Icon(
+                    imageVector = Icons.Default.Check,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary
+                )
             }
         }
+        if (showDivider) SettingsGroupDivider()
+    }
+}
+
+@Composable
+private fun ThemeSwatch(theme: ThemeDoc) {
+    val bg = parseHex(theme.colors.background)
+    val key = parseHex(theme.colors.keyDefault)
+    val accent = parseHex(theme.colors.candidateHighlight)
+    Box(
+        modifier = Modifier
+            .size(48.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(bg)
+            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f), RoundedCornerShape(12.dp))
+            .padding(8.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxSize(),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(20.dp)
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(key)
+            )
+            Box(
+                modifier = Modifier
+                    .size(12.dp)
+                    .clip(CircleShape)
+                    .background(accent)
+            )
+        }
+    }
+}
+
+private fun parseHex(hex: String): Color {
+    return try {
+        Color(android.graphics.Color.parseColor(hex))
+    } catch (_: Exception) {
+        Color.Gray
     }
 }

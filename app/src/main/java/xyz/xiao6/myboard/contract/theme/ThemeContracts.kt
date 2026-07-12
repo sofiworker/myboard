@@ -43,11 +43,24 @@ data class SoundToken(
 )
 
 /**
+ * 键盘 chrome（背景 / 候选栏）颜色，从主题 token 解析。
+ */
+data class ChromeColors(
+    val background: Color,
+    val surface: Color,
+    val candidateBackground: Color,
+    val candidateText: Color,
+    val candidateHighlight: Color,
+    val keyHint: Color
+)
+
+/**
  * 主题解析器接口。
  * 阶段 03 实现真实逻辑。旧 ThemeResolver 类在阶段 03 删除后此接口移入 core.theme 包。
  */
 interface ThemeResolver {
     fun resolveKeyStyle(styleRef: String): KeyStyle
     fun resolveFeedbackPolicy(): FeedbackPolicy
+    fun resolveChromeColors(): ChromeColors
     fun isDark(): Boolean
 }

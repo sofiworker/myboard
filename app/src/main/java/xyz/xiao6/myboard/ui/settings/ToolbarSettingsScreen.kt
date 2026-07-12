@@ -1,162 +1,163 @@
 package xyz.xiao6.myboard.ui.settings
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowDownward
+import androidx.compose.material.icons.filled.ArrowUpward
+import androidx.compose.material.icons.filled.ContentPaste
+import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.EmojiEmotions
+import androidx.compose.material.icons.filled.Keyboard
+import androidx.compose.material.icons.filled.Language
+import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Switch
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import xyz.xiao6.myboard.R
+import xyz.xiao6.myboard.data.db.SettingsDatabase
 import xyz.xiao6.myboard.data.entity.ToolbarItemType
 import xyz.xiao6.myboard.data.entity.ToolbarLayoutMode
 import xyz.xiao6.myboard.data.repository.SettingsRepository
 
-/**
- * 工具栏设置页面。
- * 支持按钮拖拽排序、显隐开关、布局模式切换。
- */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ToolbarSettingsScreen(
     onBack: () -> Unit,
     viewModel: ToolbarSettingsViewModel = viewModel(
-        factory = ToolbarSettingsViewModel.Factory(SettingsRepository(
-            xyz.xiao6.myboard.data.db.SettingsDatabase.getInstance(
-                androidx.compose.ui.platform.LocalContext.current
-            ).settingsDao()
-        ))
+        factory = ToolbarSettingsViewModel.Factory(
+            SettingsRepository(
+                SettingsDatabase.getInstance(LocalContext.current).settingsDao()
+            )
+        )
     )
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.toolbar_settings_title)) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.common_back))
-                    }
-                }
-            )
-        }
+    SettingsScaffold(
+        title = stringResource(R.string.toolbar_settings_title),
+        onBack = onBack
     ) { padding ->
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
+                .padding(horizontal = 16.dp)
         ) {
-            // 布局模式
+            item { SettingsSectionHeader(stringResource(R.string.toolbar_layout_mode)) }
             item {
-                Text(
-                    stringResource(R.string.toolbar_layout_mode),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(vertical = 8.dp)
-                )
-            }
-            item {
-                LayoutModeSelector(
-                    currentMode = uiState.layoutMode,
-                    onModeSelected = { viewModel.setLayoutMode(it) }
-                )
+                SettingsGroup {
+                    LayoutModeOption(
+                        label = stringResource(R.string.toolbar_layout_scrollable),
+                        description = stringResource(R.string.toolbar_layout_scrollable_desc),
+                        selected = uiState.layoutMode == ToolbarLayoutMode.SCROLLABLE,
+                        onClick = { viewModel.setLayoutMode(ToolbarLayoutMode.SCROLLABLE) },
+                        showDivider = true
+                    )
+                    LayoutModeOption(
+                        label = stringResource(R.string.toolbar_layout_fixed),
+                        description = stringResource(R.string.toolbar_layout_fixed_desc),
+                        selected = uiState.layoutMode == ToolbarLayoutMode.FIXED,
+                        onClick = { viewModel.setLayoutMode(ToolbarLayoutMode.FIXED) }
+                    )
+                }
             }
 
-            // 当前按钮
             item {
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    stringResource(R.string.toolbar_manage_buttons),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(vertical = 8.dp)
-                )
+                Spacer(modifier = Modifier.height(4.dp))
+                SettingsSectionHeader(stringResource(R.string.toolbar_manage_buttons))
             }
-            itemsIndexed(uiState.items) { index, item ->
-                ToolbarItemRow(
-                    type = item.type,
-                    enabled = item.enabled,
-                    canMoveUp = index > 0,
-                    canMoveDown = index < uiState.items.size - 1,
-                    onToggle = { viewModel.toggleItem(item.type, it) },
-                    onMoveUp = { viewModel.reorderItems(index, index - 1) },
-                    onMoveDown = { viewModel.reorderItems(index, index + 1) }
-                )
+            item {
+                SettingsGroup {
+                    uiState.items.forEachIndexed { index, item ->
+                        ToolbarItemRow(
+                            type = item.type,
+                            enabled = item.enabled,
+                            canMoveUp = index > 0,
+                            canMoveDown = index < uiState.items.size - 1,
+                            onToggle = { viewModel.toggleItem(item.type, it) },
+                            onMoveUp = { viewModel.reorderItems(index, index - 1) },
+                            onMoveDown = { viewModel.reorderItems(index, index + 1) },
+                            showDivider = index < uiState.items.lastIndex
+                        )
+                    }
+                }
             }
 
-            // 可添加的按钮
             if (uiState.availableToAdd.isNotEmpty()) {
                 item {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        stringResource(R.string.toolbar_available_buttons),
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(vertical = 8.dp)
-                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    SettingsSectionHeader(stringResource(R.string.toolbar_available_buttons))
                 }
-                itemsIndexed(uiState.availableToAdd) { _, type ->
-                    AvailableToolbarItemRow(
-                        type = type,
-                        onAdd = { viewModel.toggleItem(type, true) }
-                    )
+                item {
+                    SettingsGroup {
+                        uiState.availableToAdd.forEachIndexed { index, type ->
+                            AvailableToolbarItemRow(
+                                type = type,
+                                onAdd = { viewModel.toggleItem(type, true) },
+                                showDivider = index < uiState.availableToAdd.lastIndex
+                            )
+                        }
+                    }
                 }
             }
 
-            item { Spacer(modifier = Modifier.height(32.dp)) }
+            item { Spacer(modifier = Modifier.height(40.dp)) }
         }
     }
 }
 
 @Composable
-private fun LayoutModeSelector(
-    currentMode: ToolbarLayoutMode,
-    onModeSelected: (ToolbarLayoutMode) -> Unit
+private fun LayoutModeOption(
+    label: String,
+    description: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    showDivider: Boolean = false
 ) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 4.dp)
-            ) {
-                RadioButton(
-                    selected = currentMode == ToolbarLayoutMode.SCROLLABLE,
-                    onClick = { onModeSelected(ToolbarLayoutMode.SCROLLABLE) }
+    Column {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            RadioButton(selected = selected, onClick = onClick)
+            Spacer(modifier = Modifier.width(4.dp))
+            Column {
+                Text(label, style = MaterialTheme.typography.bodyLarge)
+                Text(
+                    description,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                Spacer(modifier = Modifier.width(8.dp))
-                Column {
-                    Text(stringResource(R.string.toolbar_layout_scrollable), style = MaterialTheme.typography.bodyLarge)
-                    Text(stringResource(R.string.toolbar_layout_scrollable_desc), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            }
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 4.dp)
-            ) {
-                RadioButton(
-                    selected = currentMode == ToolbarLayoutMode.FIXED,
-                    onClick = { onModeSelected(ToolbarLayoutMode.FIXED) }
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Column {
-                    Text(stringResource(R.string.toolbar_layout_fixed), style = MaterialTheme.typography.bodyLarge)
-                    Text(stringResource(R.string.toolbar_layout_fixed_desc), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
             }
         }
+        if (showDivider) SettingsGroupDivider()
     }
 }
 
@@ -168,61 +169,61 @@ private fun ToolbarItemRow(
     canMoveDown: Boolean,
     onToggle: (Boolean) -> Unit,
     onMoveUp: () -> Unit,
-    onMoveDown: () -> Unit
+    onMoveDown: () -> Unit,
+    showDivider: Boolean = false
 ) {
-    Card(modifier = Modifier.fillMaxWidth()) {
+    Column {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 4.dp),
+                .padding(horizontal = 12.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                getIconForType(type),
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(20.dp)
-            )
-            Spacer(modifier = Modifier.width(8.dp))
+            SettingsIconBubble(icon = getIconForType(type))
+            Spacer(modifier = Modifier.width(12.dp))
             Text(
-                stringResource(getLabelForType(type)),
+                text = stringResource(getLabelForType(type)),
                 style = MaterialTheme.typography.bodyLarge,
                 modifier = Modifier.weight(1f)
             )
             IconButton(onClick = onMoveUp, enabled = canMoveUp, modifier = Modifier.size(32.dp)) {
-                Icon(Icons.Default.ArrowUpward, contentDescription = stringResource(R.string.toolbar_move_up), modifier = Modifier.size(16.dp))
+                Icon(
+                    Icons.Default.ArrowUpward,
+                    contentDescription = stringResource(R.string.toolbar_move_up),
+                    modifier = Modifier.size(16.dp)
+                )
             }
             IconButton(onClick = onMoveDown, enabled = canMoveDown, modifier = Modifier.size(32.dp)) {
-                Icon(Icons.Default.ArrowDownward, contentDescription = stringResource(R.string.toolbar_move_down), modifier = Modifier.size(16.dp))
+                Icon(
+                    Icons.Default.ArrowDownward,
+                    contentDescription = stringResource(R.string.toolbar_move_down),
+                    modifier = Modifier.size(16.dp)
+                )
             }
             Switch(checked = enabled, onCheckedChange = onToggle)
         }
+        if (showDivider) SettingsGroupDivider()
     }
 }
 
 @Composable
 private fun AvailableToolbarItemRow(
     type: ToolbarItemType,
-    onAdd: () -> Unit
+    onAdd: () -> Unit,
+    showDivider: Boolean = false
 ) {
-    Card(modifier = Modifier.fillMaxWidth()) {
+    Column {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 4.dp),
+                .padding(horizontal = 12.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                getIconForType(type),
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(20.dp)
-            )
-            Spacer(modifier = Modifier.width(8.dp))
+            SettingsIconBubble(icon = getIconForType(type))
+            Spacer(modifier = Modifier.width(12.dp))
             Text(
-                stringResource(getLabelForType(type)),
+                text = stringResource(getLabelForType(type)),
                 style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.weight(1f)
             )
             FilledTonalButton(onClick = onAdd) {
@@ -231,6 +232,7 @@ private fun AvailableToolbarItemRow(
                 Text(stringResource(R.string.toolbar_add))
             }
         }
+        if (showDivider) SettingsGroupDivider()
     }
 }
 
