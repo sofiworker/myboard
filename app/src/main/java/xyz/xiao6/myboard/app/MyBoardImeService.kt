@@ -189,7 +189,7 @@ class MyBoardImeService : InputMethodService(), LifecycleOwner, SavedStateRegist
         layoutAssetsLoader = LayoutAssetsLoader(this)
 
         // 13. 初始化 toolbar 组件
-        themeToggler = ThemeToggler(settingsRepository, themeResolver)
+        themeToggler = ThemeToggler(settingsRepository)
         layoutSwitcher = LayoutSwitcher(keyboardContextManager, orthogonalRegistry)
 
         // 14. 初始化剪贴板管理器
