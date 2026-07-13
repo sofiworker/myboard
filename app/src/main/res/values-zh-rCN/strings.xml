@@ -106,7 +106,9 @@
     <string name="settings_theme_palette_system_dynamic">系统颜色</string>
     <string name="settings_theme_palette_system_dynamic_desc">可用时使用 Android 动态颜色</string>
     <string name="settings_theme_palette_custom">自定义颜色</string>
-    <string name="settings_theme_palette_custom_desc">使用已保存的自定义种子色</string>
+    <string name="settings_theme_palette_custom_desc">输入自定义种子色</string>
+    <string name="settings_theme_custom_seed_label">种子色 Hex</string>
+    <string name="settings_theme_custom_seed_error">请使用 #RRGGBB，例如 #00A86B</string>
     <string name="settings_theme_key_treatment">按键样式</string>
     <string name="settings_theme_key_treatment_filled">填充</string>
     <string name="settings_theme_key_treatment_outlined">描边</string>

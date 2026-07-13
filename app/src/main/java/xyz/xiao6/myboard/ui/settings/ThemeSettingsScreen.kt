@@ -20,11 +20,15 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -44,6 +48,7 @@ import xyz.xiao6.myboard.theme.foundation.FoundationPaletteId
 import xyz.xiao6.myboard.theme.foundation.KeyContrast
 import xyz.xiao6.myboard.theme.foundation.KeyTreatment
 import xyz.xiao6.myboard.theme.foundation.PaletteSource
+import xyz.xiao6.myboard.theme.foundation.ThemeSeedInput
 
 @Composable
 fun ThemeSettingsScreen(
@@ -58,6 +63,10 @@ fun ThemeSettingsScreen(
 ) {
     val appearance by viewModel.appearanceSettings.collectAsState()
     val foundation = appearance.foundation
+    val defaultCustomSeed = FoundationPalette.byId(FoundationPaletteId.GBOARD_BLUE).seedColor
+    var customSeedInput by rememberSaveable(foundation.customSeedColor) {
+        mutableStateOf(foundation.customSeedColor ?: defaultCustomSeed)
+    }
 
     SettingsScaffold(
         title = stringResource(R.string.settings_theme),
@@ -143,18 +152,38 @@ fun ThemeSettingsScreen(
                         label = stringResource(R.string.settings_theme_palette_custom),
                         description = stringResource(R.string.settings_theme_palette_custom_desc),
                         seedColor = foundation.customSeedColor
-                            ?: FoundationPalette.byId(FoundationPaletteId.GBOARD_BLUE).seedColor,
+                            ?: defaultCustomSeed,
                         selected = foundation.paletteSource == PaletteSource.CUSTOM_SEED,
                         onClick = {
+                            val selectedSeed = ThemeSeedInput.normalizeOrNull(customSeedInput)
+                                ?: foundation.customSeedColor
+                                ?: defaultCustomSeed
+                            customSeedInput = selectedSeed
                             viewModel.updateFoundationTheme {
                                 it.copy(
                                     paletteSource = PaletteSource.CUSTOM_SEED,
-                                    customSeedColor = it.customSeedColor
-                                        ?: FoundationPalette.byId(FoundationPaletteId.GBOARD_BLUE).seedColor
+                                    customSeedColor = selectedSeed
                                 )
                             }
                         }
                     )
+                    if (foundation.paletteSource == PaletteSource.CUSTOM_SEED) {
+                        CustomSeedInputItem(
+                            value = customSeedInput,
+                            onValueChange = { input ->
+                                customSeedInput = input
+                                val normalized = ThemeSeedInput.normalizeOrNull(input)
+                                if (normalized != null && normalized != foundation.customSeedColor) {
+                                    viewModel.updateFoundationTheme {
+                                        it.copy(
+                                            paletteSource = PaletteSource.CUSTOM_SEED,
+                                            customSeedColor = normalized
+                                        )
+                                    }
+                                }
+                            }
+                        )
+                    }
                 }
             }
 
@@ -234,6 +263,31 @@ fun ThemeSettingsScreen(
             item { Spacer(modifier = Modifier.height(40.dp)) }
         }
     }
+}
+
+@Composable
+private fun CustomSeedInputItem(
+    value: String,
+    onValueChange: (String) -> Unit
+) {
+    val normalized = ThemeSeedInput.normalizeOrNull(value)
+    val isError = value.isNotBlank() && normalized == null
+
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 14.dp, vertical = 8.dp),
+        label = { Text(stringResource(R.string.settings_theme_custom_seed_label)) },
+        singleLine = true,
+        isError = isError,
+        supportingText = {
+            if (isError) {
+                Text(stringResource(R.string.settings_theme_custom_seed_error))
+            }
+        }
+    )
 }
 
 @Composable

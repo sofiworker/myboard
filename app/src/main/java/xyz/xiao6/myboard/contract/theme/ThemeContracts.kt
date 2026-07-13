@@ -12,7 +12,8 @@ data class KeyStyle(
     val pressedTextColor: Color,
     val fontSize: Float,
     val cornerRadius: Float,
-    val iconTint: Color
+    val iconTint: Color,
+    val decorated: Boolean = true
 )
 
 /**

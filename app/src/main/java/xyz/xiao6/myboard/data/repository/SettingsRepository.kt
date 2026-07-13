@@ -3,6 +3,8 @@ package xyz.xiao6.myboard.data.repository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.*
@@ -43,12 +45,16 @@ class SettingsRepository(private val dao: SettingsDao) {
         decodeAppearanceSettings(getSetting(KEY_APPEARANCE_SETTINGS))
 
     suspend fun updateAppearanceSettings(settings: AppearanceSettings) {
-        updateSetting(KEY_APPEARANCE_SETTINGS, SETTINGS_JSON.encodeToString(settings))
+        APPEARANCE_SETTINGS_MUTEX.withLock {
+            writeAppearanceSettings(settings)
+        }
     }
 
     suspend fun updateFoundationTheme(transform: (FoundationThemeSelection) -> FoundationThemeSelection) {
-        val current = getAppearanceSettings()
-        updateAppearanceSettings(current.copy(foundation = transform(current.foundation)))
+        APPEARANCE_SETTINGS_MUTEX.withLock {
+            val current = getAppearanceSettings()
+            writeAppearanceSettings(current.copy(foundation = transform(current.foundation)))
+        }
     }
 
     suspend fun updateAppearanceMode(mode: AppearanceMode) {
@@ -59,6 +65,10 @@ class SettingsRepository(private val dao: SettingsDao) {
         return raw?.takeIf { it.isNotBlank() }?.let { value ->
             runCatching { SETTINGS_JSON.decodeFromString<AppearanceSettings>(value) }.getOrNull()
         } ?: AppearanceSettings.default()
+    }
+
+    private suspend fun writeAppearanceSettings(settings: AppearanceSettings) {
+        updateSetting(KEY_APPEARANCE_SETTINGS, SETTINGS_JSON.encodeToString(settings))
     }
 
     suspend fun ensureKeyboardLayoutMetrics(
@@ -178,6 +188,8 @@ class SettingsRepository(private val dao: SettingsDao) {
         const val KEY_ENABLED_LOCALE_CONFIGS = "enabled_locale_configs"
         const val KEY_APPEARANCE_SETTINGS = "appearance_settings"
         const val KEY_KEY_FONT_SIZE = "key_font_size"
+
+        private val APPEARANCE_SETTINGS_MUTEX = Mutex()
 
         private val SETTINGS_JSON = Json {
             ignoreUnknownKeys = true

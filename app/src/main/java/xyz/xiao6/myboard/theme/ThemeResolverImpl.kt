@@ -42,7 +42,8 @@ class ThemeResolverImpl(
             pressedTextColor = parseColorToCompose(colors.keyText),
             fontSize = 18f,
             cornerRadius = 8f,
-            iconTint = parseColorToCompose(colors.keyText)
+            iconTint = parseColorToCompose(colors.keyText),
+            decorated = true
         )
 
         if (styleDef == null) {
@@ -61,7 +62,8 @@ class ThemeResolverImpl(
             pressedTextColor = styleDef.pressedTextColor?.let { parseColorToCompose(it) } ?: defaultStyle.pressedTextColor,
             fontSize = styleDef.fontSize ?: defaultStyle.fontSize,
             cornerRadius = styleDef.cornerRadius ?: defaultStyle.cornerRadius,
-            iconTint = styleDef.iconTint?.let { parseColorToCompose(it) } ?: defaultStyle.iconTint
+            iconTint = styleDef.iconTint?.let { parseColorToCompose(it) } ?: defaultStyle.iconTint,
+            decorated = styleDef.decorated ?: defaultStyle.decorated
         )
     }
 

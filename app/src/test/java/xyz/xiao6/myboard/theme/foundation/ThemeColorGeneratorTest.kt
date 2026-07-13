@@ -60,4 +60,27 @@ class ThemeColorGeneratorTest {
         assertNotEquals(blue.colors.candidateHighlight, green.colors.candidateHighlight)
         assertEquals(blue.keyStyles.keys, green.keyStyles.keys)
     }
+
+    @Test
+    fun `borderless treatment disables key decoration`() {
+        val doc = generator.generate(
+            selection = FoundationThemeSelection(keyTreatment = KeyTreatment.BORDERLESS),
+            variant = ThemeVariant.LIGHT
+        )
+
+        assertEquals(false, doc.keyStyles.getValue(KeyStyleRole.DEFAULT.ref).decorated)
+        assertEquals(false, doc.keyStyles.getValue(KeyStyleRole.ACTION.ref).decorated)
+    }
+
+    @Test
+    fun `high contrast changes primary key text`() {
+        val normal = generator.generate(FoundationThemeSelection(), ThemeVariant.DARK)
+        val high = generator.generate(
+            FoundationThemeSelection(keyContrast = KeyContrast.HIGH),
+            ThemeVariant.DARK
+        )
+
+        assertNotEquals(normal.colors.keyText, high.colors.keyText)
+        assertEquals("#FFFFFF", high.colors.keyText)
+    }
 }

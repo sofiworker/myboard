@@ -25,16 +25,16 @@ class ThemeColorGenerator {
                 surface = "#2D2D2D",
                 keyDefault = keyBackground(selection.keyTreatment, dark),
                 keyPressed = "#4A4A4A",
-                keyText = "#E8EAED",
+                keyText = if (highContrast) "#FFFFFF" else "#E8EAED",
                 keyHint = if (highContrast) "#BDC1C6" else "#8E8E93",
                 keyFunction = "#3C3C3C",
                 keyFunctionPressed = "#4A4A4A",
-                keyFunctionText = "#E8EAED",
+                keyFunctionText = if (highContrast) "#FFFFFF" else "#E8EAED",
                 keyAction = accent,
                 keyActionPressed = ThemeColorUtils.mix(accent, "#000000", 0.18f),
                 keyActionText = "#1E1E1E",
                 candidateBackground = "#2D2D2D",
-                candidateText = "#E8EAED",
+                candidateText = if (highContrast) "#FFFFFF" else "#E8EAED",
                 candidateHighlight = accent
             )
         } else {
@@ -43,16 +43,16 @@ class ThemeColorGenerator {
                 surface = "#FFFFFF",
                 keyDefault = keyBackground(selection.keyTreatment, dark),
                 keyPressed = "#E8EAED",
-                keyText = "#202124",
+                keyText = if (highContrast) "#000000" else "#202124",
                 keyHint = if (highContrast) "#5F6368" else "#8E8E93",
                 keyFunction = "#E8EAED",
                 keyFunctionPressed = "#DADCE0",
-                keyFunctionText = "#202124",
+                keyFunctionText = if (highContrast) "#000000" else "#202124",
                 keyAction = accent,
                 keyActionPressed = ThemeColorUtils.mix(accent, "#000000", 0.20f),
                 keyActionText = "#FFFFFF",
                 candidateBackground = "#FFFFFF",
-                candidateText = "#202124",
+                candidateText = if (highContrast) "#000000" else "#202124",
                 candidateHighlight = accent
             )
         }
@@ -85,6 +85,7 @@ class ThemeColorGenerator {
 
     private fun keyStyles(colors: ThemeColors, treatment: KeyTreatment, corner: Float): Map<String, KeyStyleDef> {
         val defaultCorner = if (treatment == KeyTreatment.BORDERLESS) 6f else corner
+        val decorated = treatment != KeyTreatment.BORDERLESS
         return mapOf(
             KeyStyleRole.DEFAULT.ref to KeyStyleDef(
                 background = colors.keyDefault,
@@ -93,7 +94,8 @@ class ThemeColorGenerator {
                 pressedTextColor = colors.keyText,
                 fontSize = 18f,
                 cornerRadius = defaultCorner,
-                iconTint = colors.keyText
+                iconTint = colors.keyText,
+                decorated = decorated
             ),
             KeyStyleRole.FUNCTION.ref to KeyStyleDef(
                 background = if (treatment == KeyTreatment.BORDERLESS) "#00000000" else colors.keyFunction,
@@ -102,7 +104,8 @@ class ThemeColorGenerator {
                 pressedTextColor = colors.keyFunctionText,
                 fontSize = 14f,
                 cornerRadius = defaultCorner,
-                iconTint = colors.keyFunctionText
+                iconTint = colors.keyFunctionText,
+                decorated = decorated
             ),
             KeyStyleRole.ACTION.ref to KeyStyleDef(
                 background = colors.keyAction,
@@ -111,7 +114,8 @@ class ThemeColorGenerator {
                 pressedTextColor = colors.keyActionText,
                 fontSize = 14f,
                 cornerRadius = defaultCorner,
-                iconTint = colors.keyActionText
+                iconTint = colors.keyActionText,
+                decorated = decorated
             ),
             KeyStyleRole.SPACE.ref to KeyStyleDef(
                 background = colors.keyDefault,
@@ -120,7 +124,8 @@ class ThemeColorGenerator {
                 pressedTextColor = colors.keyText,
                 fontSize = 14f,
                 cornerRadius = (defaultCorner * 2f).coerceAtMost(24f),
-                iconTint = colors.keyText
+                iconTint = colors.keyText,
+                decorated = decorated
             ),
             KeyStyleRole.CANDIDATE.ref to KeyStyleDef(
                 background = colors.candidateBackground,
@@ -129,7 +134,8 @@ class ThemeColorGenerator {
                 pressedTextColor = colors.candidateHighlight,
                 fontSize = 16f,
                 cornerRadius = 4f,
-                iconTint = colors.candidateText
+                iconTint = colors.candidateText,
+                decorated = true
             )
         )
     }

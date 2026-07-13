@@ -44,6 +44,7 @@ import xyz.xiao6.myboard.theme.*
 import xyz.xiao6.myboard.theme.foundation.AppearanceSettings
 import xyz.xiao6.myboard.theme.foundation.DynamicThemeSeed
 import xyz.xiao6.myboard.theme.foundation.FeedbackTokenId
+import xyz.xiao6.myboard.theme.foundation.ThemeRuntimeMaterialColors
 import xyz.xiao6.myboard.theme.foundation.ThemeRuntimeProvider
 import xyz.xiao6.myboard.theme.foundation.ThemeVariant
 import xyz.xiao6.myboard.state.BuiltInManifests
@@ -327,14 +328,18 @@ class MyBoardImeService : InputMethodService(), LifecycleOwner, SavedStateRegist
                 measuredLayout = currentMeasured
 
                 val chrome = activeThemeResolver.resolveChromeColors()
+                val materialColorScheme = remember(themeRuntime.doc) {
+                    ThemeRuntimeMaterialColors.colorSchemeFor(themeRuntime)
+                }
 
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(keyboardHeightDp.dp)
-                        .background(chrome.background)
-                        .padding(horizontal = keyboardHorizontalInsetDp.dp)
-                ) {
+                MaterialTheme(colorScheme = materialColorScheme) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(keyboardHeightDp.dp)
+                            .background(chrome.background)
+                            .padding(horizontal = keyboardHorizontalInsetDp.dp)
+                    ) {
                     // 通用回调
                     val closePanelAndRefresh: () -> Unit = {
                         serviceScope.launch {
@@ -502,7 +507,7 @@ class MyBoardImeService : InputMethodService(), LifecycleOwner, SavedStateRegist
                                 },
                                 onThemeToggle = {
                                     serviceScope.launch {
-                                        themeToggler.toggle()
+                                        themeToggler.toggle(themeRuntime.variant)
                                         updateInputView()
                                     }
                                 },
@@ -537,6 +542,7 @@ class MyBoardImeService : InputMethodService(), LifecycleOwner, SavedStateRegist
                                 .weight(1f)
                         )
                     }
+                }
                 }
             }
         }

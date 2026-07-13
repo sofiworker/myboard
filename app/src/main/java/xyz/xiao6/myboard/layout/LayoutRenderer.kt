@@ -150,6 +150,7 @@ private fun DrawScope.drawMeasuredLayout(
 
         val bgColor = if (isPressed) style.pressedBackground else style.background
         val cornerRadius = style.cornerRadius.coerceAtLeast(6f)
+        val drawDecoration = style.decorated && bgColor.alpha > 0f
 
         val left = measuredKey.rect.left + keyGapInset
         val top = measuredKey.rect.top + keyGapInset
@@ -157,7 +158,7 @@ private fun DrawScope.drawMeasuredLayout(
         val height = (measuredKey.rect.height() - keyGapInset * 2f).coerceAtLeast(1f)
 
         // Soft drop shadow for raised key look
-        if (!isPressed) {
+        if (!isPressed && drawDecoration) {
             drawRoundRect(
                 color = shadowColor,
                 topLeft = Offset(left, top + 1.2f),
@@ -173,13 +174,15 @@ private fun DrawScope.drawMeasuredLayout(
             cornerRadius = CornerRadius(cornerRadius)
         )
 
-        drawRoundRect(
-            color = borderColor,
-            topLeft = Offset(left, top + if (isPressed) 1f else 0f),
-            size = Size(width, height - if (isPressed) 1f else 0f),
-            cornerRadius = CornerRadius(cornerRadius),
-            style = Stroke(width = 0.8f)
-        )
+        if (drawDecoration) {
+            drawRoundRect(
+                color = borderColor,
+                topLeft = Offset(left, top + if (isPressed) 1f else 0f),
+                size = Size(width, height - if (isPressed) 1f else 0f),
+                cornerRadius = CornerRadius(cornerRadius),
+                style = Stroke(width = 0.8f)
+            )
+        }
 
         val label = LayoutTextResolver.resolve(measuredKey.resolvedContent.label, labelLookup)
         if (label != null && label.isNotBlank()) {

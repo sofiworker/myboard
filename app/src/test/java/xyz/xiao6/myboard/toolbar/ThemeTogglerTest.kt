@@ -11,22 +11,29 @@ import xyz.xiao6.myboard.data.entity.SettingsEntity
 import xyz.xiao6.myboard.data.entity.ToolbarItemEntity
 import xyz.xiao6.myboard.data.repository.SettingsRepository
 import xyz.xiao6.myboard.theme.foundation.AppearanceMode
+import xyz.xiao6.myboard.theme.foundation.ThemeVariant
 
 class ThemeTogglerTest {
-    private companion object {
-        const val LEGACY_THEME_MODE_KEY = "theme_mode"
-    }
-
     @Test
-    fun `toggle updates appearance mode without legacy theme keys`() = runBlocking {
+    fun `toggle from effective light writes dark mode`() = runBlocking {
         val dao = FakeSettingsDao()
         val repo = SettingsRepository(dao)
         val toggler = ThemeToggler(repo)
 
-        toggler.toggle()
+        toggler.toggle(ThemeVariant.LIGHT)
 
         assertEquals(AppearanceMode.DARK, repo.getAppearanceSettings().foundation.appearanceMode)
-        assertEquals(null, dao.getSetting(LEGACY_THEME_MODE_KEY))
+    }
+
+    @Test
+    fun `toggle from follow system dark writes light mode`() = runBlocking {
+        val dao = FakeSettingsDao()
+        val repo = SettingsRepository(dao)
+        val toggler = ThemeToggler(repo)
+
+        toggler.toggle(ThemeVariant.DARK)
+
+        assertEquals(AppearanceMode.LIGHT, repo.getAppearanceSettings().foundation.appearanceMode)
     }
 
     private class FakeSettingsDao : SettingsDao {

@@ -2,6 +2,7 @@ package xyz.xiao6.myboard.theme.foundation
 
 import androidx.compose.ui.graphics.Color
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Test
 import xyz.xiao6.myboard.theme.ThemeResolverImpl
 
@@ -37,5 +38,18 @@ class FoundationThemeMainFlowTest {
 
         assertEquals(fallback.background, unknown.background)
         assertEquals(fallback.textColor, unknown.textColor)
+    }
+
+    @Test
+    fun `resolver exposes borderless key decoration state`() {
+        val runtime = ThemeRuntimeProvider().resolve(
+            AppearanceSettings(
+                foundation = FoundationThemeSelection(keyTreatment = KeyTreatment.BORDERLESS)
+            ),
+            systemDark = false
+        )
+        val resolver = ThemeResolverImpl(runtime.doc)
+
+        assertFalse(resolver.resolveKeyStyle(KeyStyleRole.ACTION.ref).decorated)
     }
 }

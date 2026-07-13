@@ -106,7 +106,9 @@
     <string name="settings_theme_palette_system_dynamic">System colors</string>
     <string name="settings_theme_palette_system_dynamic_desc">Use Android dynamic colors when available</string>
     <string name="settings_theme_palette_custom">Custom color</string>
-    <string name="settings_theme_palette_custom_desc">Use a saved custom seed color</string>
+    <string name="settings_theme_palette_custom_desc">Enter a custom seed color</string>
+    <string name="settings_theme_custom_seed_label">Seed color hex</string>
+    <string name="settings_theme_custom_seed_error">Use #RRGGBB, for example #00A86B</string>
     <string name="settings_theme_key_treatment">Key style</string>
     <string name="settings_theme_key_treatment_filled">Filled</string>
     <string name="settings_theme_key_treatment_outlined">Outlined</string>
