@@ -172,6 +172,10 @@ object BuiltInThemes {
     
     /** 所有内置主题 */
     val all: List<ThemeDoc> = listOf(light, dark)
+
+    /** 解析失败时使用的兜底主题。 */
+    val defaultFallback: ThemeDoc
+        get() = light
     
     /** 根据 ID 查找 */
     fun byId(id: String): ThemeDoc? = all.find { it.id == id }

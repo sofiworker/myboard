@@ -1,8 +1,5 @@
 package xyz.xiao6.myboard.theme
 
-import android.graphics.Color
-import androidx.compose.ui.graphics.colorspace.ColorSpaces
-import androidx.compose.ui.graphics.toArgb
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -12,6 +9,7 @@ import xyz.xiao6.myboard.contract.theme.HapticToken
 import xyz.xiao6.myboard.contract.theme.KeyStyle
 import xyz.xiao6.myboard.contract.theme.SoundToken
 import xyz.xiao6.myboard.contract.theme.ThemeResolver
+import xyz.xiao6.myboard.theme.foundation.KeyStyleRole
 
 /**
  * 主题解析器真实实现。
@@ -49,8 +47,8 @@ class ThemeResolverImpl(
 
         if (styleDef == null) {
             // 回退到 key_default
-            if (styleRef != "key_default") {
-                return resolveKeyStyle("key_default")
+            if (styleRef != KeyStyleRole.DEFAULT.ref) {
+                return resolveKeyStyle(KeyStyleRole.DEFAULT.ref)
             }
             return defaultStyle
         }
@@ -111,11 +109,15 @@ class ThemeResolverImpl(
     }
 
     private fun parseColorToCompose(colorStr: String): androidx.compose.ui.graphics.Color {
-        return try {
-            val argb = Color.parseColor(colorStr)
-            androidx.compose.ui.graphics.Color(argb)
-        } catch (_: Exception) {
-            androidx.compose.ui.graphics.Color.White
+        val raw = colorStr.trim().removePrefix("#")
+        val argb = when (raw.length) {
+            6 -> "FF$raw"
+            8 -> raw
+            else -> return androidx.compose.ui.graphics.Color.White
         }
+        if (!argb.all { it.isDigit() || it.lowercaseChar() in 'a'..'f' }) {
+            return androidx.compose.ui.graphics.Color.White
+        }
+        return androidx.compose.ui.graphics.Color(argb.toLong(16).toInt())
     }
 }
