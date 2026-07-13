@@ -29,6 +29,7 @@ import xyz.xiao6.myboard.contract.registry.*
 import xyz.xiao6.myboard.contract.panel.*
 import xyz.xiao6.myboard.contract.language.*
 import xyz.xiao6.myboard.contract.state.*
+import xyz.xiao6.myboard.theme.foundation.KeyStyleRole
 
 /**
  * 新布局渲染器。
@@ -144,7 +145,7 @@ private fun DrawScope.drawMeasuredLayout(
         val key = measuredKey.key
         val isPressed = key.id == pressedKeyId
 
-        val styleRef = key.styleRef ?: "key_default"
+        val styleRef = key.styleRef ?: KeyStyleRole.DEFAULT.ref
         val style = themeResolver.resolveKeyStyle(styleRef)
 
         val bgColor = if (isPressed) style.pressedBackground else style.background

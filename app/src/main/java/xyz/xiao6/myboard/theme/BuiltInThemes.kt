@@ -1,5 +1,8 @@
 package xyz.xiao6.myboard.theme
 
+import xyz.xiao6.myboard.theme.foundation.FeedbackTokenId
+import xyz.xiao6.myboard.theme.foundation.KeyStyleRole
+
 /**
  * 内置主题常量。
  * 对应 assets/themes/ 下的 JSONC 文件。
@@ -28,7 +31,7 @@ object BuiltInThemes {
             candidateHighlight = "#1A73E8"
         ),
         keyStyles = mapOf(
-            "key_default" to KeyStyleDef(
+            KeyStyleRole.DEFAULT.ref to KeyStyleDef(
                 background = "#FFFFFF",
                 pressedBackground = "#E8EAED",
                 textColor = "#202124",
@@ -37,7 +40,7 @@ object BuiltInThemes {
                 cornerRadius = 10f,
                 iconTint = "#202124"
             ),
-            "key_function" to KeyStyleDef(
+            KeyStyleRole.FUNCTION.ref to KeyStyleDef(
                 background = "#E8EAED",
                 pressedBackground = "#DADCE0",
                 textColor = "#202124",
@@ -46,7 +49,7 @@ object BuiltInThemes {
                 cornerRadius = 10f,
                 iconTint = "#202124"
             ),
-            "key_action" to KeyStyleDef(
+            KeyStyleRole.ACTION.ref to KeyStyleDef(
                 background = "#1A73E8",
                 pressedBackground = "#1558B0",
                 textColor = "#FFFFFF",
@@ -55,7 +58,7 @@ object BuiltInThemes {
                 cornerRadius = 10f,
                 iconTint = "#FFFFFF"
             ),
-            "key_space" to KeyStyleDef(
+            KeyStyleRole.SPACE.ref to KeyStyleDef(
                 background = "#FFFFFF",
                 pressedBackground = "#E8EAED",
                 textColor = "#202124",
@@ -64,7 +67,7 @@ object BuiltInThemes {
                 cornerRadius = 20f,
                 iconTint = "#202124"
             ),
-            "key_candidate" to KeyStyleDef(
+            KeyStyleRole.CANDIDATE.ref to KeyStyleDef(
                 background = "#FFFFFF",
                 pressedBackground = "#E8EAED",
                 textColor = "#202124",
@@ -76,14 +79,14 @@ object BuiltInThemes {
         ),
         feedback = FeedbackSection(
             haptic = mapOf(
-                "key_tap" to HapticTokenDef(durationMs = 10, amplitude = 64),
-                "key_long_press" to HapticTokenDef(durationMs = 30, amplitude = 128),
-                "key_action" to HapticTokenDef(durationMs = 15, amplitude = 96)
+                FeedbackTokenId.KEY_TAP.ref to HapticTokenDef(durationMs = 10, amplitude = 64),
+                FeedbackTokenId.KEY_LONG_PRESS.ref to HapticTokenDef(durationMs = 30, amplitude = 128),
+                FeedbackTokenId.KEY_ACTION.ref to HapticTokenDef(durationMs = 15, amplitude = 96)
             ),
             sound = mapOf(
-                "key_tap" to SoundTokenDef(soundResName = "key_tap", volume = 0.3f),
-                "key_action" to SoundTokenDef(soundResName = "key_action", volume = 0.5f),
-                "key_space" to SoundTokenDef(soundResName = "key_space", volume = 0.2f)
+                FeedbackTokenId.KEY_TAP.ref to SoundTokenDef(soundResName = FeedbackTokenId.KEY_TAP.soundResName, volume = 0.3f),
+                FeedbackTokenId.KEY_ACTION.ref to SoundTokenDef(soundResName = FeedbackTokenId.KEY_ACTION.soundResName, volume = 0.5f),
+                FeedbackTokenId.KEY_SPACE.ref to SoundTokenDef(soundResName = FeedbackTokenId.KEY_SPACE.soundResName, volume = 0.2f)
             )
         )
     )
@@ -110,7 +113,7 @@ object BuiltInThemes {
             candidateHighlight = "#8AB4F8"
         ),
         keyStyles = mapOf(
-            "key_default" to KeyStyleDef(
+            KeyStyleRole.DEFAULT.ref to KeyStyleDef(
                 background = "#3C3C3C",
                 pressedBackground = "#4A4A4A",
                 textColor = "#E8EAED",
@@ -119,7 +122,7 @@ object BuiltInThemes {
                 cornerRadius = 10f,
                 iconTint = "#E8EAED"
             ),
-            "key_function" to KeyStyleDef(
+            KeyStyleRole.FUNCTION.ref to KeyStyleDef(
                 background = "#3C3C3C",
                 pressedBackground = "#4A4A4A",
                 textColor = "#E8EAED",
@@ -128,7 +131,7 @@ object BuiltInThemes {
                 cornerRadius = 10f,
                 iconTint = "#E8EAED"
             ),
-            "key_action" to KeyStyleDef(
+            KeyStyleRole.ACTION.ref to KeyStyleDef(
                 background = "#8AB4F8",
                 pressedBackground = "#669DF6",
                 textColor = "#1E1E1E",
@@ -137,7 +140,7 @@ object BuiltInThemes {
                 cornerRadius = 10f,
                 iconTint = "#1E1E1E"
             ),
-            "key_space" to KeyStyleDef(
+            KeyStyleRole.SPACE.ref to KeyStyleDef(
                 background = "#3C3C3C",
                 pressedBackground = "#4A4A4A",
                 textColor = "#E8EAED",
@@ -146,7 +149,7 @@ object BuiltInThemes {
                 cornerRadius = 20f,
                 iconTint = "#E8EAED"
             ),
-            "key_candidate" to KeyStyleDef(
+            KeyStyleRole.CANDIDATE.ref to KeyStyleDef(
                 background = "#2D2D2D",
                 pressedBackground = "#3C3C3C",
                 textColor = "#E8EAED",
@@ -158,14 +161,14 @@ object BuiltInThemes {
         ),
         feedback = FeedbackSection(
             haptic = mapOf(
-                "key_tap" to HapticTokenDef(durationMs = 10, amplitude = 64),
-                "key_long_press" to HapticTokenDef(durationMs = 30, amplitude = 128),
-                "key_action" to HapticTokenDef(durationMs = 15, amplitude = 96)
+                FeedbackTokenId.KEY_TAP.ref to HapticTokenDef(durationMs = 10, amplitude = 64),
+                FeedbackTokenId.KEY_LONG_PRESS.ref to HapticTokenDef(durationMs = 30, amplitude = 128),
+                FeedbackTokenId.KEY_ACTION.ref to HapticTokenDef(durationMs = 15, amplitude = 96)
             ),
             sound = mapOf(
-                "key_tap" to SoundTokenDef(soundResName = "key_tap", volume = 0.3f),
-                "key_action" to SoundTokenDef(soundResName = "key_action", volume = 0.5f),
-                "key_space" to SoundTokenDef(soundResName = "key_space", volume = 0.2f)
+                FeedbackTokenId.KEY_TAP.ref to SoundTokenDef(soundResName = FeedbackTokenId.KEY_TAP.soundResName, volume = 0.3f),
+                FeedbackTokenId.KEY_ACTION.ref to SoundTokenDef(soundResName = FeedbackTokenId.KEY_ACTION.soundResName, volume = 0.5f),
+                FeedbackTokenId.KEY_SPACE.ref to SoundTokenDef(soundResName = FeedbackTokenId.KEY_SPACE.soundResName, volume = 0.2f)
             )
         )
     )

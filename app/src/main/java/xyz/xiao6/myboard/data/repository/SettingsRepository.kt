@@ -177,6 +177,7 @@ class SettingsRepository(private val dao: SettingsDao) {
         const val KEY_TOOLBAR_LAYOUT_MODE = "toolbar_layout_mode"
         const val KEY_ENABLED_LOCALE_CONFIGS = "enabled_locale_configs"
         const val KEY_APPEARANCE_SETTINGS = "appearance_settings"
+        const val KEY_KEY_FONT_SIZE = "key_font_size"
 
         private val SETTINGS_JSON = Json {
             ignoreUnknownKeys = true
@@ -205,7 +206,7 @@ class SettingsRepository(private val dao: SettingsDao) {
             "current_locale" to "en-US",
             KEY_ENABLED_LOCALE_CONFIGS to """{"en-US":["LATIN_DIRECT"],"zh-CN":["PINYIN"]}""",
             KEY_APPEARANCE_SETTINGS to SETTINGS_JSON.encodeToString(AppearanceSettings.default()),
-            "key_font_size" to "18",
+            KEY_KEY_FONT_SIZE to "18",
             "haptic_feedback" to "true",
             "sound_feedback" to "false",
             "double_space_period" to "true",

@@ -8,6 +8,7 @@ import xyz.xiao6.myboard.data.entity.SettingsEntity
 import xyz.xiao6.myboard.data.entity.ToolbarItemEntity
 import xyz.xiao6.myboard.data.entity.ToolbarItemType
 import xyz.xiao6.myboard.data.dao.SettingsDao
+import xyz.xiao6.myboard.data.repository.SettingsRepository
 import xyz.xiao6.myboard.data.settings.KeyboardHeightPolicy
 
 /**
@@ -84,7 +85,7 @@ class SpToRoomMigration(
 
     companion object {
         private val MIGRATION_KEYS = listOf(
-            "current_locale", "theme_mode", "current_theme",
+            "current_locale",
             "llm_provider", "llm_api_key", "llm_endpoint",
             "stt_provider", "default_script_per_locale",
             "default_schema_per_locale_script"
@@ -101,7 +102,7 @@ class SpToRoomMigration(
             KeyboardHeightPolicy.KEY_HORIZONTAL_INSET
         )
 
-        private val FLOAT_KEYS = listOf("key_font_size")
+        private val FLOAT_KEYS = listOf(SettingsRepository.KEY_KEY_FONT_SIZE)
 
         private val SET_KEYS = listOf("enabled_locales")
 

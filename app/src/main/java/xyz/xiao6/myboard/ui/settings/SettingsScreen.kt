@@ -87,14 +87,14 @@ fun SettingsScreen(
                         title = stringResource(R.string.settings_language_layout),
                         subtitle = uiState.settings["current_locale"] ?: "en-US",
                         icon = Icons.Default.Language,
-                        onClick = { onNavigate("language") },
+                        onClick = { onNavigate(SettingsRoutes.LANGUAGE) },
                         showDivider = true
                     )
                     SettingsNavItem(
                         title = stringResource(R.string.settings_toolbar),
                         subtitle = stringResource(R.string.settings_toolbar_manage),
                         icon = Icons.Default.Widgets,
-                        onClick = { onNavigate("toolbar") }
+                        onClick = { onNavigate(SettingsRoutes.TOOLBAR) }
                     )
                 }
             }
@@ -132,12 +132,12 @@ fun SettingsScreen(
                     )
                     SettingsSliderItem(
                         title = stringResource(R.string.settings_key_font_size),
-                        value = (uiState.settings["key_font_size"] ?: "18").toFloatOrNull() ?: 18f,
+                        value = (uiState.settings[SettingsRepository.KEY_KEY_FONT_SIZE] ?: "18").toFloatOrNull() ?: 18f,
                         onValueChange = {
-                            viewModel.updateSetting("key_font_size", it.toInt().toString())
+                            viewModel.updateSetting(SettingsRepository.KEY_KEY_FONT_SIZE, it.toInt().toString())
                         },
                         valueRange = 12f..24f,
-                        valueLabel = "${((uiState.settings["key_font_size"] ?: "18").toFloatOrNull() ?: 18f).toInt()}sp"
+                        valueLabel = "${((uiState.settings[SettingsRepository.KEY_KEY_FONT_SIZE] ?: "18").toFloatOrNull() ?: 18f).toInt()}sp"
                     )
                 }
             }
@@ -153,7 +153,7 @@ fun SettingsScreen(
                             AppearanceMode.FOLLOW_SYSTEM -> stringResource(R.string.settings_theme_auto)
                         },
                         icon = Icons.Default.Palette,
-                        onClick = { onNavigate("theme") }
+                        onClick = { onNavigate(SettingsRoutes.THEME) }
                     )
                 }
             }
@@ -165,7 +165,7 @@ fun SettingsScreen(
                         title = stringResource(R.string.settings_feedback),
                         subtitle = stringResource(R.string.settings_feedback_desc),
                         icon = Icons.Default.Vibration,
-                        onClick = { onNavigate("feedback") }
+                        onClick = { onNavigate(SettingsRoutes.FEEDBACK) }
                     )
                 }
             }
@@ -206,7 +206,7 @@ fun SettingsScreen(
                             else -> stringResource(R.string.settings_llm_provider_disabled)
                         },
                         icon = Icons.Default.SmartToy,
-                        onClick = { onNavigate("llm") },
+                        onClick = { onNavigate(SettingsRoutes.LLM) },
                         showDivider = true
                     )
                     SettingsNavItem(
@@ -216,7 +216,7 @@ fun SettingsScreen(
                             else -> stringResource(R.string.settings_stt_provider_system)
                         },
                         icon = Icons.Default.Mic,
-                        onClick = { onNavigate("stt") }
+                        onClick = { onNavigate(SettingsRoutes.STT) }
                     )
                 }
             }
@@ -234,7 +234,7 @@ fun SettingsScreen(
                     SettingsNavItem(
                         title = stringResource(R.string.settings_open_source),
                         icon = Icons.AutoMirrored.Filled.MenuBook,
-                        onClick = { onNavigate("about") }
+                        onClick = { onNavigate(SettingsRoutes.ABOUT) }
                     )
                 }
             }

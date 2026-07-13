@@ -46,7 +46,7 @@ class ThemeResolverImpl(
         )
 
         if (styleDef == null) {
-            // 回退到 key_default
+            // 回退到默认按键样式
             if (styleRef != KeyStyleRole.DEFAULT.ref) {
                 return resolveKeyStyle(KeyStyleRole.DEFAULT.ref)
             }

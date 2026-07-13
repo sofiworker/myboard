@@ -42,51 +42,51 @@ class SettingsActivity : AppCompatActivity() {
                         )
                     }
 
-                    NavHost(navController = navController, startDestination = "settings") {
-                        composable("settings") {
+                    NavHost(navController = navController, startDestination = SettingsRoutes.ROOT) {
+                        composable(SettingsRoutes.ROOT) {
                             SettingsScreen(
                                 onBack = { finish() },
                                 onNavigate = { route -> navController.navigate(route) },
                                 viewModel = viewModel(factory = SettingsViewModel.Factory(repo))
                             )
                         }
-                        composable("language") {
+                        composable(SettingsRoutes.LANGUAGE) {
                             LanguageSettingsScreen(
                                 onBack = { navController.popBackStack() },
                                 viewModel = viewModel(factory = LanguageSettingsViewModel.Factory(repo))
                             )
                         }
-                        composable("toolbar") {
+                        composable(SettingsRoutes.TOOLBAR) {
                             ToolbarSettingsScreen(
                                 onBack = { navController.popBackStack() },
                                 viewModel = viewModel(factory = ToolbarSettingsViewModel.Factory(repo))
                             )
                         }
-                        composable("theme") {
+                        composable(SettingsRoutes.THEME) {
                             ThemeSettingsScreen(
                                 onBack = { navController.popBackStack() },
                                 viewModel = viewModel(factory = SettingsViewModel.Factory(repo))
                             )
                         }
-                        composable("feedback") {
+                        composable(SettingsRoutes.FEEDBACK) {
                             FeedbackSettingsScreen(
                                 onBack = { navController.popBackStack() },
                                 viewModel = viewModel(factory = SettingsViewModel.Factory(repo))
                             )
                         }
-                        composable("llm") {
+                        composable(SettingsRoutes.LLM) {
                             LLMSettingsScreen(
                                 repo = repo,
                                 onBack = { navController.popBackStack() }
                             )
                         }
-                        composable("stt") {
+                        composable(SettingsRoutes.STT) {
                             STTSettingsScreen(
                                 repo = repo,
                                 onBack = { navController.popBackStack() }
                             )
                         }
-                        composable("about") {
+                        composable(SettingsRoutes.ABOUT) {
                             AboutScreen(
                                 onBack = { navController.popBackStack() }
                             )

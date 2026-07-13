@@ -88,8 +88,10 @@ fun InputSettingsScreen(
             item {
                 SliderItem(
                     title = stringResource(R.string.settings_key_font_size),
-                    value = (uiState.settings["key_font_size"] ?: "18").toFloatOrNull() ?: 18f,
-                    onValueChange = { viewModel.updateSetting("key_font_size", it.toInt().toString()) },
+                    value = (uiState.settings[SettingsRepository.KEY_KEY_FONT_SIZE] ?: "18").toFloatOrNull() ?: 18f,
+                    onValueChange = {
+                        viewModel.updateSetting(SettingsRepository.KEY_KEY_FONT_SIZE, it.toInt().toString())
+                    },
                     valueRange = 12f..24f,
                     suffix = "sp"
                 )

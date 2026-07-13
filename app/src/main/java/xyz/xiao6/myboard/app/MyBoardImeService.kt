@@ -43,6 +43,7 @@ import xyz.xiao6.myboard.state.*
 import xyz.xiao6.myboard.theme.*
 import xyz.xiao6.myboard.theme.foundation.AppearanceSettings
 import xyz.xiao6.myboard.theme.foundation.DynamicThemeSeed
+import xyz.xiao6.myboard.theme.foundation.FeedbackTokenId
 import xyz.xiao6.myboard.theme.foundation.ThemeRuntimeProvider
 import xyz.xiao6.myboard.theme.foundation.ThemeVariant
 import xyz.xiao6.myboard.state.BuiltInManifests
@@ -526,7 +527,7 @@ class MyBoardImeService : InputMethodService(), LifecycleOwner, SavedStateRegist
                                 serviceScope.launch {
                                     inputPipeline.handle(action)
                                     feedbackPlayer.playHaptic(
-                                        HapticToken(id = "key_tap", durationMs = 10, amplitude = 50)
+                                        HapticToken(id = FeedbackTokenId.KEY_TAP.ref, durationMs = 10, amplitude = 50)
                                     )
                                     updateInputView()
                                 }

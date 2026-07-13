@@ -10,6 +10,7 @@ import xyz.xiao6.myboard.contract.registry.*
 import xyz.xiao6.myboard.contract.panel.*
 import xyz.xiao6.myboard.contract.language.*
 import xyz.xiao6.myboard.contract.state.*
+import xyz.xiao6.myboard.theme.foundation.KeyStyleRole
 
 /**
  * 内置布局常量。
@@ -40,7 +41,7 @@ object BuiltInLayouts {
     private fun actionKey(id: String, label: String, actionType: LayoutActionType, payload: Map<String, kotlinx.serialization.json.JsonElement> = emptyMap()): KeyDef {
         return KeyDef(
             id = id,
-            styleRef = "key_function",
+            styleRef = KeyStyleRole.FUNCTION.ref,
             content = ContentSpec(label = label),
             actions = ActionMap(
                 gestures = mapOf(
@@ -88,7 +89,7 @@ object BuiltInLayouts {
             GridLayout.GridCell(
                 KeyDef(
                     id = "enter",
-                    styleRef = "key_action",
+                    styleRef = KeyStyleRole.ACTION.ref,
                     content = ContentSpec(label = "Enter"),
                     actions = ActionMap(
                         gestures = mapOf(GestureType.TAP to ActionDef(actionType = LayoutActionType.ENTER))
@@ -100,7 +101,7 @@ object BuiltInLayouts {
             GridLayout.GridCell(
                 KeyDef(
                     id = "shift",
-                    styleRef = "key_function",
+                    styleRef = KeyStyleRole.FUNCTION.ref,
                     content = ContentSpec(icon = "shift"),
                     width = Dimension.Weight(1.5f),
                     actions = ActionMap(
@@ -129,7 +130,7 @@ object BuiltInLayouts {
             GridLayout.GridCell(
                 KeyDef(
                     id = "backspace",
-                    styleRef = "key_function",
+                    styleRef = KeyStyleRole.FUNCTION.ref,
                     content = ContentSpec(icon = "backspace"),
                     width = Dimension.Weight(1.5f),
                     actions = ActionMap(
@@ -146,7 +147,7 @@ object BuiltInLayouts {
             GridLayout.GridCell(
                 KeyDef(
                     id = "lang",
-                    styleRef = "key_function",
+                    styleRef = KeyStyleRole.FUNCTION.ref,
                     content = ContentSpec(icon = "lang"),
                     actions = ActionMap(
                         gestures = mapOf(GestureType.TAP to ActionDef(actionType = LayoutActionType.SWITCH_LOCALE))
@@ -156,7 +157,7 @@ object BuiltInLayouts {
             GridLayout.GridCell(
                 KeyDef(
                     id = "comma",
-                    styleRef = "key_function",
+                    styleRef = KeyStyleRole.FUNCTION.ref,
                     content = ContentSpec(label = ","),
                     actions = ActionMap(
                         gestures = mapOf(GestureType.TAP to ActionDef(actionType = LayoutActionType.PUSH_TOKEN, payload = mapOf("token" to kotlinx.serialization.json.JsonPrimitive(","))))
@@ -166,7 +167,7 @@ object BuiltInLayouts {
             GridLayout.GridCell(
                 KeyDef(
                     id = "space",
-                    styleRef = "key_space",
+                    styleRef = KeyStyleRole.SPACE.ref,
                     content = ContentSpec(label = "Space"),
                     width = Dimension.Weight(5f),
                     actions = ActionMap(
@@ -177,7 +178,7 @@ object BuiltInLayouts {
             GridLayout.GridCell(
                 KeyDef(
                     id = "period",
-                    styleRef = "key_function",
+                    styleRef = KeyStyleRole.FUNCTION.ref,
                     content = ContentSpec(label = "."),
                     actions = ActionMap(
                         gestures = mapOf(GestureType.TAP to ActionDef(actionType = LayoutActionType.PUSH_TOKEN, payload = mapOf("token" to kotlinx.serialization.json.JsonPrimitive("."))))
@@ -187,7 +188,7 @@ object BuiltInLayouts {
             GridLayout.GridCell(
                 KeyDef(
                     id = "sym",
-                    styleRef = "key_function",
+                    styleRef = KeyStyleRole.FUNCTION.ref,
                     content = ContentSpec(label = "?123"),
                     width = Dimension.Weight(2f),
                     actions = ActionMap(
