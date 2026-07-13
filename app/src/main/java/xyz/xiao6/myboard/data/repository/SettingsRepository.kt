@@ -3,6 +3,7 @@ package xyz.xiao6.myboard.data.repository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.*
 import xyz.xiao6.myboard.data.dao.SettingsDao
@@ -13,6 +14,9 @@ import xyz.xiao6.myboard.data.entity.ToolbarItemType
 import xyz.xiao6.myboard.data.settings.KeyboardHeightPolicy
 import xyz.xiao6.myboard.contract.state.LocaleTag
 import xyz.xiao6.myboard.contract.state.Schema
+import xyz.xiao6.myboard.theme.foundation.AppearanceMode
+import xyz.xiao6.myboard.theme.foundation.AppearanceSettings
+import xyz.xiao6.myboard.theme.foundation.FoundationThemeSelection
 
 /**
  * 设置仓库。单一数据源，协调 DAO 层与上层 ViewModel。
@@ -24,12 +28,37 @@ class SettingsRepository(private val dao: SettingsDao) {
     val settings: Flow<Map<String, String>> = dao.getAllSettings()
         .map { entities -> entities.associate { it.key to it.stringValue } }
 
+    val appearanceSettings: Flow<AppearanceSettings> =
+        observeSetting(KEY_APPEARANCE_SETTINGS).map { raw -> decodeAppearanceSettings(raw) }
+
     suspend fun getSetting(key: String): String? = dao.getSetting(key)
 
     fun observeSetting(key: String): Flow<String?> = dao.observeSetting(key)
 
     suspend fun updateSetting(key: String, value: String) {
         dao.upsertSetting(SettingsEntity(key = key, stringValue = value))
+    }
+
+    suspend fun getAppearanceSettings(): AppearanceSettings =
+        decodeAppearanceSettings(getSetting(KEY_APPEARANCE_SETTINGS))
+
+    suspend fun updateAppearanceSettings(settings: AppearanceSettings) {
+        updateSetting(KEY_APPEARANCE_SETTINGS, SETTINGS_JSON.encodeToString(settings))
+    }
+
+    suspend fun updateFoundationTheme(transform: (FoundationThemeSelection) -> FoundationThemeSelection) {
+        val current = getAppearanceSettings()
+        updateAppearanceSettings(current.copy(foundation = transform(current.foundation)))
+    }
+
+    suspend fun updateAppearanceMode(mode: AppearanceMode) {
+        updateFoundationTheme { it.copy(appearanceMode = mode) }
+    }
+
+    private fun decodeAppearanceSettings(raw: String?): AppearanceSettings {
+        return raw?.takeIf { it.isNotBlank() }?.let { value ->
+            runCatching { SETTINGS_JSON.decodeFromString<AppearanceSettings>(value) }.getOrNull()
+        } ?: AppearanceSettings.default()
     }
 
     suspend fun ensureKeyboardLayoutMetrics(
@@ -147,6 +176,12 @@ class SettingsRepository(private val dao: SettingsDao) {
     companion object {
         const val KEY_TOOLBAR_LAYOUT_MODE = "toolbar_layout_mode"
         const val KEY_ENABLED_LOCALE_CONFIGS = "enabled_locale_configs"
+        const val KEY_APPEARANCE_SETTINGS = "appearance_settings"
+
+        private val SETTINGS_JSON = Json {
+            ignoreUnknownKeys = true
+            encodeDefaults = true
+        }
 
         /** 默认每语言的 schema 配置 */
         private fun defaultLocaleConfigs(): Map<LocaleTag, List<Schema>> = mapOf(
@@ -169,8 +204,7 @@ class SettingsRepository(private val dao: SettingsDao) {
         private val DEFAULT_SETTINGS = mapOf(
             "current_locale" to "en-US",
             KEY_ENABLED_LOCALE_CONFIGS to """{"en-US":["LATIN_DIRECT"],"zh-CN":["PINYIN"]}""",
-            "theme_mode" to "auto",
-            "current_theme" to "default",
+            KEY_APPEARANCE_SETTINGS to SETTINGS_JSON.encodeToString(AppearanceSettings.default()),
             "key_font_size" to "18",
             "haptic_feedback" to "true",
             "sound_feedback" to "false",
