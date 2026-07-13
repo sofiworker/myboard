@@ -16,11 +16,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import xyz.xiao6.myboard.contract.manifest.LocaleCapability
+import xyz.xiao6.myboard.contract.theme.ChromeColors
 import xyz.xiao6.myboard.contract.state.LocaleTag
 import xyz.xiao6.myboard.contract.state.Schema
 
@@ -43,6 +43,7 @@ import xyz.xiao6.myboard.contract.state.Schema
 @Composable
 fun LocaleLayoutSwitchPanel(
     locales: List<LocaleCapability>,
+    chrome: ChromeColors,
     currentLocale: LocaleTag,
     currentSchema: Schema,
     schemasForLocale: (LocaleTag) -> List<Schema>,
@@ -63,7 +64,7 @@ fun LocaleLayoutSwitchPanel(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF1F3F4))
+            .background(chrome.background)
     ) {
         // 标题栏
         Row(
@@ -76,7 +77,13 @@ fun LocaleLayoutSwitchPanel(
             TextButton(onClick = onBack) {
                 Text("返回", fontSize = 12.sp)
             }
-            Text("语言与方案", fontWeight = FontWeight.Bold, fontSize = 14.sp, modifier = Modifier.weight(1f))
+            Text(
+                "语言与方案",
+                color = chrome.candidateText,
+                fontWeight = FontWeight.Bold,
+                fontSize = 14.sp,
+                modifier = Modifier.weight(1f)
+            )
             IconButton(onClick = onHideKeyboard, modifier = Modifier.size(28.dp)) {
                 Icon(Icons.Default.KeyboardHide, "收起键盘", modifier = Modifier.size(18.dp))
             }
@@ -110,9 +117,9 @@ fun LocaleLayoutSwitchPanel(
         }
 
         // 分隔线
-        Divider(
+        HorizontalDivider(
             modifier = Modifier.padding(horizontal = 8.dp),
-            color = Color(0xFFDADCE0),
+            color = chrome.keyHint.copy(alpha = 0.45f),
             thickness = 0.5.dp
         )
 
@@ -132,7 +139,7 @@ fun LocaleLayoutSwitchPanel(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(8.dp))
-                        .background(Color.White)
+                        .background(chrome.surface)
                         .clickable {
                             if (selectedLocale != currentLocale) {
                                 // 先切换语言
@@ -147,6 +154,7 @@ fun LocaleLayoutSwitchPanel(
                 ) {
                     Text(
                         text = displayName,
+                        color = chrome.candidateText,
                         fontSize = 14.sp,
                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                     )
@@ -154,7 +162,7 @@ fun LocaleLayoutSwitchPanel(
                         Icon(
                             Icons.Default.Check,
                             contentDescription = "已选",
-                            tint = MaterialTheme.colorScheme.primary,
+                            tint = chrome.candidateHighlight,
                             modifier = Modifier.size(18.dp)
                         )
                     }

@@ -16,9 +16,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import xyz.xiao6.myboard.contract.theme.ChromeColors
 
 /**
  * Emoji 面板。
@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.sp
 @Composable
 fun EmojiPanel(
     categories: List<Triple<String, String, List<String>>>,
+    chrome: ChromeColors,
     onEmojiClick: (String) -> Unit,
     /** 返回键盘主界面（关闭面板），不是关闭输入法 */
     onBack: () -> Unit,
@@ -40,7 +41,7 @@ fun EmojiPanel(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF1F3F4))
+            .background(chrome.background)
     ) {
         // 标题栏
         Row(
@@ -53,7 +54,7 @@ fun EmojiPanel(
             TextButton(onClick = onBack) {
                 Text("返回", fontSize = 12.sp)
             }
-            Text("Emoji", fontSize = 14.sp, modifier = Modifier.weight(1f))
+            Text("Emoji", color = chrome.candidateText, fontSize = 14.sp, modifier = Modifier.weight(1f))
             IconButton(onClick = onHideKeyboard, modifier = Modifier.size(28.dp)) {
                 Icon(Icons.Default.KeyboardHide, "收起键盘", modifier = Modifier.size(18.dp))
             }
@@ -90,7 +91,7 @@ fun EmojiPanel(
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(8.dp))
-                        .background(Color.White)
+                        .background(chrome.surface)
                         .clickable { onEmojiClick(emoji) }
                         .padding(8.dp),
                     contentAlignment = Alignment.Center

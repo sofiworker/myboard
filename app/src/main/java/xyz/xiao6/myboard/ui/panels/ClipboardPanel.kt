@@ -13,12 +13,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import xyz.xiao6.myboard.clipboard.ClipboardEntry
+import xyz.xiao6.myboard.contract.theme.ChromeColors
 
 /**
  * 剪贴板面板。
@@ -29,6 +29,7 @@ import xyz.xiao6.myboard.clipboard.ClipboardEntry
 @Composable
 fun ClipboardPanel(
     entries: List<ClipboardEntry>,
+    chrome: ChromeColors,
     onEntryClick: (ClipboardEntry) -> Unit,
     onDeleteEntry: (ClipboardEntry) -> Unit,
     onClearAll: () -> Unit,
@@ -40,7 +41,7 @@ fun ClipboardPanel(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF1F3F4))
+            .background(chrome.background)
     ) {
         // 标题栏
         Row(
@@ -53,7 +54,13 @@ fun ClipboardPanel(
             TextButton(onClick = onBack) {
                 Text("返回", fontSize = 12.sp)
             }
-            Text("剪贴板", fontWeight = FontWeight.Bold, fontSize = 14.sp, modifier = Modifier.weight(1f))
+            Text(
+                "剪贴板",
+                color = chrome.candidateText,
+                fontWeight = FontWeight.Bold,
+                fontSize = 14.sp,
+                modifier = Modifier.weight(1f)
+            )
             TextButton(onClick = onClearAll) {
                 Text("清空", color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
             }
@@ -73,6 +80,7 @@ fun ClipboardPanel(
             items(entries) { entry ->
                 ClipboardEntryItem(
                     entry = entry,
+                    chrome = chrome,
                     onClick = { onEntryClick(entry) },
                     onDelete = { onDeleteEntry(entry) }
                 )
@@ -84,6 +92,7 @@ fun ClipboardPanel(
 @Composable
 private fun ClipboardEntryItem(
     entry: ClipboardEntry,
+    chrome: ChromeColors,
     onClick: () -> Unit,
     onDelete: () -> Unit
 ) {
@@ -91,7 +100,7 @@ private fun ClipboardEntryItem(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(8.dp))
-            .background(Color.White)
+            .background(chrome.surface)
             .clickable(onClick = onClick)
             .padding(12.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -101,10 +110,11 @@ private fun ClipboardEntryItem(
             text = entry.text,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
+            color = chrome.candidateText,
             modifier = Modifier.weight(1f)
         )
         IconButton(onClick = onDelete) {
-            Text("×", color = Color.Gray)
+            Text("×", color = chrome.keyHint)
         }
     }
 }

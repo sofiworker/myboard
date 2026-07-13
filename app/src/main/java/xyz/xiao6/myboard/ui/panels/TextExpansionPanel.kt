@@ -11,16 +11,17 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import xyz.xiao6.myboard.contract.theme.ChromeColors
 
 /**
  * 文本填充面板。
  */
 @Composable
 fun TextExpansionPanel(
+    chrome: ChromeColors,
     expansions: List<Pair<String, String>>,
     onExpansionClick: (String) -> Unit,
     onAdd: (String, String) -> Unit,
@@ -34,7 +35,7 @@ fun TextExpansionPanel(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF1F3F4))
+            .background(chrome.background)
     ) {
         // 标题栏
         Row(
@@ -44,7 +45,7 @@ fun TextExpansionPanel(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("文本填充", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            Text("文本填充", color = chrome.candidateText, fontWeight = FontWeight.Bold, fontSize = 16.sp)
             Row {
                 TextButton(onClick = { showAddDialog = true }) {
                     Text("添加")
@@ -68,17 +69,17 @@ fun TextExpansionPanel(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(8.dp))
-                        .background(Color.White)
+                        .background(chrome.surface)
                         .clickable { onExpansionClick(shortcut) }
                         .padding(12.dp),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Column {
-                        Text(shortcut, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                        Text(expansion, fontSize = 12.sp, color = Color.Gray)
+                        Text(shortcut, color = chrome.candidateText, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                        Text(expansion, fontSize = 12.sp, color = chrome.keyHint)
                     }
                     IconButton(onClick = { onDelete(shortcut) }) {
-                        Text("×", color = Color.Gray)
+                        Text("×", color = chrome.keyHint)
                     }
                 }
             }

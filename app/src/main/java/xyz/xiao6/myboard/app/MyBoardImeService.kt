@@ -348,6 +348,7 @@ class MyBoardImeService : InputMethodService(), LifecycleOwner, SavedStateRegist
                         PanelType.SYMBOL -> {
                             if (panelLayoutId == null) {
                                 SymbolPanel(
+                                chrome = chrome,
                                 onSymbolClick = { symbol ->
                                     serviceScope.launch {
                                         inputPipeline.handle(InputAction.PushToken(symbol))
@@ -367,6 +368,7 @@ class MyBoardImeService : InputMethodService(), LifecycleOwner, SavedStateRegist
                                     Triple("heart", "❤️", listOf("❤️", "🧡", "💛", "💚", "💙", "💜", "🖤", "🤍", "🤎", "💔", "❤️‍🔥", "💕", "💞", "💓", "💗", "💖", "💘", "💝", "💟")),
                                     Triple("hand", "👋", listOf("👋", "🤚", "🖐️", "✋", "🖖", "👌", "🤌", "🤏", "✌️", "🤞", "🫰", "🤟", "🤘", "🤙", "👈", "👉", "👆", "👇", "☝️", "👍", "👎", "✊", "👊", "🤛", "🤜", "👏", "🙌", "🫶", "👐", "🤲", "🙏"))
                                 ),
+                                chrome = chrome,
                                 onEmojiClick = { emoji ->
                                     serviceScope.launch {
                                         inputPipeline.handle(InputAction.PushToken(emoji))
@@ -381,6 +383,7 @@ class MyBoardImeService : InputMethodService(), LifecycleOwner, SavedStateRegist
                         PanelType.CLIPBOARD -> {
                             ClipboardPanel(
                                 entries = clipboardManager.getHistory(),
+                                chrome = chrome,
                                 onEntryClick = { entry ->
                                     serviceScope.launch {
                                         inputPipeline.handle(InputAction.PushToken(entry.text))
@@ -408,6 +411,7 @@ class MyBoardImeService : InputMethodService(), LifecycleOwner, SavedStateRegist
                                     "愤怒" to listOf("(╬￣皿￣)", "щ(｀Д´щ)", "(°ロ°)!", "(ᗒᗣᗕ)՞", "(ノ｀ダ)ノ", "Σ( ° △ °|||)"),
                                     "惊讶" to listOf("(⊙_⊙)", "(°o°)", "Σ( ° △ °|||)", "(ﾟДﾟ)", "(O_O)", "Σ(ﾟдﾟ)")
                                 ),
+                                chrome = chrome,
                                 onKaomojiClick = { kaomoji ->
                                     serviceScope.launch {
                                         inputPipeline.handle(InputAction.PushToken(kaomoji))
@@ -424,6 +428,7 @@ class MyBoardImeService : InputMethodService(), LifecycleOwner, SavedStateRegist
                             }
                             LocaleLayoutSwitchPanel(
                                 locales = locales,
+                                chrome = chrome,
                                 currentLocale = context.orthogonal.locale,
                                 currentSchema = context.orthogonal.schema,
                                 schemasForLocale = { locale ->
@@ -452,6 +457,7 @@ class MyBoardImeService : InputMethodService(), LifecycleOwner, SavedStateRegist
                         PanelType.LLM, PanelType.STT, PanelType.TEXT_EXPANSION -> {
                             PlaceholderPanel(
                                 panelType = context.activePanel,
+                                chrome = chrome,
                                 onBack = closePanelAndRefresh,
                                 onHideKeyboard = hideKeyboard
                             )

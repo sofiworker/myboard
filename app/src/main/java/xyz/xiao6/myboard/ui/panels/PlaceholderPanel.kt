@@ -9,10 +9,10 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import xyz.xiao6.myboard.contract.state.PanelType
+import xyz.xiao6.myboard.contract.theme.ChromeColors
 
 /**
  * 占位面板。
@@ -24,6 +24,7 @@ import xyz.xiao6.myboard.contract.state.PanelType
 @Composable
 fun PlaceholderPanel(
     panelType: PanelType,
+    chrome: ChromeColors,
     /** 返回键盘主界面（关闭面板），不是关闭输入法 */
     onBack: () -> Unit,
     /** 收起整个键盘 */
@@ -33,7 +34,7 @@ fun PlaceholderPanel(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(Color(0xFFF1F3F4))
+            .background(chrome.background)
     ) {
         Row(
             modifier = Modifier
@@ -42,7 +43,12 @@ fun PlaceholderPanel(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Text(panelType.name, style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
+            Text(
+                panelType.name,
+                color = chrome.candidateText,
+                style = MaterialTheme.typography.titleSmall,
+                modifier = Modifier.weight(1f)
+            )
             IconButton(onClick = onBack, modifier = Modifier.size(28.dp)) {
                 Icon(Icons.Default.Close, "返回键盘", modifier = Modifier.size(18.dp))
             }
@@ -58,7 +64,7 @@ fun PlaceholderPanel(
         ) {
             Text(
                 "${panelType.name} 面板（开发中）",
-                color = Color.Gray,
+                color = chrome.keyHint,
                 fontSize = 12.sp
             )
         }

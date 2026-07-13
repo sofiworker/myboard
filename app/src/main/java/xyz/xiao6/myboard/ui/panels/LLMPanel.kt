@@ -7,16 +7,17 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import xyz.xiao6.myboard.contract.theme.ChromeColors
 
 /**
  * LLM 面板。
  */
 @Composable
 fun LLMPanel(
+    chrome: ChromeColors,
     isProcessing: Boolean,
     result: String?,
     onTranslate: () -> Unit,
@@ -27,7 +28,7 @@ fun LLMPanel(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Color(0xFFF1F3F4))
+            .background(chrome.background)
             .padding(16.dp)
     ) {
         // 标题
@@ -36,7 +37,7 @@ fun LLMPanel(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("AI 助手", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            Text("AI 助手", color = chrome.candidateText, fontWeight = FontWeight.Bold, fontSize = 16.sp)
             IconButton(onClick = onClose) {
                 Text("×", fontSize = 20.sp)
             }
@@ -62,10 +63,11 @@ fun LLMPanel(
         } else if (result != null) {
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = Color.White)
+                colors = CardDefaults.cardColors(containerColor = chrome.surface)
             ) {
                 Text(
                     text = result,
+                    color = chrome.candidateText,
                     modifier = Modifier.padding(12.dp),
                     fontSize = 14.sp
                 )

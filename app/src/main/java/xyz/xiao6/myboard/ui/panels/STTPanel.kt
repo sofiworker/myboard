@@ -13,12 +13,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import xyz.xiao6.myboard.contract.theme.ChromeColors
 
 /**
  * STT 面板。
  */
 @Composable
 fun STTPanel(
+    chrome: ChromeColors,
     isListening: Boolean,
     partialText: String,
     onStart: () -> Unit,
@@ -28,7 +30,7 @@ fun STTPanel(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Color(0xFF1F1F1F))
+            .background(chrome.background)
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -37,9 +39,9 @@ fun STTPanel(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Text("语音输入", color = Color.White, fontSize = 16.sp)
+            Text("语音输入", color = chrome.candidateText, fontSize = 16.sp)
             IconButton(onClick = onClose) {
-                Text("×", color = Color.White, fontSize = 20.sp)
+                Text("×", color = chrome.candidateText, fontSize = 20.sp)
             }
         }
 
@@ -51,7 +53,7 @@ fun STTPanel(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(48.dp)
-                    .background(Color(0xFF2D2D2D), CircleShape)
+                    .background(chrome.surface, CircleShape)
             )
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -59,7 +61,7 @@ fun STTPanel(
             // 部分结果
             Text(
                 text = partialText.ifEmpty { "正在聆听..." },
-                color = Color.White,
+                color = chrome.candidateText,
                 fontSize = 14.sp
             )
 
@@ -75,7 +77,7 @@ fun STTPanel(
                 Icon(
                     Icons.Default.Stop,
                     contentDescription = "停止",
-                    tint = Color.White,
+                    tint = MaterialTheme.colorScheme.onError,
                     modifier = Modifier.size(32.dp)
                 )
             }
@@ -85,19 +87,19 @@ fun STTPanel(
                 onClick = onStart,
                 modifier = Modifier
                     .size(64.dp)
-                    .background(MaterialTheme.colorScheme.primary, CircleShape)
+                    .background(chrome.candidateHighlight, CircleShape)
             ) {
                 Icon(
                     Icons.Default.Mic,
                     contentDescription = "开始",
-                    tint = Color.White,
+                    tint = MaterialTheme.colorScheme.onPrimary,
                     modifier = Modifier.size(32.dp)
                 )
             }
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            Text("点击开始语音输入", color = Color.Gray, fontSize = 12.sp)
+            Text("点击开始语音输入", color = chrome.keyHint, fontSize = 12.sp)
         }
     }
 }
