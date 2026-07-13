@@ -43,4 +43,17 @@ class ThemeRuntimeProviderTest {
 
         assertEquals("#1A73E8", runtime.doc.colors.candidateHighlight)
     }
+
+    @Test
+    fun `system dynamic uses provided dynamic seed`() {
+        val runtime = provider.resolve(
+            AppearanceSettings(
+                foundation = FoundationThemeSelection(paletteSource = PaletteSource.SYSTEM_DYNAMIC)
+            ),
+            systemDark = false,
+            dynamicSeedColor = "#FF5722"
+        )
+
+        assertEquals("#FF5722", runtime.doc.colors.candidateHighlight)
+    }
 }

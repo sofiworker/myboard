@@ -4,6 +4,7 @@ import android.inputmethodservice.InputMethodService
 import android.view.View
 import android.view.inputmethod.EditorInfo
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -40,6 +41,10 @@ import xyz.xiao6.myboard.engine.builtin.*
 import xyz.xiao6.myboard.layout.*
 import xyz.xiao6.myboard.state.*
 import xyz.xiao6.myboard.theme.*
+import xyz.xiao6.myboard.theme.foundation.AppearanceSettings
+import xyz.xiao6.myboard.theme.foundation.DynamicThemeSeed
+import xyz.xiao6.myboard.theme.foundation.ThemeRuntimeProvider
+import xyz.xiao6.myboard.theme.foundation.ThemeVariant
 import xyz.xiao6.myboard.state.BuiltInManifests
 import xyz.xiao6.myboard.toolbar.ThemeToggler
 import xyz.xiao6.myboard.toolbar.LayoutSwitcher
@@ -73,6 +78,7 @@ class MyBoardImeService : InputMethodService(), LifecycleOwner, SavedStateRegist
     private lateinit var orthogonalRegistry: OrthogonalRegistryImpl
     private lateinit var transitionEngine: TransitionEngineImpl
     private lateinit var themeResolver: ThemeResolverImpl
+    private lateinit var themeRuntimeProvider: ThemeRuntimeProvider
     private lateinit var layoutAssetsLoader: LayoutAssetsLoader
 
     // 辅助组件
@@ -170,15 +176,14 @@ class MyBoardImeService : InputMethodService(), LifecycleOwner, SavedStateRegist
         // 10. 初始化布局测量器
         layoutMeasurer = LayoutMeasurerImpl()
 
-        // 11. 初始化主题解析器（从设置中读取 theme_mode）
-        val savedThemeMode = runBlocking {
-            settingsRepository.getSetting("theme_mode") ?: "auto"
-        }
-        val initialTheme = when (savedThemeMode) {
-            "dark" -> BuiltInThemes.dark
-            else -> BuiltInThemes.light
-        }
-        themeResolver = ThemeResolverImpl(initialTheme)
+        // 11. 初始化主题解析器。实际主题在 Compose 主流程中由 AppearanceSettings 解析。
+        themeRuntimeProvider = ThemeRuntimeProvider()
+        themeResolver = ThemeResolverImpl(
+            themeRuntimeProvider.resolve(
+                settings = AppearanceSettings.default(),
+                systemDark = false
+            ).doc
+        )
 
         // 12. 初始化布局加载器
         layoutAssetsLoader = LayoutAssetsLoader(this)
@@ -245,6 +250,24 @@ class MyBoardImeService : InputMethodService(), LifecycleOwner, SavedStateRegist
         val composeView = ComposeView(this).apply {
             setContent {
                 val context by keyboardContextManager.context.collectAsState()
+                val appearanceSettings by settingsRepository.appearanceSettings.collectAsState(
+                    initial = AppearanceSettings.default()
+                )
+                val systemDark = isSystemInDarkTheme()
+                val dynamicSeedColor = DynamicThemeSeed.currentSeedColor()
+                val themeRuntime = remember(appearanceSettings, systemDark, dynamicSeedColor) {
+                    themeRuntimeProvider.resolve(
+                        settings = appearanceSettings,
+                        systemDark = systemDark,
+                        dynamicSeedColor = dynamicSeedColor
+                    )
+                }
+                val activeThemeResolver = remember(themeRuntime.doc) {
+                    ThemeResolverImpl(themeRuntime.doc)
+                }
+                SideEffect {
+                    themeResolver.setTheme(themeRuntime.doc)
+                }
                 // 观察单调递增计数器，确保 updateInputView() 能触发重组
                 @Suppress("UNUSED_VARIABLE")
                 val uiRevision = _uiRevision.longValue
@@ -252,7 +275,7 @@ class MyBoardImeService : InputMethodService(), LifecycleOwner, SavedStateRegist
                 val activeLayoutId = panelLayoutId ?: context.layoutId
                 val layoutDoc = layoutAssetsLoader.load(activeLayoutId)
                     ?: layoutRegistry.get(activeLayoutId)
-                val isDark = themeResolver.isDark()
+                val isDark = themeRuntime.variant == ThemeVariant.DARK
 
                 // 观察工具栏配置
                 val toolbarItems by settingsRepository.toolbarItems.collectAsState(initial = emptyList())
@@ -302,7 +325,7 @@ class MyBoardImeService : InputMethodService(), LifecycleOwner, SavedStateRegist
                 }
                 measuredLayout = currentMeasured
 
-                val chrome = themeResolver.resolveChromeColors()
+                val chrome = activeThemeResolver.resolveChromeColors()
 
                 Column(
                     modifier = Modifier
@@ -492,7 +515,7 @@ class MyBoardImeService : InputMethodService(), LifecycleOwner, SavedStateRegist
                         LayoutRenderer(
                             measuredLayout = currentMeasured,
                             context = context,
-                            themeResolver = themeResolver,
+                            themeResolver = activeThemeResolver,
                             onAction = { action ->
                                 serviceScope.launch {
                                     inputPipeline.handle(action)
