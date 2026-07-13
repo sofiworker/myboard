@@ -68,7 +68,27 @@ MyBoard 应采用这种资源包模型，而不是把每张参考图硬编码成
 
 ## 4. 核心设计决策
 
-### 4.1 主题默认不修改 Layout
+### 4.1 基础主题与高级皮肤分层
+
+MyBoard 首先交付类似 Gboard 的基础主题。基础主题不是 `LayoutDoc`，也不是可导入资源包；它是由用户选择的色板、系统动态色或自定义主色生成的全局视觉底座。
+
+```text
+FoundationTheme（用户配色、深浅色、基础按键外观）
+  + SkinLayer（可选：图片、纹理、装饰、局部样式、布局绑定）
+  = ThemeRuntime
+```
+
+基础主题必须覆盖主键盘、候选栏、工具栏、符号页、Emoji 页和其它面板的语义 token，但不得携带图片、字体、装饰或 Layout。它的目标是稳定、即时预览、跨语言一致的基础体验。
+
+高级主题包是可选的 `SkinLayer`。主题包声明以下颜色策略之一：
+
+- `inherit`：皮肤继承用户的基础色板；适合贴纸、纹理和轻量装饰主题。
+- `locked`：皮肤使用设计师提供的完整配色；适合摄影背景或对比度必须固定的主题。
+- `adaptive`：皮肤根据基础主题的语义 token 映射出自己的高光、阴影和强调色；首版可暂不开放给第三方作者。
+
+没有启用高级皮肤时，`SkinLayer` 为空，`ThemeRuntime` 直接来自 `FoundationTheme`。高级皮肤解析失败时，也必须完整回退到基础主题。
+
+### 4.2 主题默认不修改 Layout
 
 首版皮肤系统不让主题隐式改变键位几何、按键动作或输入语义。
 
@@ -79,7 +99,7 @@ MyBoard 应采用这种资源包模型，而不是把每张参考图硬编码成
 - 设计师常见的“看起来跨键”“贴纸压住键”“角色站在键上”可以通过装饰层实现，不需要改 Layout。
 - 如果主题可以随意改 Layout，会让 `KeyboardContext.layoutId`、Manifest、设置页和输入行为变得难以追踪。
 
-### 4.2 需要修改 Layout 时走显式绑定
+### 4.3 需要修改 Layout 时走显式绑定
 
 有些皮肤确实需要改变结构，例如：
 
@@ -98,7 +118,7 @@ MyBoard 应采用这种资源包模型，而不是把每张参考图硬编码成
 
 首版推荐只做“视觉主题 + 装饰层”，不立即修改现有 Layout 数据模型。Layout 绑定作为主题包协议预留，等布局继承和 patch 能力稳定后再开放给用户主题。
 
-### 4.3 溢出装饰不参与命中测试
+### 4.4 溢出装饰不参与命中测试
 
 Image #1 中信封、小猫、星星、便签这类元素会覆盖多个按键。它们应作为 `DecorationDef` 绘制在键盘表面：
 
@@ -110,9 +130,43 @@ Image #1 中信封、小猫、星星、便签这类元素会覆盖多个按键�
 
 这能复刻“图标溢出到其它按键”的视觉，同时不破坏输入。
 
+### 4.5 按 surface 和输入上下文解析主题
+
+主题与布局不能只按一个全局 `layoutId` 解析。有效样式和布局由四个独立轴共同决定：
+
+```text
+AppearanceSettings（基础色板、皮肤包、theme_mode）
+KeyboardContext（locale、script、schema、layer、activePanel）
+Surface（primary、candidate、toolbar、symbol、emoji、其它 panel）
+LayoutBinding（可选、显式、用户确认）
+```
+
+- 切换语言、脚本、输入方案或 Shift 层，只改变 `KeyboardContext` 和基础布局；已选基础主题与皮肤继续生效。
+- `layoutBinding` 必须按 `surface + baseLayoutId` 匹配，并可额外限制 locale、script、schema。未命中时使用基础布局。
+- Emoji 与符号页属于独立 surface，只有显式绑定 `emoji_full_surface` 或 `symbols_full_surface` 时才能使用主题专用布局。
+- 候选栏和工具栏始终消费主题样式，但首版不允许皮肤改变候选策略、工具栏按钮集合、排序或用户的 Toolbar 设置。
+- `theme_mode` 只选择 light/dark variant，不得隐式改变有效布局。
+
 ## 5. 概念模型
 
-### 5.1 ThemePackage
+### 5.1 FoundationTheme
+
+基础主题的持久化设置应保持小而稳定，颜色由生成器扩展为完整语义 token，避免用户手填大量颜色：
+
+```kotlin
+data class FoundationThemeSelection(
+    val paletteSource: PaletteSource, // Preset, SystemDynamic, CustomSeed
+    val seedColor: String?,
+    val keyTreatment: KeyTreatment, // Filled, Outlined, Borderless
+    val keyContrast: KeyContrast, // Normal, High
+    val cornerStyle: CornerStyle,
+    val appearanceMode: ThemeMode // FollowSystem, Light, Dark
+)
+```
+
+`ThemeColorGenerator` 必须同时生成 light/dark token，例如 `surface.keyboard`、`key.default`、`key.action`、`candidate.selected`、`toolbar.icon`、`panel.emoji`。系统动态色仅在系统可用时使用；不可用时回退到本地种子色生成，不申请额外权限。
+
+### 5.2 ThemePackage
 
 主题包是磁盘上的完整资源集合。内置主题位于 assets，用户主题位于 app 私有目录。
 
@@ -147,7 +201,7 @@ app/src/main/assets/themes/{themeId}/manifest.jsonc
 app/src/main/assets/themes/{themeId}/theme.jsonc
 ```
 
-### 5.2 ThemeManifest
+### 5.3 ThemeManifest
 
 `manifest.jsonc` 描述包元数据、入口文件、兼容版本、预览图和可选布局绑定。
 
@@ -178,7 +232,7 @@ app/src/main/assets/themes/{themeId}/theme.jsonc
 }
 ```
 
-### 5.3 ThemeDoc
+### 5.4 ThemeDoc
 
 `theme.jsonc` 描述视觉 token、资源引用、装饰层、反馈和可选布局绑定。
 
@@ -187,7 +241,7 @@ data class ThemeDoc(
     val schemaVersion: String,
     val id: String,
     val name: LocalizedText,
-    val dark: Boolean? = null,
+    val colorPolicy: SkinColorPolicy,
     val variants: Map<ThemeVariant, ThemeVariantDoc>,
     val assets: Map<String, ThemeAssetDef>,
     val colors: Map<String, ColorToken>,
@@ -201,15 +255,16 @@ data class ThemeDoc(
 )
 ```
 
-`dark` 只保留兼容旧主题。新主题应使用 `variants.light` / `variants.dark`。
+新主题必须使用 `variants.light` / `variants.dark`；当前应用未发布，不保留旧 `dark` 字段的兼容分支。
 
-### 5.4 ThemeRuntime
+### 5.5 ThemeRuntime
 
 `ThemeRuntime` 是解析后的不可变运行时对象：
 
 ```kotlin
 data class ThemeRuntime(
-    val id: String,
+    val foundationId: String,
+    val skinId: String?,
     val variant: ThemeVariant,
     val keyStyles: Map<String, ResolvedKeyStyle>,
     val chrome: ResolvedChromeStyle,
@@ -525,9 +580,11 @@ PointerInput
 建议新增：
 
 - `ThemeCatalog`：列出内置主题和用户主题。
+- `ThemeColorGenerator`：根据基础主题的色板、动态色或自定义主色生成完整的 light/dark 语义 token。
 - `ThemePackageImporter`：导入 `.mybskin`。
 - `ThemePackageValidator`：校验包结构、JSON、资源、layoutBindings。
-- `ThemeRuntimeProvider`：根据设置和系统深浅色解析当前 `ThemeRuntime`。
+- `ThemeRuntimeProvider`：将 FoundationTheme 与可选 SkinLayer 合成当前 `ThemeRuntime`。
+- `EffectiveLayoutResolver`：根据 `KeyboardContext`、surface 和已启用的 `layoutBindings` 选择有效布局。
 - `ThemeAssetResolver`：把 assetId 解析成 `ImageBitmap` / `Painter` / 字体资源。
 - `ThemePreviewRenderer`：给设置页和主题定义器渲染预览。
 
@@ -537,12 +594,12 @@ PointerInput
 
 ```text
 SettingsActivity
-  -> SettingsRepository.updateSetting("current_theme", themeId)
-  -> SettingsRepository.updateSetting("theme_mode", auto/light/dark)
+  -> SettingsRepository.updateAppearanceSettings(foundationTheme, skinTheme, themeMode)
   -> MyBoardImeService collect settings
-  -> ThemeRuntimeProvider.resolve(current_theme, theme_mode, systemDark)
+  -> ThemeRuntimeProvider.resolve(foundationTheme, skinTheme, themeMode, systemDark)
   -> ThemeResolver.setTheme(runtime)
-  -> LayoutRenderer / Toolbar / CandidateBar 重组
+  -> EffectiveLayoutResolver.resolve(KeyboardContext, runtime, enabledBindings)
+  -> LayoutRenderer / Toolbar / CandidateBar / Panel 重组
 ```
 
 `SettingsActivity.kt` 必须保留所有主题设置入口，不能在其它地方维护第二份主题状态。
@@ -561,7 +618,22 @@ SettingsActivity
 - 没有 light 时，使用 dark。
 - 两者都没有，主题无效，回退默认主题。
 
-### 10.4 BuiltInThemes 去重
+Layout binding 与深浅色 variant 正交。日间和夜间可以使用不同背景、纹理和装饰，但切换深浅色不得让按键尺寸、位置或动作发生变化。
+
+### 10.4 语言、输入方案与面板
+
+有效布局选择顺序：
+
+```text
+PanelLayoutResolver(activePanel) 或 KeyboardContext.layoutId
+  -> 查找用户启用且匹配 surface/baseLayoutId/locale/script/schema 的 layoutBinding
+  -> 命中且校验通过：replacementLayoutId
+  -> 否则：基础 layoutId
+```
+
+`primary`、`symbol`、`emoji` 是独立 surface。当前 `emoji_full_surface` 和 `symbols_full_surface` 必须在包中单独声明绑定，不能因主键盘绑定而自动替换。候选栏、工具栏、剪贴板和 LLM 等面板默认只有样式覆盖；后续如需结构变化，应定义独立的 panel/chrome 合约，不能复用主键盘 `LayoutDoc`。
+
+### 10.5 BuiltInThemes 去重
 
 最终应删除或弱化 `BuiltInThemes.kt` 中的完整主题常量。内置主题也从 assets 解析，避免 Kotlin 常量与 JSONC 不一致。
 
@@ -589,16 +661,16 @@ files/themes/*/manifest.jsonc
 
 ### 11.2 模式
 
-基础模式：
+基础主题模式：
 
-- 选择基础模板。
-- 设置键盘背景色/背景图。
-- 设置默认键、功能键、动作键、空格键、候选栏、工具栏颜色。
-- 设置圆角、阴影、描边、字体大小。
-- 保存为用户主题。
+- 选择预置色板、系统动态色或自定义主色。
+- 设置填充、描边或无边框按键外观，以及对比度和圆角。
+- 同时预览 light/dark、主键盘、候选栏、工具栏、Emoji 与符号页。
+- 保存为 `FoundationThemeSelection`，不产生资源包，也不产生 Layout。
 
 高级模式：
 
+- 创建或导入 `SkinLayer`，并选择继承、锁定或自适应基础色板。
 - JSONC 编辑器。
 - 装饰层可视化定位。
 - selector 配置。
@@ -858,18 +930,18 @@ Image #1 属于这种类型。
 
 ## 18. 分阶段落地
 
-### Phase 1：主题选择主流程修正
+### Phase 1：基础主题与选择主流程
 
-- `current_theme` 接入 `MyBoardImeService`。
-- `ThemeCatalog` 列出内置主题。
-- 主题设置页从 `ThemeCatalog` 读取主题，不直接依赖 `BuiltInThemes.all`。
+- 建立 `AppearanceSettings` 作为主题设置单一来源。
+- 交付预置色板、系统动态色、自定义主色和 light/dark/follow-system。
+- 引入 `ThemeColorGenerator`，让基础主题覆盖键盘、候选栏、工具栏和全屏面板。
 - `ThemeToggler` 只改 `theme_mode`，不直接写死 light/dark 主题对象。
 
-### Phase 2：ThemeDoc 扩展
+### Phase 2：SkinLayer 与 ThemeDoc 扩展
 
 - 增加 variants、PaintSpec、ChromeStyle、EffectToken。
-- 保持旧 light/dark JSONC 兼容。
-- 引入 ThemeRuntime。
+- 增加 `inherit`、`locked`、`adaptive` 颜色策略。
+- 将 FoundationTheme 与 SkinLayer 合成为 ThemeRuntime。
 
 ### Phase 3：渲染分层和 decorations
 
@@ -878,7 +950,7 @@ Image #1 属于这种类型。
 - 保持 hit test 只基于 MeasuredLayout。
 - `Toolbar` / `CandidateBar` 消费 chrome style。
 
-### Phase 4：主题包导入和定义器
+### Phase 4：高级主题包导入和定义器
 
 - `.mybskin` 导入。
 - 主题包校验。
@@ -888,12 +960,14 @@ Image #1 属于这种类型。
 ### Phase 5：可选布局绑定
 
 - 支持主题包附带 LayoutDoc。
-- 支持 `layoutBindings optIn`。
+- 支持按 primary/symbol/emoji surface 匹配的 `layoutBindings optIn`。
+- 引入 EffectiveLayoutResolver，保持 `KeyboardContext` 的基础布局语义不被主题隐式改写。
 - 支持布局 patch 后再开放高级设计能力。
 
 ## 19. 验收标准
 
-- 设计师能用主题定义器创建纯视觉主题并预览。
+- 用户能用基础主题选择器配置色板、动态色或自定义主色，并在所有 surface 上获得可读的 light/dark 效果。
+- 设计师能用主题定义器创建继承、锁定或自适应基础色板的纯视觉 SkinLayer 并预览。
 - 开发者能手写 `.mybskin`，通过校验后导入。
 - Image #1 这种跨按键装饰能通过 decorations 表达，不需要改 Layout。
 - 主题切换只改视觉，不影响输入行为。
@@ -905,8 +979,8 @@ Image #1 属于这种类型。
 
 ## 20. 关键结论
 
-MyBoard 的皮肤系统应采用“主题包 + token + 资源 + 装饰层 + 可选布局绑定”的设计。
+MyBoard 的主题系统应采用“FoundationTheme + 可选 SkinLayer + token + 资源 + 装饰层 + 可选布局绑定”的设计。
 
-首版不要动 Layout。当前 Layout 已经承担几何和动作职责，主题系统应先补齐视觉表达能力。大多数参考图，包括图标溢出到其它按键上的效果，都可以通过 decoration 层完成。
+第一期先交付类似 Gboard 的基础主题：预置色板、系统动态色、自定义主色、深浅色和基础按键外观。基础主题不改 Layout，并且必须稳定覆盖不同语言、输入方案、候选栏、工具栏和全屏面板。大多数参考图，包括图标溢出到其它按键上的效果，都属于后续 SkinLayer 的 decoration 能力。
 
-当主题确实需要改变键位几何时，不把这种能力塞进 ThemeDoc 的视觉字段，而是让主题包显式携带 LayoutDoc 或 LayoutPatch，并通过 `layoutBindings` 让用户选择启用。这样既能支持高级皮肤，也能保持输入法主流程稳定、可测试、可扩展。
+当高级皮肤确实需要改变键位几何时，不把这种能力塞进 ThemeDoc 的视觉字段，而是让主题包显式携带 LayoutDoc 或 LayoutPatch，并按 primary、symbol、emoji 等 surface 通过 `layoutBindings` 让用户选择启用。这样既能支持高级皮肤，也能保持输入法主流程稳定、可测试、可扩展。
