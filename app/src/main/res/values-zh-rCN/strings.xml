@@ -97,6 +97,25 @@
     <string name="settings_theme_light_desc">始终使用亮色主题</string>
     <string name="settings_theme_dark">暗色</string>
     <string name="settings_theme_dark_desc">始终使用暗色主题</string>
+    <string name="settings_theme_palette">颜色方案</string>
+    <string name="settings_theme_palette_gboard_blue">默认蓝</string>
+    <string name="settings_theme_palette_mint">薄荷绿</string>
+    <string name="settings_theme_palette_rose">玫瑰红</string>
+    <string name="settings_theme_palette_violet">紫罗兰</string>
+    <string name="settings_theme_palette_graphite">石墨灰</string>
+    <string name="settings_theme_palette_system_dynamic">系统颜色</string>
+    <string name="settings_theme_palette_system_dynamic_desc">可用时使用 Android 动态颜色</string>
+    <string name="settings_theme_palette_custom">自定义颜色</string>
+    <string name="settings_theme_palette_custom_desc">使用已保存的自定义种子色</string>
+    <string name="settings_theme_key_treatment">按键样式</string>
+    <string name="settings_theme_key_treatment_filled">填充</string>
+    <string name="settings_theme_key_treatment_outlined">描边</string>
+    <string name="settings_theme_key_treatment_borderless">无边框</string>
+    <string name="settings_theme_key_contrast">高对比度按键</string>
+    <string name="settings_theme_corner_style">圆角样式</string>
+    <string name="settings_theme_corner_compact">紧凑</string>
+    <string name="settings_theme_corner_rounded">圆润</string>
+    <string name="settings_theme_corner_pill">胶囊</string>
 
     <!-- Settings - AI -->
     <string name="settings_voice_input">语音输入</string>

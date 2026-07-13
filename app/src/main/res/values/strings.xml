@@ -97,6 +97,25 @@
     <string name="settings_theme_light_desc">Always use light theme</string>
     <string name="settings_theme_dark">Dark</string>
     <string name="settings_theme_dark_desc">Always use dark theme</string>
+    <string name="settings_theme_palette">Color palette</string>
+    <string name="settings_theme_palette_gboard_blue">Default blue</string>
+    <string name="settings_theme_palette_mint">Mint</string>
+    <string name="settings_theme_palette_rose">Rose</string>
+    <string name="settings_theme_palette_violet">Violet</string>
+    <string name="settings_theme_palette_graphite">Graphite</string>
+    <string name="settings_theme_palette_system_dynamic">System colors</string>
+    <string name="settings_theme_palette_system_dynamic_desc">Use Android dynamic colors when available</string>
+    <string name="settings_theme_palette_custom">Custom color</string>
+    <string name="settings_theme_palette_custom_desc">Use a saved custom seed color</string>
+    <string name="settings_theme_key_treatment">Key style</string>
+    <string name="settings_theme_key_treatment_filled">Filled</string>
+    <string name="settings_theme_key_treatment_outlined">Outlined</string>
+    <string name="settings_theme_key_treatment_borderless">Borderless</string>
+    <string name="settings_theme_key_contrast">High contrast keys</string>
+    <string name="settings_theme_corner_style">Corner style</string>
+    <string name="settings_theme_corner_compact">Compact</string>
+    <string name="settings_theme_corner_rounded">Rounded</string>
+    <string name="settings_theme_corner_pill">Pill</string>
 
     <!-- Settings - AI -->
     <string name="settings_voice_input">Voice Input</string>

@@ -31,6 +31,7 @@ import xyz.xiao6.myboard.R
 import xyz.xiao6.myboard.data.db.SettingsDatabase
 import xyz.xiao6.myboard.data.repository.SettingsRepository
 import xyz.xiao6.myboard.data.settings.KeyboardHeightPolicy
+import xyz.xiao6.myboard.theme.foundation.AppearanceMode
 
 /**
  * 设置主页面 — 所有设置项均从 SettingsRepository 单一来源读取。
@@ -48,6 +49,7 @@ fun SettingsScreen(
     )
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val appearanceSettings by viewModel.appearanceSettings.collectAsState()
     val configuration = LocalConfiguration.current
     val keyboardHeight = KeyboardHeightPolicy.resolve(
         storedHeight = uiState.settings[KeyboardHeightPolicy.KEY_HEIGHT],
@@ -145,10 +147,10 @@ fun SettingsScreen(
                 SettingsGroup {
                     SettingsNavItem(
                         title = stringResource(R.string.settings_theme),
-                        subtitle = when (uiState.settings["theme_mode"] ?: "auto") {
-                            "dark" -> stringResource(R.string.settings_theme_dark)
-                            "light" -> stringResource(R.string.settings_theme_light)
-                            else -> stringResource(R.string.settings_theme_auto)
+                        subtitle = when (appearanceSettings.foundation.appearanceMode) {
+                            AppearanceMode.DARK -> stringResource(R.string.settings_theme_dark)
+                            AppearanceMode.LIGHT -> stringResource(R.string.settings_theme_light)
+                            AppearanceMode.FOLLOW_SYSTEM -> stringResource(R.string.settings_theme_auto)
                         },
                         icon = Icons.Default.Palette,
                         onClick = { onNavigate("theme") }

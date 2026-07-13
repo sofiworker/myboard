@@ -3,7 +3,6 @@ package xyz.xiao6.myboard.ui.settings
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -38,8 +37,13 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import xyz.xiao6.myboard.R
 import xyz.xiao6.myboard.data.db.SettingsDatabase
 import xyz.xiao6.myboard.data.repository.SettingsRepository
-import xyz.xiao6.myboard.theme.BuiltInThemes
-import xyz.xiao6.myboard.theme.ThemeDoc
+import xyz.xiao6.myboard.theme.foundation.AppearanceMode
+import xyz.xiao6.myboard.theme.foundation.CornerStyle
+import xyz.xiao6.myboard.theme.foundation.FoundationPalette
+import xyz.xiao6.myboard.theme.foundation.FoundationPaletteId
+import xyz.xiao6.myboard.theme.foundation.KeyContrast
+import xyz.xiao6.myboard.theme.foundation.KeyTreatment
+import xyz.xiao6.myboard.theme.foundation.PaletteSource
 
 @Composable
 fun ThemeSettingsScreen(
@@ -52,10 +56,8 @@ fun ThemeSettingsScreen(
         )
     )
 ) {
-    val uiState by viewModel.uiState.collectAsState()
-    val themeMode = uiState.settings["theme_mode"] ?: "auto"
-    val currentThemeId = uiState.settings["current_theme"] ?: "default_light"
-    val themes = BuiltInThemes.all
+    val appearance by viewModel.appearanceSettings.collectAsState()
+    val foundation = appearance.foundation
 
     SettingsScaffold(
         title = stringResource(R.string.settings_theme),
@@ -70,44 +72,162 @@ fun ThemeSettingsScreen(
             item { SettingsSectionHeader(stringResource(R.string.settings_theme_mode)) }
             item {
                 SettingsGroup {
-                    ThemeModeOption(
+                    FoundationChoiceItem(
                         label = stringResource(R.string.settings_theme_auto),
                         description = stringResource(R.string.settings_theme_auto_desc),
-                        selected = themeMode == "auto",
-                        onClick = { viewModel.updateSetting("theme_mode", "auto") },
+                        selected = foundation.appearanceMode == AppearanceMode.FOLLOW_SYSTEM,
+                        onClick = {
+                            viewModel.updateFoundationTheme {
+                                it.copy(appearanceMode = AppearanceMode.FOLLOW_SYSTEM)
+                            }
+                        },
                         showDivider = true
                     )
-                    ThemeModeOption(
+                    FoundationChoiceItem(
                         label = stringResource(R.string.settings_theme_light),
                         description = stringResource(R.string.settings_theme_light_desc),
-                        selected = themeMode == "light",
-                        onClick = { viewModel.updateSetting("theme_mode", "light") },
+                        selected = foundation.appearanceMode == AppearanceMode.LIGHT,
+                        onClick = {
+                            viewModel.updateFoundationTheme {
+                                it.copy(appearanceMode = AppearanceMode.LIGHT)
+                            }
+                        },
                         showDivider = true
                     )
-                    ThemeModeOption(
+                    FoundationChoiceItem(
                         label = stringResource(R.string.settings_theme_dark),
                         description = stringResource(R.string.settings_theme_dark_desc),
-                        selected = themeMode == "dark",
-                        onClick = { viewModel.updateSetting("theme_mode", "dark") }
+                        selected = foundation.appearanceMode == AppearanceMode.DARK,
+                        onClick = {
+                            viewModel.updateFoundationTheme {
+                                it.copy(appearanceMode = AppearanceMode.DARK)
+                            }
+                        }
+                    )
+                }
+            }
+
+            item { SettingsSectionHeader(stringResource(R.string.settings_theme_palette)) }
+            item {
+                SettingsGroup {
+                    FoundationPalette.all.forEach { palette ->
+                        FoundationPaletteItem(
+                            label = paletteLabel(palette.id),
+                            seedColor = palette.seedColor,
+                            selected = foundation.paletteSource == PaletteSource.PRESET &&
+                                foundation.paletteId == palette.id,
+                            onClick = {
+                                viewModel.updateFoundationTheme {
+                                    it.copy(
+                                        paletteSource = PaletteSource.PRESET,
+                                        paletteId = palette.id
+                                    )
+                                }
+                            },
+                            showDivider = true
+                        )
+                    }
+                    FoundationPaletteItem(
+                        label = stringResource(R.string.settings_theme_palette_system_dynamic),
+                        description = stringResource(R.string.settings_theme_palette_system_dynamic_desc),
+                        seedColor = FoundationPalette.byId(FoundationPaletteId.GBOARD_BLUE).seedColor,
+                        selected = foundation.paletteSource == PaletteSource.SYSTEM_DYNAMIC,
+                        onClick = {
+                            viewModel.updateFoundationTheme {
+                                it.copy(paletteSource = PaletteSource.SYSTEM_DYNAMIC)
+                            }
+                        },
+                        showDivider = true
+                    )
+                    FoundationPaletteItem(
+                        label = stringResource(R.string.settings_theme_palette_custom),
+                        description = stringResource(R.string.settings_theme_palette_custom_desc),
+                        seedColor = foundation.customSeedColor
+                            ?: FoundationPalette.byId(FoundationPaletteId.GBOARD_BLUE).seedColor,
+                        selected = foundation.paletteSource == PaletteSource.CUSTOM_SEED,
+                        onClick = {
+                            viewModel.updateFoundationTheme {
+                                it.copy(
+                                    paletteSource = PaletteSource.CUSTOM_SEED,
+                                    customSeedColor = it.customSeedColor
+                                        ?: FoundationPalette.byId(FoundationPaletteId.GBOARD_BLUE).seedColor
+                                )
+                            }
+                        }
+                    )
+                }
+            }
+
+            item { SettingsSectionHeader(stringResource(R.string.settings_theme_key_treatment)) }
+            item {
+                SettingsGroup {
+                    FoundationChoiceItem(
+                        label = stringResource(R.string.settings_theme_key_treatment_filled),
+                        selected = foundation.keyTreatment == KeyTreatment.FILLED,
+                        onClick = {
+                            viewModel.updateFoundationTheme { it.copy(keyTreatment = KeyTreatment.FILLED) }
+                        },
+                        showDivider = true
+                    )
+                    FoundationChoiceItem(
+                        label = stringResource(R.string.settings_theme_key_treatment_outlined),
+                        selected = foundation.keyTreatment == KeyTreatment.OUTLINED,
+                        onClick = {
+                            viewModel.updateFoundationTheme { it.copy(keyTreatment = KeyTreatment.OUTLINED) }
+                        },
+                        showDivider = true
+                    )
+                    FoundationChoiceItem(
+                        label = stringResource(R.string.settings_theme_key_treatment_borderless),
+                        selected = foundation.keyTreatment == KeyTreatment.BORDERLESS,
+                        onClick = {
+                            viewModel.updateFoundationTheme { it.copy(keyTreatment = KeyTreatment.BORDERLESS) }
+                        }
+                    )
+                }
+            }
+
+            item { SettingsSectionHeader(stringResource(R.string.settings_theme_corner_style)) }
+            item {
+                SettingsGroup {
+                    FoundationChoiceItem(
+                        label = stringResource(R.string.settings_theme_corner_compact),
+                        selected = foundation.cornerStyle == CornerStyle.COMPACT,
+                        onClick = {
+                            viewModel.updateFoundationTheme { it.copy(cornerStyle = CornerStyle.COMPACT) }
+                        },
+                        showDivider = true
+                    )
+                    FoundationChoiceItem(
+                        label = stringResource(R.string.settings_theme_corner_rounded),
+                        selected = foundation.cornerStyle == CornerStyle.ROUNDED,
+                        onClick = {
+                            viewModel.updateFoundationTheme { it.copy(cornerStyle = CornerStyle.ROUNDED) }
+                        },
+                        showDivider = true
+                    )
+                    FoundationChoiceItem(
+                        label = stringResource(R.string.settings_theme_corner_pill),
+                        selected = foundation.cornerStyle == CornerStyle.PILL,
+                        onClick = {
+                            viewModel.updateFoundationTheme { it.copy(cornerStyle = CornerStyle.PILL) }
+                        }
                     )
                 }
             }
 
             item {
                 Spacer(modifier = Modifier.height(4.dp))
-                SettingsSectionHeader(stringResource(R.string.settings_keyboard_theme))
-            }
-            item {
                 SettingsGroup {
-                    themes.forEachIndexed { index, theme ->
-                        ThemeItem(
-                            theme = theme,
-                            isSelected = theme.id == currentThemeId ||
-                                (currentThemeId == "default" && theme.id == "default_light"),
-                            onClick = { viewModel.updateSetting("current_theme", theme.id) },
-                            showDivider = index < themes.lastIndex
-                        )
-                    }
+                    SettingsSwitchItem(
+                        title = stringResource(R.string.settings_theme_key_contrast),
+                        checked = foundation.keyContrast == KeyContrast.HIGH,
+                        onCheckedChange = { checked ->
+                            viewModel.updateFoundationTheme {
+                                it.copy(keyContrast = if (checked) KeyContrast.HIGH else KeyContrast.NORMAL)
+                            }
+                        }
+                    )
                 }
             }
 
@@ -117,44 +237,16 @@ fun ThemeSettingsScreen(
 }
 
 @Composable
-private fun ThemeModeOption(
+private fun FoundationPaletteItem(
     label: String,
-    description: String,
+    seedColor: String,
     selected: Boolean,
     onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    description: String? = null,
     showDivider: Boolean = false
 ) {
-    Column {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable(onClick = onClick)
-                .padding(horizontal = 8.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            RadioButton(selected = selected, onClick = onClick)
-            Spacer(modifier = Modifier.width(4.dp))
-            Column {
-                Text(label, style = MaterialTheme.typography.bodyLarge)
-                Text(
-                    description,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-        if (showDivider) SettingsGroupDivider()
-    }
-}
-
-@Composable
-private fun ThemeItem(
-    theme: ThemeDoc,
-    isSelected: Boolean,
-    onClick: () -> Unit,
-    showDivider: Boolean = false
-) {
-    Column {
+    Column(modifier = modifier) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -162,25 +254,24 @@ private fun ThemeItem(
                 .padding(horizontal = 14.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            ThemeSwatch(theme = theme)
+            ThemeSeedSwatch(seedColor = seedColor)
             Spacer(modifier = Modifier.width(14.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = theme.name,
+                    text = label,
                     style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
+                    fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal
                 )
-                Text(
-                    text = if (theme.dark) {
-                        stringResource(R.string.settings_theme_dark)
-                    } else {
-                        stringResource(R.string.settings_theme_light)
-                    },
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                if (!description.isNullOrBlank()) {
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = description,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
-            if (isSelected) {
+            if (selected) {
                 Icon(
                     imageVector = Icons.Default.Check,
                     contentDescription = null,
@@ -193,44 +284,79 @@ private fun ThemeItem(
 }
 
 @Composable
-private fun ThemeSwatch(theme: ThemeDoc) {
-    val bg = parseHex(theme.colors.background)
-    val key = parseHex(theme.colors.keyDefault)
-    val accent = parseHex(theme.colors.candidateHighlight)
+private fun FoundationChoiceItem(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    description: String? = null,
+    showDivider: Boolean = false
+) {
+    Column(modifier = modifier) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onClick)
+                .padding(horizontal = 8.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            RadioButton(selected = selected, onClick = onClick)
+            Spacer(modifier = Modifier.width(4.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(label, style = MaterialTheme.typography.bodyLarge)
+                if (!description.isNullOrBlank()) {
+                    Text(
+                        description,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+        if (showDivider) SettingsGroupDivider()
+    }
+}
+
+@Composable
+private fun ThemeSeedSwatch(seedColor: String) {
     Box(
         modifier = Modifier
             .size(48.dp)
             .clip(RoundedCornerShape(12.dp))
-            .background(bg)
+            .background(MaterialTheme.colorScheme.surfaceVariant)
             .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f), RoundedCornerShape(12.dp))
             .padding(8.dp)
     ) {
-        Row(
-            modifier = Modifier.fillMaxSize(),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .height(20.dp)
-                    .clip(RoundedCornerShape(4.dp))
-                    .background(key)
-            )
-            Box(
-                modifier = Modifier
-                    .size(12.dp)
-                    .clip(CircleShape)
-                    .background(accent)
-            )
-        }
+        Box(
+            modifier = Modifier
+                .align(Alignment.Center)
+                .size(26.dp)
+                .clip(CircleShape)
+                .background(parseHex(seedColor))
+        )
+    }
+}
+
+@Composable
+private fun paletteLabel(id: FoundationPaletteId): String {
+    return when (id) {
+        FoundationPaletteId.GBOARD_BLUE -> stringResource(R.string.settings_theme_palette_gboard_blue)
+        FoundationPaletteId.MINT -> stringResource(R.string.settings_theme_palette_mint)
+        FoundationPaletteId.ROSE -> stringResource(R.string.settings_theme_palette_rose)
+        FoundationPaletteId.VIOLET -> stringResource(R.string.settings_theme_palette_violet)
+        FoundationPaletteId.GRAPHITE -> stringResource(R.string.settings_theme_palette_graphite)
     }
 }
 
 private fun parseHex(hex: String): Color {
-    return try {
-        Color(android.graphics.Color.parseColor(hex))
-    } catch (_: Exception) {
-        Color.Gray
+    val raw = hex.trim().removePrefix("#")
+    val argb = when (raw.length) {
+        6 -> "FF$raw"
+        8 -> raw
+        else -> return Color.Gray
     }
+    if (!argb.all { it.isDigit() || it.lowercaseChar() in 'a'..'f' }) {
+        return Color.Gray
+    }
+    return Color(argb.toLong(16).toInt())
 }

@@ -9,6 +9,8 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import xyz.xiao6.myboard.data.repository.SettingsRepository
+import xyz.xiao6.myboard.theme.foundation.AppearanceSettings
+import xyz.xiao6.myboard.theme.foundation.FoundationThemeSelection
 
 /**
  * 全局设置 ViewModel。
@@ -27,8 +29,19 @@ class SettingsViewModel(
         .map { UiState(settings = it, isLoading = false) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), UiState())
 
+    val appearanceSettings: StateFlow<AppearanceSettings> = repo.appearanceSettings
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AppearanceSettings.default())
+
     fun updateSetting(key: String, value: String) {
         viewModelScope.launch { repo.updateSetting(key, value) }
+    }
+
+    fun updateAppearanceSettings(settings: AppearanceSettings) {
+        viewModelScope.launch { repo.updateAppearanceSettings(settings) }
+    }
+
+    fun updateFoundationTheme(transform: (FoundationThemeSelection) -> FoundationThemeSelection) {
+        viewModelScope.launch { repo.updateFoundationTheme(transform) }
     }
 
     fun getString(key: String, default: String = ""): String {
