@@ -8,5 +8,6 @@
 - 必须要保证不同版本之间的权限处理，同时要求最小化权限申请
 - 无论任何地方的设置都需要保证 SettingsActivity.kt 中存在，并且需要保证设置的单一来源，不能存在多份变量导致状态不一致
 - 尽量保证数据与视图分离
+- 尽量减少字符串硬编码：业务代码、测试和文档示例中不应散落协议字符串、设置 key、route、styleRef、token id、layout id、action id 等；优先使用 enum、sealed class、value class、object const val 或集中协议定义文件统一管理。只有 JSON/资源文件的 wire value、i18n resource name、协议定义处允许出现必要字符串
 - 每次修改后都需要保证编译通过能形成apk
 - 需要保证i18n实现
