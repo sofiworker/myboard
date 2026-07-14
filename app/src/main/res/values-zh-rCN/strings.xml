@@ -118,6 +118,12 @@
     <string name="settings_theme_corner_compact">紧凑</string>
     <string name="settings_theme_corner_rounded">圆润</string>
     <string name="settings_theme_corner_pill">胶囊</string>
+    <string name="settings_theme_skin">高级皮肤</string>
+    <string name="settings_theme_skin_none">无</string>
+    <string name="settings_theme_skin_none_desc">仅使用基础色板</string>
+    <string name="settings_theme_skin_pure_flat">极简赤点</string>
+    <string name="settings_theme_skin_pure_flat_desc">纯白扁平按键，红色回车强调</string>
+    <string name="settings_theme_skin_locked_hint">当前皮肤锁定配色。关闭皮肤后，基础色板才会重新生效。</string>
 
     <!-- Settings - AI -->
     <string name="settings_voice_input">语音输入</string>

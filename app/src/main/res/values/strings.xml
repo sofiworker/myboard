@@ -118,6 +118,12 @@
     <string name="settings_theme_corner_compact">Compact</string>
     <string name="settings_theme_corner_rounded">Rounded</string>
     <string name="settings_theme_corner_pill">Pill</string>
+    <string name="settings_theme_skin">Advanced skin</string>
+    <string name="settings_theme_skin_none">None</string>
+    <string name="settings_theme_skin_none_desc">Use foundation palette only</string>
+    <string name="settings_theme_skin_pure_flat">Pure Flat</string>
+    <string name="settings_theme_skin_pure_flat_desc">White flat keys with red enter accent</string>
+    <string name="settings_theme_skin_locked_hint">This skin locks its colors. Foundation palette applies after you turn the skin off.</string>
 
     <!-- Settings - AI -->
     <string name="settings_voice_input">Voice Input</string>

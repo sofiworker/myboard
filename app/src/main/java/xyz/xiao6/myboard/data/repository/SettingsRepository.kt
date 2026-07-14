@@ -61,6 +61,13 @@ class SettingsRepository(private val dao: SettingsDao) {
         updateFoundationTheme { it.copy(appearanceMode = mode) }
     }
 
+    suspend fun updateSkinThemeId(skinThemeId: String?) {
+        APPEARANCE_SETTINGS_MUTEX.withLock {
+            val current = getAppearanceSettings()
+            writeAppearanceSettings(current.copy(skinThemeId = skinThemeId))
+        }
+    }
+
     private fun decodeAppearanceSettings(raw: String?): AppearanceSettings {
         return raw?.takeIf { it.isNotBlank() }?.let { value ->
             runCatching { SETTINGS_JSON.decodeFromString<AppearanceSettings>(value) }.getOrNull()

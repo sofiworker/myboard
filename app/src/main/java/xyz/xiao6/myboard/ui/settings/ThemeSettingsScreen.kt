@@ -49,6 +49,9 @@ import xyz.xiao6.myboard.theme.foundation.KeyContrast
 import xyz.xiao6.myboard.theme.foundation.KeyTreatment
 import xyz.xiao6.myboard.theme.foundation.PaletteSource
 import xyz.xiao6.myboard.theme.foundation.ThemeSeedInput
+import xyz.xiao6.myboard.theme.skin.BuiltInSkinCatalog
+import xyz.xiao6.myboard.theme.skin.SkinColorPolicy
+import xyz.xiao6.myboard.theme.skin.SkinThemeId
 
 @Composable
 fun ThemeSettingsScreen(
@@ -112,6 +115,42 @@ fun ThemeSettingsScreen(
                                 it.copy(appearanceMode = AppearanceMode.DARK)
                             }
                         }
+                    )
+                }
+            }
+
+            item { SettingsSectionHeader(stringResource(R.string.settings_theme_skin)) }
+            item {
+                SettingsGroup {
+                    FoundationChoiceItem(
+                        label = stringResource(R.string.settings_theme_skin_none),
+                        description = stringResource(R.string.settings_theme_skin_none_desc),
+                        selected = appearance.skinThemeId == null,
+                        onClick = { viewModel.updateSkinThemeId(null) },
+                        showDivider = true
+                    )
+                    BuiltInSkinCatalog.all.forEachIndexed { index, meta ->
+                        FoundationChoiceItem(
+                            label = skinLabel(meta.id),
+                            description = skinDescription(meta.id),
+                            selected = appearance.skinThemeId == meta.id.id,
+                            onClick = { viewModel.updateSkinThemeId(meta.id.id) },
+                            showDivider = index != BuiltInSkinCatalog.all.lastIndex
+                        )
+                    }
+                }
+            }
+
+            val lockedSkinActive = BuiltInSkinCatalog.metaOf(appearance.skinThemeId)
+                ?.colorPolicy == SkinColorPolicy.LOCKED
+            if (lockedSkinActive) {
+                item {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = stringResource(R.string.settings_theme_skin_locked_hint),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp)
                     )
                 }
             }
@@ -399,6 +438,20 @@ private fun paletteLabel(id: FoundationPaletteId): String {
         FoundationPaletteId.ROSE -> stringResource(R.string.settings_theme_palette_rose)
         FoundationPaletteId.VIOLET -> stringResource(R.string.settings_theme_palette_violet)
         FoundationPaletteId.GRAPHITE -> stringResource(R.string.settings_theme_palette_graphite)
+    }
+}
+
+@Composable
+private fun skinLabel(id: SkinThemeId): String {
+    return when (id) {
+        SkinThemeId.PURE_FLAT -> stringResource(R.string.settings_theme_skin_pure_flat)
+    }
+}
+
+@Composable
+private fun skinDescription(id: SkinThemeId): String {
+    return when (id) {
+        SkinThemeId.PURE_FLAT -> stringResource(R.string.settings_theme_skin_pure_flat_desc)
     }
 }
 

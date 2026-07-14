@@ -44,6 +44,10 @@ class SettingsViewModel(
         viewModelScope.launch { repo.updateFoundationTheme(transform) }
     }
 
+    fun updateSkinThemeId(skinThemeId: String?) {
+        viewModelScope.launch { repo.updateSkinThemeId(skinThemeId) }
+    }
+
     fun getString(key: String, default: String = ""): String {
         return uiState.value.settings[key] ?: default
     }

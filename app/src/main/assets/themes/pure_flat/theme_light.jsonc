@@ -1,0 +1,88 @@
+{
+  // pure_flat light variant — wire sample aligned with current ThemeDoc schema
+  "schemaVersion": "1.0.0",
+  "id": "pure_flat",
+  "name": "Pure Flat",
+  "dark": false,
+  "colors": {
+    "background": "#FFFFFF",
+    "surface": "#FFFFFF",
+    "keyDefault": "#F0F0F0",
+    "keyPressed": "#E2E2E2",
+    "keyText": "#1A1A1A",
+    "keyHint": "#8A8A8A",
+    "keyFunction": "#F0F0F0",
+    "keyFunctionPressed": "#E2E2E2",
+    "keyFunctionText": "#1A1A1A",
+    "keyAction": "#FF3B30",
+    "keyActionPressed": "#E0352B",
+    "keyActionText": "#FFFFFF",
+    "candidateBackground": "#FFFFFF",
+    "candidateText": "#1A1A1A",
+    "candidateHighlight": "#FF3B30"
+  },
+  "keyStyles": {
+    "key_default": {
+      "background": "#F0F0F0",
+      "pressedBackground": "#E2E2E2",
+      "textColor": "#1A1A1A",
+      "pressedTextColor": "#1A1A1A",
+      "fontSize": 18.0,
+      "cornerRadius": 16.0,
+      "iconTint": "#1A1A1A",
+      "decorated": true
+    },
+    "key_function": {
+      "background": "#F0F0F0",
+      "pressedBackground": "#E2E2E2",
+      "textColor": "#1A1A1A",
+      "pressedTextColor": "#1A1A1A",
+      "fontSize": 14.0,
+      "cornerRadius": 16.0,
+      "iconTint": "#1A1A1A",
+      "decorated": true
+    },
+    "key_action": {
+      "background": "#FF3B30",
+      "pressedBackground": "#E0352B",
+      "textColor": "#FFFFFF",
+      "pressedTextColor": "#FFFFFF",
+      "fontSize": 16.0,
+      "cornerRadius": 16.0,
+      "iconTint": "#FFFFFF",
+      "decorated": true
+    },
+    "key_space": {
+      "background": "#F0F0F0",
+      "pressedBackground": "#E2E2E2",
+      "textColor": "#1A1A1A",
+      "pressedTextColor": "#1A1A1A",
+      "fontSize": 14.0,
+      "cornerRadius": 18.0,
+      "iconTint": "#1A1A1A",
+      "decorated": true
+    },
+    "key_candidate": {
+      "background": "#FFFFFF",
+      "pressedBackground": "#E2E2E2",
+      "textColor": "#1A1A1A",
+      "pressedTextColor": "#FF3B30",
+      "fontSize": 16.0,
+      "cornerRadius": 8.0,
+      "iconTint": "#1A1A1A",
+      "decorated": true
+    }
+  },
+  "feedback": {
+    "haptic": {
+      "key_tap": { "durationMs": 10, "amplitude": 48, "fallbackVibration": true },
+      "key_long_press": { "durationMs": 28, "amplitude": 96, "fallbackVibration": true },
+      "key_action": { "durationMs": 14, "amplitude": 80, "fallbackVibration": true }
+    },
+    "sound": {
+      "key_tap": { "soundResName": "key_tap", "volume": 0.25 },
+      "key_action": { "soundResName": "key_action", "volume": 0.4 },
+      "key_space": { "soundResName": "key_space", "volume": 0.18 }
+    }
+  }
+}

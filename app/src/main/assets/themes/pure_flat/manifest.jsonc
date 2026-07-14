@@ -1,0 +1,27 @@
+{
+  // MyBoard 高级皮肤：极简赤点（Pure Flat）
+  // 设计说明见 docs/superpowers/specs/2026-07-14-pure-flat-minimal-skin-design.md
+  // 运行时由 BuiltInSkinCatalog / PureFlatSkin 生成 ThemeDoc；本包为协议样例与后续导入器对齐。
+  "schemaVersion": "1.0.0",
+  "packageId": "pure_flat",
+  "displayName": {
+    "zh-CN": "极简赤点",
+    "en-US": "Pure Flat"
+  },
+  "author": "MyBoard",
+  "entry": "theme.jsonc",
+  "previews": {
+    "light": "previews/preview_light.webp",
+    "dark": "previews/preview_dark.webp"
+  },
+  "compatibility": {
+    "minAppThemeSchema": "1.0.0",
+    "requiresLayoutSchema": "1.0.0"
+  },
+  "capabilities": {
+    "usesImages": false,
+    "usesDecorations": false,
+    "usesLayoutBindings": false
+  },
+  "layoutBindings": []
+}

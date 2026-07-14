@@ -5,6 +5,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Test
 import xyz.xiao6.myboard.theme.ThemeResolverImpl
+import xyz.xiao6.myboard.theme.skin.SkinThemeId
 
 class FoundationThemeMainFlowTest {
     @Test
@@ -51,5 +52,26 @@ class FoundationThemeMainFlowTest {
         val resolver = ThemeResolverImpl(runtime.doc)
 
         assertFalse(resolver.resolveKeyStyle(KeyStyleRole.ACTION.ref).decorated)
+    }
+
+    @Test
+    fun `resolver consumes pure flat locked skin`() {
+        val runtime = ThemeRuntimeProvider().resolve(
+            AppearanceSettings(
+                foundation = FoundationThemeSelection(appearanceMode = AppearanceMode.LIGHT),
+                skinThemeId = SkinThemeId.PURE_FLAT.id
+            ),
+            systemDark = false
+        )
+        val resolver = ThemeResolverImpl(runtime.doc)
+
+        val chrome = resolver.resolveChromeColors()
+        val action = resolver.resolveKeyStyle(KeyStyleRole.ACTION.ref)
+        val defaultKey = resolver.resolveKeyStyle(KeyStyleRole.DEFAULT.ref)
+
+        assertEquals(Color(0xFFFF3B30.toInt()), chrome.candidateHighlight)
+        assertEquals(Color.White, action.textColor)
+        assertEquals(Color(0xFFFF3B30.toInt()), action.background)
+        assertEquals(16f, defaultKey.cornerRadius)
     }
 }

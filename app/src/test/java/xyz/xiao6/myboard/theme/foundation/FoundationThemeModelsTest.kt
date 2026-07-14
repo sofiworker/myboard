@@ -5,6 +5,7 @@ import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
+import xyz.xiao6.myboard.theme.skin.SkinThemeId
 
 class FoundationThemeModelsTest {
     private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
@@ -45,5 +46,12 @@ class FoundationThemeModelsTest {
         assertEquals(KeyStyleRole.DEFAULT, KeyStyleRole.fromRef(KeyStyleRole.DEFAULT.ref))
         assertEquals(KeyStyleRole.ACTION, KeyStyleRole.fromRef(KeyStyleRole.ACTION.ref))
         assertEquals(FeedbackTokenId.KEY_TAP.ref, FeedbackTokenId.KEY_TAP.soundResName)
+    }
+
+    @Test
+    fun `skin theme id is persisted in appearance settings`() {
+        val settings = AppearanceSettings(skinThemeId = SkinThemeId.PURE_FLAT.id)
+        val decoded = json.decodeFromString<AppearanceSettings>(json.encodeToString(settings))
+        assertEquals(SkinThemeId.PURE_FLAT.id, decoded.skinThemeId)
     }
 }
