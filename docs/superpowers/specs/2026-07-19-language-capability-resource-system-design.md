@@ -390,6 +390,47 @@ transliteration
 
 `InputEngine` 是无状态工厂，`InputSession` 保存运行时 buffer、候选和 FSM 状态。Language Pack 只能引用 `engineId`，不能提供新的可执行实现。
 
+## 3.11 现有 Manifest 契约迁移
+
+本设计是对当前 Manifest 模型的破坏性替换，不引入新旧两套并存的能力来源。实现阶段必须直接重建现有契约和所有调用点；不保留兼容适配层、双写模型或从旧模型读取的 fallback。
+
+| 当前模型 | 目标模型 | 迁移规则 |
+| --- | --- | --- |
+| `LanguageManifest` | `LanguagePackManifest` | 重命名并改为包级 Manifest，增加 `PackageIdentity`、依赖、`scripts` 和 `capabilities` |
+| `LocaleCapability` | 删除 | Locale 元数据进入 `LanguagePackManifest`，能力索引由 `CapabilityRegistry` 管理 |
+| `ScriptCapability` | `ScriptManifest` | 保留 Script 默认 Schema、descriptor、方向和镜像元数据 |
+| `SchemaCapability` | `LanguageCapability` | 从嵌套树移到扁平 capability 列表，通过 `CapabilityId` 关联 Locale/Script/Schema |
+| `engineId`/`encoderId` | `EngineBinding` | 合并为引擎绑定对象，资源配置使用 `ResourceRef` |
+| `dictionary`/`dictionaryOptional`/`conversionDictionary` | `DictionaryBinding` | 使用带 role、required 和缺失策略的字典绑定列表 |
+| `mapping`/`fsm` | `LanguageCapability.mapping`/`fsm` | 保留语义，改为带包身份的 `ResourceRef` |
+| `outputScript`/`subtype` | `LanguageCapability.outputScript`/`subtype` | 无损迁移 |
+| `LocaleDefaults.layoutId: String` | `LocaleDefaults.layout: ResourceRef` | 默认布局必须经过 ResourceResolver 解析为 `LayoutKey` |
+
+目标运行时只允许以下唯一模型：
+
+```text
+LanguagePackManifest
+  -> ScriptManifest[]
+  -> LanguageCapability[]
+  -> CapabilityRegistry
+```
+
+`OrthogonalRegistry`、`LanguagePackImporter`、`EngineResourceResolver`、`KeyboardContextManager` 和 `InputPipeline` 都必须直接消费目标模型。任何新代码引用旧的 `LocaleCapability`、`ScriptCapability` 或 `SchemaCapability` 都视为迁移未完成。
+
+旧模型中的 `scripts: Map<Script, ScriptManifest>` 只允许作为一次性源码迁移参考；外部 Manifest 使用 `scripts: List<ScriptManifest>`，解析后建立索引，并执行重复 Script、descriptor 不一致、缺失默认 capability 和重复 CapabilityId 校验。
+
+目标默认值模型为：
+
+```kotlin
+data class LocaleDefaults(
+    val script: Script,
+    val schema: Schema,
+    val layout: ResourceRef
+)
+```
+
+默认布局不能继续使用裸 `layoutId`；Locale 默认 capability 解析后必须通过 `ResourceResolver` 得到带包版本的 `LayoutKey` 和 `ResourceHandle`。
+
 ## 4. 包结构
 
 ### 4.1 Language Pack
@@ -667,7 +708,7 @@ assets/layouts/builtin/shuangpin_ziran.jsonc
 assets/layouts/builtin/t9_chinese.jsonc
 ```
 
-`BuiltInManifests` 可以在迁移期作为内置数据适配器保留，但注册流程必须与未来外部 Language Pack 使用同一套校验和能力注册接口。
+迁移期可以暂时保留 `BuiltInManifests` 作为一次性源码/测试 fixture：启动、注册、Resolver、ContextManager 和 Pipeline 不得引用它。fixture 必须先转换成目标 `LanguagePackManifest`，转换完成后立即丢弃；运行时唯一能力来源仍是内置 Language Pack Registry。完成迁移后删除该 fixture。
 
 中文能力示例：
 
@@ -771,6 +812,8 @@ builtin.zh-cn / zh-CN / HANI / SHUANGPIN_ZIRAN
 - 现有 `dictionaryOptional`、`conversionDictionary`、`outputScript` 和 subtype 元数据完成无损迁移。
 - 未知但格式合法的 Script 可被能力目录保存和查询；缺少能力时不会被状态层误认为非法。
 - `ARAB` 等 RTL Script 的 descriptor 会驱动键盘镜像和候选区方向，且不污染 `OrthogonalState`。
+- 中英日的 Locale 默认布局从旧裸 `layoutId` 无损转换为 `ResourceRef`，并解析为正确的包版本 `LayoutKey`。
+- 运行时注册流程不引用 `BuiltInManifests` fixture。
 
 ### 10.6 设置同步
 
@@ -782,17 +825,18 @@ builtin.zh-cn / zh-CN / HANI / SHUANGPIN_ZIRAN
 
 1. 将 `Script` 从 enum 改为开放标准值类型，统一 `KANA`/`HANG` 标识并增加 `ScriptCatalog`。
 2. 定义 `ScriptManifest`、方向/镜像策略和 `ResolvedCapability` presentation 投影。
-3. 定义 `ResourceRef`、Package Identity、Manifest 和 Capability 模型。
-4. 将外部 Manifest 的 scripts 改为数组，扩展 Script 解析、布局动作和校验逻辑。
-5. 扩展 `OrthogonalRegistry`，支持 `state -> capabilities` 和 provider 选择。
-6. 为 `DictionaryRegistry`、`LayoutRegistry` 和资源解析器增加包身份。
-7. 将内置中英日数据适配为内置 Language Pack。
-8. 调整 IME 初始化顺序，先注册能力再创建 Context Manager。
-9. 为 `InputPipeline` 注入 Capability Registry 和 Resource Resolver。
-10. 实现 EngineContext 和 InputSession 创建、关闭、串行处理。
-11. 增加 Pipeline、Manifest、开放 Script、RTL presentation、资源依赖和回退测试。
-12. 在完整输入链路稳定后，再实现外部 Language Pack 导入。
-13. 最后评估独立 Dictionary Pack、Layout Pack 和 Engine Plugin。
+3. 用目标 `LanguagePackManifest`、`ScriptManifest`、`LanguageCapability`、`EngineBinding` 和 `DictionaryBinding` 替换现有嵌套 Manifest 契约，删除旧模型引用。
+4. 定义 `ResourceRef`、Package Identity、Manifest 和 Capability 模型。
+5. 将外部 Manifest 的 scripts 改为数组，扩展 Script 解析、布局动作和校验逻辑。
+6. 扩展 `OrthogonalRegistry`，支持 `state -> capabilities` 和 provider 选择。
+7. 为 `DictionaryRegistry`、`LayoutRegistry` 和资源解析器增加包身份。
+8. 将内置中英日数据适配为内置 Language Pack。
+9. 调整 IME 初始化顺序，先注册能力再创建 Context Manager。
+10. 为 `InputPipeline` 注入 Capability Registry 和 Resource Resolver。
+11. 实现 EngineContext 和 InputSession 创建、关闭、串行处理。
+12. 增加 Pipeline、Manifest、开放 Script、RTL presentation、资源依赖和回退测试。
+13. 在完整输入链路稳定后，再实现外部 Language Pack 导入。
+14. 最后评估独立 Dictionary Pack、Layout Pack 和 Engine Plugin。
 
 ## 12. 设计结论
 
