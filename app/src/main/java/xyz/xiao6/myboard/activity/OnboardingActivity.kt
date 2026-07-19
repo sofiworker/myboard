@@ -19,6 +19,7 @@ import kotlinx.coroutines.launch
 import xyz.xiao6.myboard.data.db.SettingsDatabase
 import xyz.xiao6.myboard.data.repository.SettingsRepository
 import xyz.xiao6.myboard.ui.onboarding.*
+import xyz.xiao6.myboard.ui.theme.MyBoardTheme
 
 /**
  * 引导页。4 页流程：
@@ -28,7 +29,7 @@ class OnboardingActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            MaterialTheme {
+            MyBoardTheme {
                 OnboardingContent()
             }
         }

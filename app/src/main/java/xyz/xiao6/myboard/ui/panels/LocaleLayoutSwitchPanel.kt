@@ -20,7 +20,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import xyz.xiao6.myboard.contract.manifest.LocaleCapability
+import xyz.xiao6.myboard.contract.manifest.LanguagePackManifest
 import xyz.xiao6.myboard.contract.state.LocaleTag
 import xyz.xiao6.myboard.contract.state.Schema
 
@@ -42,7 +42,7 @@ import xyz.xiao6.myboard.contract.state.Schema
  */
 @Composable
 fun LocaleLayoutSwitchPanel(
-    locales: List<LocaleCapability>,
+    locales: List<LanguagePackManifest>,
     currentLocale: LocaleTag,
     currentSchema: Schema,
     schemasForLocale: (LocaleTag) -> List<Schema>,

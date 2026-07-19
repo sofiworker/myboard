@@ -49,13 +49,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import xyz.xiao6.myboard.R
-import xyz.xiao6.myboard.contract.manifest.LanguageManifest
+import xyz.xiao6.myboard.contract.manifest.LanguagePackManifest
 import xyz.xiao6.myboard.contract.state.BuiltInSchemas
 import xyz.xiao6.myboard.contract.state.LocaleTag
 import xyz.xiao6.myboard.contract.state.Schema
 import xyz.xiao6.myboard.data.db.SettingsDatabase
 import xyz.xiao6.myboard.data.repository.SettingsRepository
-import xyz.xiao6.myboard.state.BuiltInManifests
+import xyz.xiao6.myboard.pack.BuiltInLanguagePacks
 import java.util.Locale
 
 /**
@@ -74,7 +74,7 @@ fun LanguageSettingsScreen(
     )
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val allManifests = remember { BuiltInManifests.all }
+    val allManifests = remember { BuiltInLanguagePacks.all }
     val uiLocaleTag = rememberUiLocaleTag()
 
     when {
@@ -130,7 +130,7 @@ private fun rememberUiLocaleTag(): String {
 }
 
 private fun resolveDisplayName(
-    manifest: LanguageManifest?,
+    manifest: LanguagePackManifest?,
     uiLocaleTag: String,
     fallback: String
 ): String {
@@ -163,7 +163,7 @@ private fun LanguageListContent(
     localeConfigs: Map<LocaleTag, List<Schema>>,
     currentLocale: LocaleTag,
     isEditing: Boolean,
-    allManifests: List<LanguageManifest>,
+    allManifests: List<LanguagePackManifest>,
     uiLocaleTag: String,
     onToggleEditMode: () -> Unit,
     onRemoveLocale: (LocaleTag) -> Unit,
@@ -314,7 +314,7 @@ private fun LanguageListContent(
 @Composable
 private fun AddLanguageContent(
     existingLocales: Set<LocaleTag>,
-    allManifests: List<LanguageManifest>,
+    allManifests: List<LanguagePackManifest>,
     uiLocaleTag: String,
     onSelectLocale: (LocaleTag, Schema) -> Unit,
     onBack: () -> Unit
@@ -396,7 +396,7 @@ private fun AddLanguageContent(
 private fun SchemaSelectionContent(
     locale: LocaleTag,
     selectedSchemas: List<Schema>,
-    allManifests: List<LanguageManifest>,
+    allManifests: List<LanguagePackManifest>,
     uiLocaleTag: String,
     onToggleSchema: (Schema) -> Unit,
     onDone: () -> Unit,
@@ -405,7 +405,7 @@ private fun SchemaSelectionContent(
     val manifest = allManifests.find { it.locale == locale }
     val displayName = resolveDisplayName(manifest, uiLocaleTag, locale.value)
     val availableSchemas = remember(manifest) {
-        manifest?.scripts?.values?.flatMap { it.schemas.keys }?.distinct() ?: emptyList()
+        manifest?.capabilities?.map { it.id.schema }?.distinct() ?: emptyList()
     }
 
     Scaffold(

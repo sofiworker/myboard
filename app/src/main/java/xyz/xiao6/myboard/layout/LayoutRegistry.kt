@@ -17,8 +17,13 @@ import xyz.xiao6.myboard.contract.state.*
  */
 interface LayoutRegistry {
     fun register(doc: LayoutDoc, source: LayoutSource): RegisterResult
+    fun register(key: LayoutKey, doc: LayoutDoc, source: LayoutSource): RegisterResult
     fun unregister(layoutId: String)
+    fun unregister(key: LayoutKey)
     fun get(layoutId: String): LayoutDoc?
+    fun get(key: LayoutKey): LayoutDoc?
+    fun activeVersion(packageId: String, layoutId: String): SemVer?
+    fun resolve(packageId: String, layoutId: String, packageVersion: SemVer): LayoutKey
     fun validate(doc: LayoutDoc): List<LayoutIssue>
     fun findBuiltIn(id: String): LayoutDoc?
 }

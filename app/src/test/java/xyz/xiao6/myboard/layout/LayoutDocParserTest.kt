@@ -216,6 +216,63 @@ class LayoutDocParserTest {
     }
 
     @Test
+    fun `dispatches lowercase unknown script identifiers as normalized script actions`() {
+        val key = KeyDef(
+            id = "switch_script",
+            content = ContentSpec(label = "Script"),
+            actions = ActionMap(
+                gestures = mapOf(
+                    GestureType.TAP to ActionDef(
+                        actionType = LayoutActionType.SWITCH_SCRIPT,
+                        payload = mapOf("script" to JsonPrimitive("qaaa"))
+                    )
+                )
+            )
+        )
+
+        val action = ActionDispatcher().dispatch(key, GestureType.TAP, keyboardContext())
+
+        assertEquals(InputAction.SwitchScript(Script("QAAA")), action)
+    }
+
+    @Test
+    fun `dispatches invalid script payloads as noop`() {
+        listOf("ABC", "AB1D", "ÁBCD").forEach { invalidScript ->
+            val key = KeyDef(
+                id = "switch_script_$invalidScript",
+                actions = ActionMap(
+                    gestures = mapOf(
+                        GestureType.TAP to ActionDef(
+                            actionType = LayoutActionType.SWITCH_SCRIPT,
+                            payload = mapOf("script" to JsonPrimitive(invalidScript))
+                        )
+                    )
+                )
+            )
+
+            assertEquals(
+                invalidScript,
+                InputAction.Noop,
+                ActionDispatcher().dispatch(key, GestureType.TAP, keyboardContext())
+            )
+        }
+
+        val missingPayloadKey = KeyDef(
+            id = "switch_script_missing_payload",
+            actions = ActionMap(
+                gestures = mapOf(
+                    GestureType.TAP to ActionDef(actionType = LayoutActionType.SWITCH_SCRIPT)
+                )
+            )
+        )
+
+        assertEquals(
+            InputAction.Noop,
+            ActionDispatcher().dispatch(missingPayloadKey, GestureType.TAP, keyboardContext())
+        )
+    }
+
+    @Test
     fun `all bundled layout jsonc files parse and register with standard enum names`() {
         layoutAssets().forEach { file ->
             val doc = LayoutDocParser.parse(file.readText())
@@ -408,6 +465,32 @@ class LayoutDocParserTest {
         )
 
         assertFailedRegistrationContains(doc, "layers")
+    }
+
+    @Test
+    fun `registry accepts unknown valid script identifiers`() {
+        val doc = singleActionLayout(
+            """
+            {
+              "actionType": "SWITCH_SCRIPT",
+              "payload": { "script": "QAAA" }
+            }
+            """.trimIndent()
+        )
+
+        assertTrue(LayoutRegistryImpl().register(doc, LayoutSource.USER) is RegisterResult.Success)
+    }
+
+    @Test
+    fun `registry rejects malformed or missing script payloads`() {
+        listOf(
+            """{ "actionType": "SWITCH_SCRIPT", "payload": { "script": "ABC" } }""",
+            """{ "actionType": "SWITCH_SCRIPT", "payload": { "script": "AB1D" } }""",
+            """{ "actionType": "SWITCH_SCRIPT", "payload": { "script": "ÁBCD" } }""",
+            """{ "actionType": "SWITCH_SCRIPT", "payload": {} }"""
+        ).forEach { actionJson ->
+            assertFailedRegistrationContains(singleActionLayout(actionJson), "script")
+        }
     }
 
     @Test

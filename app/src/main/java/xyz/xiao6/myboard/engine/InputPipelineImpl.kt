@@ -1,194 +1,135 @@
 package xyz.xiao6.myboard.engine
 
+import android.view.inputmethod.EditorInfo
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import xyz.xiao6.myboard.androidbridge.InputConnectionGateway
-import xyz.xiao6.myboard.contract.input.*
-import xyz.xiao6.myboard.contract.layout.*
-import xyz.xiao6.myboard.contract.manifest.*
-import xyz.xiao6.myboard.contract.theme.*
-import xyz.xiao6.myboard.contract.engine.*
-import xyz.xiao6.myboard.contract.bridge.*
-import xyz.xiao6.myboard.contract.registry.*
-import xyz.xiao6.myboard.contract.panel.*
-import xyz.xiao6.myboard.contract.language.*
-import xyz.xiao6.myboard.contract.state.*
+import xyz.xiao6.myboard.contract.engine.EngineContext
+import xyz.xiao6.myboard.contract.input.EngineResult
+import xyz.xiao6.myboard.contract.input.InputAction
+import xyz.xiao6.myboard.contract.input.InputEvent
+import xyz.xiao6.myboard.contract.input.ResetReason
+import xyz.xiao6.myboard.contract.state.KeyboardContext
+import xyz.xiao6.myboard.state.CapabilityRegistry
 import xyz.xiao6.myboard.state.KeyboardContextManager
 
-/**
- * InputPipeline 真实实现。
- */
 class InputPipelineImpl(
+    private val capabilityRegistry: CapabilityRegistry,
     private val engineRegistry: EngineRegistry,
     private val keyboardContextManager: KeyboardContextManager,
     private val gateway: InputConnectionGateway,
     private val scope: CoroutineScope = CoroutineScope(Dispatchers.Main)
 ) : InputPipeline {
-    
-    private var currentSession: InputSession? = null
+
+    private val mutex = Mutex()
+    private var currentSession: xyz.xiao6.myboard.contract.engine.InputSession? = null
     private var currentContext: KeyboardContext? = null
+    private var generation = 0L
+    private var querySequence = 0L
     private val _engineResult = MutableStateFlow<EngineResult>(EngineResult.Nothing)
     val engineResult: StateFlow<EngineResult> = _engineResult.asStateFlow()
-    
+
     override suspend fun handle(action: InputAction) {
-        val session = currentSession
-        
+        mutex.withLock {
         when (action) {
-            is InputAction.PushToken -> {
-                if (session != null) {
-                    val result = session.handle(InputEvent.PushToken(action.token))
-                    handleEngineResult(result)
-                } else {
-                    gateway.commitText(action.token)
-                }
-            }
-            
-            is InputAction.Delete -> {
-                if (session != null) {
-                    val result = session.handle(InputEvent.Backspace)
-                    handleEngineResult(result)
-                } else {
-                    gateway.deleteSurroundingText(1, 0)
-                }
-            }
-            
-            is InputAction.Space -> {
-                if (session != null) {
-                    val result = session.handle(InputEvent.Space)
-                    handleEngineResult(result)
-                } else {
-                    gateway.commitText(" ")
-                }
-            }
-            
-            is InputAction.Enter -> {
-                if (session != null) {
-                    val result = session.handle(InputEvent.Enter)
-                    handleEngineResult(result)
-                } else {
-                    gateway.performEditorAction(android.view.inputmethod.EditorInfo.IME_ACTION_UNSPECIFIED)
-                }
-            }
-            
-            is InputAction.CommitCandidate -> {
-                if (session != null && action.index >= 0) {
-                    val result = session.handle(InputEvent.SelectCandidate(action.index))
-                    handleEngineResult(result)
-                }
-            }
-            
+            is InputAction.PushToken -> dispatch(InputEvent.PushToken(action.token)) { gateway.commitText(action.token) }
+            InputAction.Delete -> dispatch(InputEvent.Backspace) { gateway.deleteSurroundingText(1, 0) }
+            InputAction.Space -> dispatch(InputEvent.Space) { gateway.commitText(" ") }
+            InputAction.Enter -> dispatch(InputEvent.Enter) { gateway.performEditorAction(EditorInfo.IME_ACTION_UNSPECIFIED) }
+            is InputAction.CommitCandidate -> if (action.index >= 0) dispatch(InputEvent.SelectCandidate(action.index)) { true }
             is InputAction.SwitchLocale -> {
                 keyboardContextManager.switchLocale(action.locale)
-                recreateSessionIfNeeded()
+                recreateSession(keyboardContextManager.context.value)
             }
-            
             is InputAction.SwitchScript -> {
                 keyboardContextManager.switchScript(action.script)
-                recreateSessionIfNeeded()
+                recreateSession(keyboardContextManager.context.value)
             }
-            
             is InputAction.SwitchSchema -> {
                 keyboardContextManager.switchSchema(action.schema)
-                recreateSessionIfNeeded()
+                recreateSession(keyboardContextManager.context.value)
             }
-            
-            is InputAction.SwitchLayer -> {
-                keyboardContextManager.switchLayer(action.layer)
-            }
-            
-            is InputAction.OpenPanel -> {
-                keyboardContextManager.openPanel(action.panelType)
-            }
-            
-            is InputAction.ClosePanel -> {
-                keyboardContextManager.closePanel()
-            }
-            
-            is InputAction.PageCandidate -> {
-                // TODO: 候选分页
-            }
-            
-            is InputAction.RestorePreviousSchema -> {
-                // TODO: 恢复上一个 schema
-            }
-            
-            is InputAction.Noop -> {
-                // No operation
-            }
+            is InputAction.SwitchLayer -> keyboardContextManager.switchLayer(action.layer)
+            is InputAction.OpenPanel -> keyboardContextManager.openPanel(action.panelType)
+            InputAction.ClosePanel -> keyboardContextManager.closePanel()
+            is InputAction.PageCandidate, InputAction.RestorePreviousSchema, InputAction.Noop -> Unit
+        }
         }
     }
-    
-    override suspend fun onContextChanged(context: KeyboardContext) {
-        if (currentContext != context) {
-            currentContext = context
-            recreateSession(context)
-        }
+
+    override suspend fun onContextChanged(context: KeyboardContext) = mutex.withLock {
+        if (currentContext != context) recreateSession(context)
     }
-    
+
     override suspend fun reset(reason: ResetReason) {
-        currentSession?.reset(reason)
-        gateway.finishComposingText()
-        keyboardContextManager.clearComposing()
-    }
-    
-    private fun recreateSessionIfNeeded() {
-        val newContext = keyboardContextManager.context.value
-        if (currentContext != newContext) {
-            currentContext = newContext
-            scope.launch {
-                recreateSession(newContext)
-            }
+        mutex.withLock {
+            generation++
+            querySequence++
+            currentSession?.reset(reason)
+            clearComposing()
         }
     }
-    
+
+    private suspend fun dispatch(event: InputEvent, noSession: () -> Boolean) {
+        val session = currentSession
+        if (session == null) {
+            if (!noSession()) clearComposing()
+            return
+        }
+        val resultGeneration = generation
+        val resultSequence = ++querySequence
+        val result = session.handle(event)
+        if (resultGeneration == generation && resultSequence == querySequence) {
+            handleEngineResult(result)
+        }
+    }
+
     private suspend fun recreateSession(context: KeyboardContext) {
+        generation++
+        querySequence++
         currentSession?.close()
-        val engineId = context.orthogonal.schema.value
-        val engine = engineRegistry.get(engineId)
-        if (engine != null) {
-            // TODO: 创建真实 EngineContext
-            // currentSession = engine.createSession(engineContext)
-            currentSession = null
-        } else {
-            currentSession = null
-        }
+        currentSession = null
+        clearComposing()
+        currentContext = context
+
+        val resolved = capabilityRegistry.resolve(context.orthogonal) ?: return
+        val engine = engineRegistry.get(resolved.capability.engine.engineId) ?: return
+        currentSession = engine.createSession(
+            EngineContext(
+                keyboardContext = context,
+                capability = resolved.capability,
+                resources = resolved.resources,
+                coroutineScope = scope
+            )
+        )
     }
-    
+
     private fun handleEngineResult(result: EngineResult) {
         _engineResult.value = result
-        
-        when (result) {
-            is EngineResult.CommitText -> {
-                gateway.finishComposingText()
-                gateway.commitText(result.text)
-                keyboardContextManager.clearComposing()
+        val succeeded = when (result) {
+            is EngineResult.CommitText -> gateway.finishAndCommit(result.text).also { keyboardContextManager.clearComposing() }
+            is EngineResult.UpdateComposing -> gateway.setComposingText(result.text).also {
+                if (it) keyboardContextManager.setComposing(result.text, result.candidates)
             }
-            is EngineResult.UpdateComposing -> {
-                gateway.setComposingText(result.text)
-                keyboardContextManager.setComposing(result.text, result.candidates)
+            is EngineResult.CommitAndUpdate -> gateway.commitText(result.commit) && gateway.setComposingText(result.composing).also {
+                if (it) keyboardContextManager.setComposing(result.composing, result.candidates)
             }
-            is EngineResult.CommitAndUpdate -> {
-                gateway.commitText(result.commit)
-                gateway.setComposingText(result.composing)
-                keyboardContextManager.setComposing(result.composing, result.candidates)
-            }
-            is EngineResult.DeleteText -> {
-                gateway.deleteSurroundingText(result.beforeCursor, 0)
-            }
-            is EngineResult.PerformEditorAction -> {
-                gateway.performEditorAction(android.view.inputmethod.EditorInfo.IME_ACTION_UNSPECIFIED)
-            }
-            is EngineResult.ClearComposing -> {
-                gateway.finishComposingText()
-                keyboardContextManager.clearComposing()
-            }
-            is EngineResult.Nothing -> {
-                // No operation
-            }
+            is EngineResult.DeleteText -> gateway.deleteSurroundingText(result.beforeCursor, 0)
+            EngineResult.PerformEditorAction -> gateway.performEditorAction(EditorInfo.IME_ACTION_UNSPECIFIED)
+            EngineResult.ClearComposing -> clearComposing()
+            EngineResult.Nothing -> true
         }
+        if (!succeeded) clearComposing()
+    }
+
+    private fun clearComposing(): Boolean {
+        val finished = gateway.finishComposingText()
+        keyboardContextManager.clearComposing()
+        return finished
     }
 }

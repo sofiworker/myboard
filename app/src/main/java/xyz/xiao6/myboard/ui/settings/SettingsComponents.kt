@@ -2,6 +2,7 @@ package xyz.xiao6.myboard.ui.settings
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -34,6 +35,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -42,6 +44,31 @@ import xyz.xiao6.myboard.R
 
 private val GroupShape = RoundedCornerShape(16.dp)
 private val IconBubbleShape = RoundedCornerShape(10.dp)
+
+/**
+ * 设置项图标的彩色 accent（iOS 设置风格）。
+ * [light] 用于浅色模式，[dark] 用于深色模式（更亮以保证对比度）。
+ * 气泡背景为 accent 色的低透明度版本，深浅色模式下均有良好表现。
+ */
+enum class SettingsAccent(private val light: Color, private val dark: Color) {
+    Blue(Color(0xFF1A73E8), Color(0xFF8AB4F8)),
+    Green(Color(0xFF188038), Color(0xFF81C995)),
+    Purple(Color(0xFF9334E6), Color(0xFFC58AF9)),
+    Orange(Color(0xFFE8710A), Color(0xFFFCAD70)),
+    Teal(Color(0xFF009688), Color(0xFF78D9EC)),
+    Pink(Color(0xFFD01884), Color(0xFFFF8BCB)),
+    Indigo(Color(0xFF3F51B5), Color(0xFF9AA7FF)),
+    Amber(Color(0xFFF9AB00), Color(0xFFFDD663)),
+    Gray(Color(0xFF5F6368), Color(0xFF9AA0A6));
+
+    /** 当前主题下的 accent 颜色。 */
+    val color: Color
+        @Composable get() = if (isSystemInDarkTheme()) dark else light
+
+    /** accent 色对应的柔和气泡底色。 */
+    val containerColor: Color
+        @Composable get() = color.copy(alpha = if (isSystemInDarkTheme()) 0.24f else 0.13f)
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -93,7 +120,7 @@ fun SettingsSectionHeader(
         style = MaterialTheme.typography.labelLarge,
         color = MaterialTheme.colorScheme.primary,
         fontWeight = FontWeight.SemiBold,
-        modifier = modifier.padding(start = 4.dp, top = 16.dp, bottom = 8.dp, end = 4.dp)
+        modifier = modifier.padding(start = 4.dp, top = 18.dp, bottom = 8.dp, end = 4.dp)
     )
 }
 
@@ -109,14 +136,15 @@ fun SettingsGroup(
         tonalElevation = 0.dp,
         shadowElevation = 0.dp
     ) {
-        Column(content = content)
+        // 裁剪子内容到圆角，避免首尾项的点击涟漪溢出卡片圆角
+        Column(modifier = Modifier.clip(GroupShape), content = content)
     }
 }
 
 @Composable
 fun SettingsGroupDivider() {
     HorizontalDivider(
-        modifier = Modifier.padding(start = 56.dp),
+        modifier = Modifier.padding(start = 58.dp),
         thickness = 0.5.dp,
         color = MaterialTheme.colorScheme.outline.copy(alpha = 0.45f)
     )
@@ -127,18 +155,19 @@ fun SettingsNavItem(
     title: String,
     subtitle: String? = null,
     icon: ImageVector,
-    onClick: () -> Unit,
-    showDivider: Boolean = false
+    onClick: (() -> Unit)? = null,
+    showDivider: Boolean = false,
+    accent: SettingsAccent? = null
 ) {
     Column {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable(onClick = onClick)
+                .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
                 .padding(horizontal = 14.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            SettingsIconBubble(icon = icon)
+            SettingsIconBubble(icon = icon, accent = accent)
             Spacer(modifier = Modifier.width(14.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
@@ -155,12 +184,14 @@ fun SettingsNavItem(
                     )
                 }
             }
-            Icon(
-                imageVector = Icons.Default.ChevronRight,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                modifier = Modifier.size(20.dp)
-            )
+            if (onClick != null) {
+                Icon(
+                    imageVector = Icons.Default.ChevronRight,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                    modifier = Modifier.size(20.dp)
+                )
+            }
         }
         if (showDivider) SettingsGroupDivider()
     }
@@ -173,7 +204,8 @@ fun SettingsSwitchItem(
     icon: ImageVector? = null,
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
-    showDivider: Boolean = false
+    showDivider: Boolean = false,
+    accent: SettingsAccent? = null
 ) {
     Column {
         Row(
@@ -184,7 +216,7 @@ fun SettingsSwitchItem(
             verticalAlignment = Alignment.CenterVertically
         ) {
             if (icon != null) {
-                SettingsIconBubble(icon = icon)
+                SettingsIconBubble(icon = icon, accent = accent)
                 Spacer(modifier = Modifier.width(14.dp))
             }
             Column(modifier = Modifier.weight(1f)) {
@@ -206,7 +238,7 @@ fun SettingsSwitchItem(
         }
         if (showDivider) {
             HorizontalDivider(
-                modifier = Modifier.padding(start = if (icon != null) 56.dp else 14.dp),
+                modifier = Modifier.padding(start = if (icon != null) 58.dp else 14.dp),
                 thickness = 0.5.dp,
                 color = MaterialTheme.colorScheme.outline.copy(alpha = 0.45f)
             )
@@ -221,41 +253,50 @@ fun SettingsSliderItem(
     onValueChange: (Float) -> Unit,
     valueRange: ClosedFloatingPointRange<Float>,
     valueLabel: String,
-    showDivider: Boolean = false
+    showDivider: Boolean = false,
+    icon: ImageVector? = null,
+    accent: SettingsAccent? = null
 ) {
     Column {
-        Column(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 14.dp, vertical = 12.dp)
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = valueLabel,
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.Medium
+            if (icon != null) {
+                SettingsIconBubble(icon = icon, accent = accent)
+                Spacer(modifier = Modifier.width(14.dp))
+            }
+            Column(modifier = Modifier.weight(1f)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = valueLabel,
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+                Slider(
+                    value = value,
+                    onValueChange = onValueChange,
+                    valueRange = valueRange,
+                    modifier = Modifier.fillMaxWidth()
                 )
             }
-            Slider(
-                value = value,
-                onValueChange = onValueChange,
-                valueRange = valueRange,
-                modifier = Modifier.fillMaxWidth()
-            )
         }
         if (showDivider) {
             HorizontalDivider(
-                modifier = Modifier.padding(start = 14.dp),
+                modifier = Modifier.padding(start = if (icon != null) 58.dp else 14.dp),
                 thickness = 0.5.dp,
                 color = MaterialTheme.colorScheme.outline.copy(alpha = 0.45f)
             )
@@ -266,19 +307,29 @@ fun SettingsSliderItem(
 @Composable
 fun SettingsIconBubble(
     icon: ImageVector,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    accent: SettingsAccent? = null
 ) {
+    val container: Color
+    val content: Color
+    if (accent != null) {
+        container = accent.containerColor
+        content = accent.color
+    } else {
+        container = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f)
+        content = MaterialTheme.colorScheme.primary
+    }
     Box(
         modifier = modifier
             .size(36.dp)
             .clip(IconBubbleShape)
-            .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f)),
+            .background(container),
         contentAlignment = Alignment.Center
     ) {
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
+            tint = content,
             modifier = Modifier.size(20.dp)
         )
     }

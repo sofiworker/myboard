@@ -1,0 +1,4 @@
+# Built-in pinyin dictionary source. Runtime dictionary loading is package scoped.
+ni 你
+hao 好
+zhong 中国

@@ -55,7 +55,8 @@ fun FeedbackSettingsScreen(
                         checked = hapticEnabled,
                         onCheckedChange = {
                             viewModel.updateSetting("haptic_feedback", it.toString())
-                        }
+                        },
+                        accent = SettingsAccent.Orange
                     )
                 }
             }
@@ -70,7 +71,8 @@ fun FeedbackSettingsScreen(
                         checked = soundEnabled,
                         onCheckedChange = {
                             viewModel.updateSetting("sound_feedback", it.toString())
-                        }
+                        },
+                        accent = SettingsAccent.Pink
                     )
                 }
             }

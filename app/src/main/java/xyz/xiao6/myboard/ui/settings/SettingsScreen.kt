@@ -8,12 +8,15 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.MenuBook
+import androidx.compose.material.icons.filled.FormatSize
+import androidx.compose.material.icons.filled.Height
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material.icons.filled.SpaceBar
+import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.filled.TextFormat
 import androidx.compose.material.icons.filled.Vibration
 import androidx.compose.material.icons.filled.Widgets
@@ -86,13 +89,15 @@ fun SettingsScreen(
                         subtitle = uiState.settings["current_locale"] ?: "en-US",
                         icon = Icons.Default.Language,
                         onClick = { onNavigate("language") },
-                        showDivider = true
+                        showDivider = true,
+                        accent = SettingsAccent.Blue
                     )
                     SettingsNavItem(
                         title = stringResource(R.string.settings_toolbar),
                         subtitle = stringResource(R.string.settings_toolbar_manage),
                         icon = Icons.Default.Widgets,
-                        onClick = { onNavigate("toolbar") }
+                        onClick = { onNavigate("toolbar") },
+                        accent = SettingsAccent.Green
                     )
                 }
             }
@@ -112,7 +117,9 @@ fun SettingsScreen(
                         valueRange = KeyboardHeightPolicy.MIN_HEIGHT_DP.toFloat()..
                             KeyboardHeightPolicy.MAX_HEIGHT_DP.toFloat(),
                         valueLabel = "${keyboardHeight.toInt()}dp",
-                        showDivider = true
+                        showDivider = true,
+                        icon = Icons.Default.Height,
+                        accent = SettingsAccent.Indigo
                     )
                     SettingsSliderItem(
                         title = stringResource(R.string.settings_keyboard_horizontal_inset),
@@ -126,7 +133,9 @@ fun SettingsScreen(
                         valueRange = KeyboardHeightPolicy.MIN_HORIZONTAL_INSET_DP.toFloat()..
                             KeyboardHeightPolicy.MAX_HORIZONTAL_INSET_DP.toFloat(),
                         valueLabel = "${keyboardHorizontalInset.toInt()}dp",
-                        showDivider = true
+                        showDivider = true,
+                        icon = Icons.Default.SwapHoriz,
+                        accent = SettingsAccent.Indigo
                     )
                     SettingsSliderItem(
                         title = stringResource(R.string.settings_key_font_size),
@@ -135,7 +144,9 @@ fun SettingsScreen(
                             viewModel.updateSetting("key_font_size", it.toInt().toString())
                         },
                         valueRange = 12f..24f,
-                        valueLabel = "${((uiState.settings["key_font_size"] ?: "18").toFloatOrNull() ?: 18f).toInt()}sp"
+                        valueLabel = "${((uiState.settings["key_font_size"] ?: "18").toFloatOrNull() ?: 18f).toInt()}sp",
+                        icon = Icons.Default.FormatSize,
+                        accent = SettingsAccent.Indigo
                     )
                 }
             }
@@ -151,7 +162,8 @@ fun SettingsScreen(
                             else -> stringResource(R.string.settings_theme_auto)
                         },
                         icon = Icons.Default.Palette,
-                        onClick = { onNavigate("theme") }
+                        onClick = { onNavigate("theme") },
+                        accent = SettingsAccent.Purple
                     )
                 }
             }
@@ -163,7 +175,8 @@ fun SettingsScreen(
                         title = stringResource(R.string.settings_feedback),
                         subtitle = stringResource(R.string.settings_feedback_desc),
                         icon = Icons.Default.Vibration,
-                        onClick = { onNavigate("feedback") }
+                        onClick = { onNavigate("feedback") },
+                        accent = SettingsAccent.Orange
                     )
                 }
             }
@@ -179,7 +192,8 @@ fun SettingsScreen(
                         onCheckedChange = {
                             viewModel.updateSetting("double_space_period", it.toString())
                         },
-                        showDivider = true
+                        showDivider = true,
+                        accent = SettingsAccent.Teal
                     )
                     SettingsSwitchItem(
                         title = stringResource(R.string.settings_auto_capitalize),
@@ -188,7 +202,8 @@ fun SettingsScreen(
                         checked = uiState.settings["auto_capitalize"]?.toBooleanStrictOrNull() ?: true,
                         onCheckedChange = {
                             viewModel.updateSetting("auto_capitalize", it.toString())
-                        }
+                        },
+                        accent = SettingsAccent.Teal
                     )
                 }
             }
@@ -205,7 +220,8 @@ fun SettingsScreen(
                         },
                         icon = Icons.Default.SmartToy,
                         onClick = { onNavigate("llm") },
-                        showDivider = true
+                        showDivider = true,
+                        accent = SettingsAccent.Blue
                     )
                     SettingsNavItem(
                         title = stringResource(R.string.settings_voice_input),
@@ -214,7 +230,8 @@ fun SettingsScreen(
                             else -> stringResource(R.string.settings_stt_provider_system)
                         },
                         icon = Icons.Default.Mic,
-                        onClick = { onNavigate("stt") }
+                        onClick = { onNavigate("stt") },
+                        accent = SettingsAccent.Pink
                     )
                 }
             }
@@ -226,13 +243,15 @@ fun SettingsScreen(
                         title = stringResource(R.string.settings_version),
                         subtitle = versionName,
                         icon = Icons.Default.Info,
-                        onClick = { },
-                        showDivider = true
+                        onClick = null,
+                        showDivider = true,
+                        accent = SettingsAccent.Gray
                     )
                     SettingsNavItem(
                         title = stringResource(R.string.settings_open_source),
                         icon = Icons.AutoMirrored.Filled.MenuBook,
-                        onClick = { onNavigate("about") }
+                        onClick = { onNavigate("about") },
+                        accent = SettingsAccent.Amber
                     )
                 }
             }

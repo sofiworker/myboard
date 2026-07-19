@@ -19,7 +19,7 @@ import androidx.compose.ui.unit.sp
 import xyz.xiao6.myboard.contract.state.LocaleTag
 import xyz.xiao6.myboard.contract.state.Schema
 import xyz.xiao6.myboard.contract.state.BuiltInSchemas
-import xyz.xiao6.myboard.state.BuiltInManifests
+import xyz.xiao6.myboard.pack.BuiltInLanguagePacks
 
 /**
  * 第 3 页：语言选择。
@@ -38,19 +38,19 @@ fun LanguageSelectionPage(
     onDismissSchemaDialog: () -> Unit,
     onFinish: () -> Unit
 ) {
-    val manifests = remember { BuiltInManifests.all }
+    val manifests = remember { BuiltInLanguagePacks.all }
 
     // 方案选择 Dialog
     if (showSchemaDialog && schemaDialogLocale != null) {
         val manifest = remember(schemaDialogLocale) {
-            BuiltInManifests.all.find { m -> m.locale == schemaDialogLocale }
+            BuiltInLanguagePacks.all.find { m -> m.locale == schemaDialogLocale }
         }
         val displayName = manifest?.displayName?.get("zh-CN")
             ?: manifest?.displayName?.get("en-US")
             ?: schemaDialogLocale.value
 
         val availableSchemas = remember(manifest) {
-            manifest?.scripts?.values?.flatMap { it.schemas.keys }?.distinct() ?: emptyList()
+            manifest?.capabilities?.map { it.id.schema }?.distinct() ?: emptyList()
         }
 
         AlertDialog(
@@ -153,7 +153,7 @@ fun LanguageSelectionPage(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(52.dp),
-            shape = RoundedCornerShape(12.dp),
+            shape = RoundedCornerShape(16.dp),
             enabled = selectedLanguages.isNotEmpty()
         ) {
             Text("完成", fontSize = 16.sp)
@@ -174,9 +174,9 @@ private fun LanguageItem(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(16.dp))
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
             else MaterialTheme.colorScheme.surface

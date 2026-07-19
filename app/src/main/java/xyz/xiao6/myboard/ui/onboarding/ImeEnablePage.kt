@@ -1,11 +1,11 @@
 package xyz.xiao6.myboard.ui.onboarding
 
-import android.content.Context
 import android.content.Intent
 import android.provider.Settings
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Keyboard
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -16,6 +16,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import xyz.xiao6.myboard.ui.settings.SettingsAccent
 
 /**
  * 第 2 页：启用 MyBoard 输入法。
@@ -30,6 +31,7 @@ fun ImeEnablePage(
     onSkip: () -> Unit
 ) {
     val context = LocalContext.current
+    val accent = if (isImeEnabled) SettingsAccent.Green else SettingsAccent.Blue
 
     Column(
         modifier = Modifier
@@ -39,18 +41,18 @@ fun ImeEnablePage(
     ) {
         Spacer(modifier = Modifier.height(48.dp))
 
-        // 图标
+        // 图标（未启用=键盘/蓝，已启用=对勾/绿）
         Surface(
             modifier = Modifier.size(80.dp),
             shape = RoundedCornerShape(20.dp),
-            color = MaterialTheme.colorScheme.primaryContainer
+            color = accent.containerColor
         ) {
             Box(contentAlignment = Alignment.Center) {
                 Icon(
-                    imageVector = Icons.Outlined.Keyboard,
+                    imageVector = if (isImeEnabled) Icons.Outlined.CheckCircle else Icons.Outlined.Keyboard,
                     contentDescription = null,
                     modifier = Modifier.size(40.dp),
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer
+                    tint = accent.color
                 )
             }
         }
@@ -89,7 +91,7 @@ fun ImeEnablePage(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(52.dp),
-                shape = RoundedCornerShape(12.dp)
+                shape = RoundedCornerShape(16.dp)
             ) {
                 Text("打开输入法设置", fontSize = 16.sp)
             }
@@ -102,7 +104,7 @@ fun ImeEnablePage(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(52.dp),
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(16.dp),
                 enabled = !isChecking
             ) {
                 if (isChecking) {
@@ -133,16 +135,13 @@ fun ImeEnablePage(
 
         Spacer(modifier = Modifier.weight(1f))
 
-        // "下一步" 按钮 — 即使 IME 未启用也可手动跳过
-        Button(
+        // "下一步" 按钮 — 即使 IME 未启用也可手动跳过（次要操作，弱化样式）
+        FilledTonalButton(
             onClick = onSkip,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(52.dp),
-            shape = RoundedCornerShape(12.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.secondary.copy(alpha = 0.85f)
-            )
+            shape = RoundedCornerShape(16.dp)
         ) {
             Text("下一步", fontSize = 16.sp)
         }

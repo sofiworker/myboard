@@ -257,6 +257,16 @@ data class LanguagePackManifest(
 )
 ```
 
+Locale 默认值使用与 capability 一致的资源引用模型：
+
+```kotlin
+data class LocaleDefaults(
+    val script: Script,
+    val schema: Schema,
+    val layout: ResourceRef
+)
+```
+
 一个语言包可以包含多个 Script 和 Schema。语言包不要求一个 Locale 只能有一个包；同一状态由多个包提供时，由能力选择策略决定当前 provider。
 
 `defaults` 定义 Locale 默认 Script、Schema 和基础布局；每个 `ScriptManifest` 定义该 Script 的方向、镜像策略和默认 Schema。初始化、切换 Locale 和切换 Script 都必须从当前 provider 的默认值解析。外部 provider 默认不能覆盖内置默认值，除非用户显式选择它为该 Locale 的默认能力来源。
@@ -323,6 +333,8 @@ enum class DictionaryRole {
 
 这覆盖现有 `dictionaryOptional`、`conversionDictionary` 和不同候选资源的职责。`subtype` 保留内置能力导出 Android subtype 所需元数据；外部包仍不参与构建期 `method.xml` 生成。
 
+`DictionaryKind` 是字典资源自身的固有类型，`DictionaryRole` 是某个 capability 绑定该资源时赋予的运行时职责；两者不能互相替代。Manifest 校验采用以下兼容矩阵：`WORD` 或 `PHRASE` 只能绑定 `PRIMARY`，`CONVERSION` 只能绑定 `CONVERSION`，`FREQUENCY` 只能绑定 `FREQUENCY`，`SPELLING` 只能绑定 `SPELLING`，`EMOJI` 只能绑定 `EMOJI`。同一资源需要承担多个职责时必须声明多个 `DictionaryBinding`，且每个绑定都必须通过矩阵校验；不允许通过改变 role 绕过字典类型约束。
+
 ### 3.7 Dictionary
 
 字典是可复用的只读运行时资源。字典可以随语言包提供，也可以由独立 Dictionary Pack 提供。
@@ -376,7 +388,32 @@ data class LayoutKey(
 )
 ```
 
-Manifest 中的 `ResourceRef` 解析为 `LayoutKey`，`KeyboardContext` 第一阶段保存可序列化的 canonical ID，例如 `builtin:qwerty`。不同包提供同名 `qwerty` 时不会覆盖。用户布局覆盖必须通过目标 capability 的 token/action 契约校验。
+`LayoutKey` 的持久化投影是独立的无版本 canonical ID，格式固定为 `${packageId}:${layoutId}`，其中 `packageId` 和 `layoutId` 均不得包含 `:`；`packageVersion` 不写入该字符串。示例：`builtin:qwerty`、`thirdparty.keyboard:qwerty`。因此不同包提供同名布局时不会发生序列化碰撞。
+
+转换契约必须集中在布局资源层，不能由各 provider 自行拼接：
+
+```kotlin
+@JvmInline
+value class LayoutCanonicalId(val value: String)
+
+fun LayoutKey.toCanonicalId(): LayoutCanonicalId =
+    LayoutCanonicalId("$packageId:$layoutId")
+
+fun LayoutCanonicalId.resolve(
+    packageVersion: SemVer,
+    registry: LayoutRegistry
+): LayoutKey {
+    val separator = value.indexOf(':')
+    require(separator > 0 && separator < value.lastIndex) { "Invalid layout canonical ID" }
+    return registry.resolve(
+        packageId = value.substring(0, separator),
+        layoutId = value.substring(separator + 1),
+        packageVersion = packageVersion
+    )
+}
+```
+
+`KeyboardContext.layoutId` 第一阶段保存 `LayoutCanonicalId.value`。从 Context 恢复时必须先按 canonical ID 定位包和布局，再结合当前 active package version 解析为 `LayoutKey`；不存在“由 canonical 字符串直接推导 version”的规则。`LayoutKey` 到 canonical ID 是无损到逻辑身份的投影，但 canonical ID 到 `LayoutKey` 必须经过 Registry 和明确版本选择。用户布局覆盖必须通过目标 capability 的 token/action 契约校验。
 
 ### 3.10 Engine
 
@@ -419,17 +456,7 @@ LanguagePackManifest
 
 旧模型中的 `scripts: Map<Script, ScriptManifest>` 只允许作为一次性源码迁移参考；外部 Manifest 使用 `scripts: List<ScriptManifest>`，解析后建立索引，并执行重复 Script、descriptor 不一致、缺失默认 capability 和重复 CapabilityId 校验。
 
-目标默认值模型为：
-
-```kotlin
-data class LocaleDefaults(
-    val script: Script,
-    val schema: Schema,
-    val layout: ResourceRef
-)
-```
-
-默认布局不能继续使用裸 `layoutId`；Locale 默认 capability 解析后必须通过 `ResourceResolver` 得到带包版本的 `LayoutKey` 和 `ResourceHandle`。
+目标默认值模型见 §3.5 的 `LocaleDefaults` 定义；默认布局不能继续使用裸 `layoutId`。Locale 默认 capability 解析后必须通过 `ResourceResolver` 得到带包版本的 `LayoutKey` 和 `ResourceHandle`。
 
 ## 4. 包结构
 
@@ -533,6 +560,26 @@ locale_default_provider.zh-CN = builtin.zh-cn
 不存在“仅凭同 Locale 自动兼容”的隐式回退。`HANI/PINYIN` 不能因为资源缺失而静默切到 `LATN/LATIN_DIRECT`；跨 Script 或跨 Schema 回退必须由 Manifest 显式声明，或者由用户确认。失效的用户 provider 偏好保留为不可用记录并回退运行，但设置页必须显示问题，不能静默覆盖用户选择。
 
 所有 provider、已启用语言包、默认语言和布局覆盖设置都通过同一个 `SettingsRepository` 持久化并以 `Flow` 提供。设置键必须类型化封装，所有入口都必须在 `SettingsActivity.kt` 可达，不允许 IME 服务和设置页维护各自副本。
+
+设置仓库的生命周期由 `SettingsActivity` 统一组装：
+
+```text
+SettingsActivity
+  -> create one SettingsRepository
+  -> create ViewModel factories with that repository
+  -> pass the same repository/factories to every settings route
+```
+
+Composable 不得通过默认参数、`LocalContext`、`remember` 或 `SettingsDatabase.getInstance()` 新建 `SettingsRepository`。`SettingsScreen`、`ThemeSettingsScreen`、`FeedbackSettingsScreen`、`InputSettingsScreen`、`ToolbarSettingsScreen` 和 `LanguageSettingsScreen` 的默认参数中不得再创建 Repository；它们必须要求调用方传入 ViewModel 或明确的共享 Repository。Preview/test 如需替代实现，使用显式 fake repository，不得创建第二个真实状态源。
+
+当前代码中的 `SettingsScreen` 默认 `viewModel` 参数违反这一约束：它通过 `LocalContext` 和 `SettingsDatabase.getInstance()` 新建了一个 `SettingsRepository`，与 `SettingsActivity` 注入的实例不共享状态。迁移时必须删除该真实 Repository 默认值，并让 `SettingsActivity` 为每个路由显式传入同一实例创建的 ViewModel（或同一 `ViewModel.Factory`）。验收标准是：生产构建中所有设置 Composable 的默认参数均不触达 Context、Database 或 Repository；同一 Activity 内只能存在一个设置 Repository 组装根。
+
+设置状态的唯一来源规则：
+
+- Room `SettingsDatabase` 是持久化事实源。
+- `SettingsActivity` 是设置 UI Repository 的唯一组装根。
+- IME 服务通过同一数据库的应用级 Repository 观察 Flow，但不维护平行设置变量。
+- 页面本地 `mutableStateOf` 只能表示未提交的编辑草稿，提交后必须写回共享 Repository，不能作为已保存设置的第二事实源。
 
 ### 5.3 注册顺序
 
@@ -828,6 +875,8 @@ builtin.zh-cn / zh-CN / HANI / SHUANGPIN_ZIRAN
 - provider、已启用语言包、默认语言和布局覆盖均从统一 SettingsRepository 的 Flow 驱动。
 - SettingsActivity 中存在所有相关设置入口。
 - IME 服务重建前后不会产生两份设置状态。
+- 设置 Composable 的默认参数不创建真实 `SettingsRepository`；所有路由使用 SettingsActivity 创建的同一实例或同一 ViewModel 工厂。
+- 修改设置页中的值后，其他页面和 IME 服务通过同一 Flow 观察到更新，不出现 Repository 实例之间的状态分叉。
 
 ## 11. 实施顺序
 
@@ -840,11 +889,12 @@ builtin.zh-cn / zh-CN / HANI / SHUANGPIN_ZIRAN
 7. 为 `DictionaryRegistry`、`LayoutRegistry` 和资源解析器增加包身份。
 8. 将内置中英日数据适配为内置 Language Pack。
 9. 拆分 `MyBoardImeService.initCoreComponents()`：先执行 `registerBuiltIns()` 和目标 Language Pack 注册，再创建 `KeyboardContextManagerImpl`，最后创建 `InputPipelineImpl`。
-10. 为 `InputPipeline` 注入 Capability Registry 和 Resource Resolver。
-11. 实现 EngineContext 和 InputSession 创建、关闭、串行处理。
-12. 增加 Pipeline、Manifest、开放 Script、RTL presentation、资源依赖和回退测试。
-13. 在完整输入链路稳定后，再实现外部 Language Pack 导入。
-14. 最后评估独立 Dictionary Pack、Layout Pack 和 Engine Plugin。
+10. 移除设置 Composable 默认参数中的真实 Repository 创建，统一由 `SettingsActivity` 注入共享 Repository/Factory。
+11. 为 `InputPipeline` 注入 Capability Registry 和 Resource Resolver。
+12. 实现 EngineContext 和 InputSession 创建、关闭、串行处理。
+13. 增加 Pipeline、Manifest、开放 Script、RTL presentation、资源依赖、回退和设置单一来源测试。
+14. 在完整输入链路稳定后，再实现外部 Language Pack 导入。
+15. 最后评估独立 Dictionary Pack、Layout Pack 和 Engine Plugin。
 
 ## 12. 设计结论
 

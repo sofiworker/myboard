@@ -48,7 +48,7 @@ class TransitionEngineImpl(
         // 清空 composing、candidates、关闭面板
         val newContext = KeyboardContext(
             orthogonal = defaultState,
-            layoutId = schemaCap.layoutId,
+            layoutId = schemaCap.layout.toLayoutCanonicalId().value,
             layer = LayoutLayer.NORMAL,
             composingText = "",
             candidates = emptyList(),
@@ -66,7 +66,7 @@ class TransitionEngineImpl(
         val localeCap = registry.getLocale(locale)
             ?: return TransitionResult.Rejected(TransitionRejectReason.UNSUPPORTED_LOCALE)
         
-        val scriptCap = localeCap.scripts[script]
+        val scriptCap = localeCap.scripts.firstOrNull { it.id == script }
             ?: return TransitionResult.Rejected(TransitionRejectReason.UNSUPPORTED_SCRIPT)
         
         // 获取该 Script 的默认 Schema
@@ -84,7 +84,7 @@ class TransitionEngineImpl(
         
         val newContext = current.copy(
             orthogonal = newState,
-            layoutId = schemaCap.layoutId,
+            layoutId = schemaCap.layout.toLayoutCanonicalId().value,
             layer = LayoutLayer.NORMAL,
             composingText = "",
             candidates = emptyList(),
@@ -112,7 +112,7 @@ class TransitionEngineImpl(
             ?: return TransitionResult.Rejected(TransitionRejectReason.CAPABILITY_NOT_REGISTERED)
         
         // Schema 切换时可能需要切换布局
-        val newLayoutId = schemaCap.layoutId
+        val newLayoutId = schemaCap.layout.toLayoutCanonicalId().value
         
         val newContext = current.copy(
             orthogonal = targetState,

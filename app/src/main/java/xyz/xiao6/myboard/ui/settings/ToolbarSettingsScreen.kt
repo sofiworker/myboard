@@ -179,7 +179,7 @@ private fun ToolbarItemRow(
                 .padding(horizontal = 12.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            SettingsIconBubble(icon = getIconForType(type))
+            SettingsIconBubble(icon = getIconForType(type), accent = getAccentForType(type))
             Spacer(modifier = Modifier.width(12.dp))
             Text(
                 text = stringResource(getLabelForType(type)),
@@ -219,7 +219,7 @@ private fun AvailableToolbarItemRow(
                 .padding(horizontal = 12.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            SettingsIconBubble(icon = getIconForType(type))
+            SettingsIconBubble(icon = getIconForType(type), accent = getAccentForType(type))
             Spacer(modifier = Modifier.width(12.dp))
             Text(
                 text = stringResource(getLabelForType(type)),
@@ -244,6 +244,16 @@ private fun getIconForType(type: ToolbarItemType): ImageVector = when (type) {
     ToolbarItemType.CLIPBOARD -> Icons.Default.ContentPaste
     ToolbarItemType.LAYOUT_SWITCH -> Icons.Default.Keyboard
     ToolbarItemType.VOICE_INPUT -> Icons.Default.Mic
+}
+
+private fun getAccentForType(type: ToolbarItemType): SettingsAccent = when (type) {
+    ToolbarItemType.LOCALE_SWITCH -> SettingsAccent.Blue
+    ToolbarItemType.THEME_TOGGLE -> SettingsAccent.Indigo
+    ToolbarItemType.EMOJI -> SettingsAccent.Orange
+    ToolbarItemType.SYMBOL -> SettingsAccent.Amber
+    ToolbarItemType.CLIPBOARD -> SettingsAccent.Teal
+    ToolbarItemType.LAYOUT_SWITCH -> SettingsAccent.Purple
+    ToolbarItemType.VOICE_INPUT -> SettingsAccent.Pink
 }
 
 private fun getLabelForType(type: ToolbarItemType): Int = when (type) {

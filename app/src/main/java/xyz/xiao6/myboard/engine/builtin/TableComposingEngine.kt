@@ -37,6 +37,7 @@ class TableComposingEngine : InputEngine {
             script = context.keyboardContext.orthogonal.script,
             schema = context.keyboardContext.orthogonal.schema
         )
+        override val capabilityKey = ResolvedCapabilityKey(capabilityId, context.resources.resolvedResources)
         
         private val _state = MutableStateFlow(InputSessionState())
         override val state: StateFlow<InputSessionState> = _state.asStateFlow()

@@ -1,6 +1,7 @@
 package xyz.xiao6.myboard.ui.onboarding
 
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -13,7 +14,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 
 /**
- * HorizontalPager 圆形页面指示器。
+ * HorizontalPager 页面指示器。
+ * 选中项为胶囊长条，未选中为圆点，宽高与颜色均有过渡动画。
  */
 @Composable
 fun PageIndicator(
@@ -23,10 +25,15 @@ fun PageIndicator(
 ) {
     Row(
         modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+        horizontalArrangement = Arrangement.spacedBy(6.dp)
     ) {
         repeat(pageCount) { index ->
             val isSelected = index == currentPage
+            val width by animateDpAsState(
+                targetValue = if (isSelected) 22.dp else 8.dp,
+                animationSpec = tween(300),
+                label = "dot_width"
+            )
             val color by animateColorAsState(
                 targetValue = if (isSelected) MaterialTheme.colorScheme.primary
                 else MaterialTheme.colorScheme.surfaceVariant,
@@ -35,7 +42,8 @@ fun PageIndicator(
             )
             Box(
                 modifier = Modifier
-                    .size(if (isSelected) 10.dp else 8.dp)
+                    .width(width)
+                    .height(8.dp)
                     .clip(CircleShape)
                     .background(color)
             )

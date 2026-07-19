@@ -14,6 +14,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import xyz.xiao6.myboard.ui.settings.SettingsAccent
 
 /**
  * 第 5 页：完成页。
@@ -51,7 +52,7 @@ fun CompletionPage(
             modifier = Modifier
                 .size(96.dp)
                 .scale(scale),
-            tint = MaterialTheme.colorScheme.primary
+            tint = SettingsAccent.Green.color
         )
 
         Spacer(modifier = Modifier.height(32.dp))
@@ -87,7 +88,7 @@ fun CompletionPage(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(52.dp),
-            shape = RoundedCornerShape(12.dp)
+            shape = RoundedCornerShape(16.dp)
         ) {
             if (isCompleting) {
                 CircularProgressIndicator(

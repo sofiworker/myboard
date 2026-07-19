@@ -20,8 +20,9 @@ class LayoutSwitcher(
     fun cycleLayout() {
         val current = contextManager.context.value
         val localeCap = orthogonalRegistry.getLocale(current.orthogonal.locale) ?: return
-        val scriptCap = localeCap.scripts[current.orthogonal.script] ?: return
-        val schemas = scriptCap.schemas.keys.toList()
+        val schemas = localeCap.capabilities
+            .filter { it.id.script == current.orthogonal.script }
+            .map { it.id.schema }
         if (schemas.size <= 1) return
 
         val currentIndex = schemas.indexOf(current.orthogonal.schema)
@@ -64,7 +65,8 @@ class LayoutSwitcher(
     fun getAvailableSchemas(): List<Schema> {
         val current = contextManager.context.value
         val localeCap = orthogonalRegistry.getLocale(current.orthogonal.locale) ?: return emptyList()
-        val scriptCap = localeCap.scripts[current.orthogonal.script] ?: return emptyList()
-        return scriptCap.schemas.keys.toList()
+        return localeCap.capabilities
+            .filter { it.id.script == current.orthogonal.script }
+            .map { it.id.schema }
     }
 }

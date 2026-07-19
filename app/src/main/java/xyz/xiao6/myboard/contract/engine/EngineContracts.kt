@@ -1,13 +1,59 @@
 package xyz.xiao6.myboard.contract.engine
 
 import xyz.xiao6.myboard.contract.manifest.CapabilityId
-import xyz.xiao6.myboard.contract.manifest.SchemaCapability
+import xyz.xiao6.myboard.contract.manifest.LanguageCapability
+import xyz.xiao6.myboard.contract.manifest.ResolvedResourceKey
+import xyz.xiao6.myboard.contract.registry.ResourceRef
 import xyz.xiao6.myboard.contract.state.KeyboardContext
 import xyz.xiao6.myboard.contract.input.Candidate
 import xyz.xiao6.myboard.contract.input.InputSessionState
 import xyz.xiao6.myboard.contract.input.InputEvent
 import xyz.xiao6.myboard.contract.input.EngineResult
 import xyz.xiao6.myboard.contract.input.ResetReason
+
+data class EngineBinding(
+    val engineId: String,
+    val encoderId: String? = null,
+    val encoderConfig: ResourceRef? = null
+) {
+    init {
+        require(engineId.isNotBlank()) { "Engine id must not be blank" }
+    }
+}
+
+enum class DictionaryKind {
+    WORD,
+    PHRASE,
+    CONVERSION,
+    FREQUENCY,
+    SPELLING,
+    EMOJI
+}
+
+enum class DictionaryRole {
+    PRIMARY,
+    CONVERSION,
+    FREQUENCY,
+    SPELLING,
+    EMOJI
+}
+
+data class DictionaryBinding(
+    val kind: DictionaryKind,
+    val role: DictionaryRole,
+    val resource: ResourceRef,
+    val required: Boolean
+) {
+    fun isCompatible(): Boolean = role.isCompatibleWith(kind)
+}
+
+fun DictionaryRole.isCompatibleWith(kind: DictionaryKind): Boolean = when (kind) {
+    DictionaryKind.WORD, DictionaryKind.PHRASE -> this == DictionaryRole.PRIMARY
+    DictionaryKind.CONVERSION -> this == DictionaryRole.CONVERSION
+    DictionaryKind.FREQUENCY -> this == DictionaryRole.FREQUENCY
+    DictionaryKind.SPELLING -> this == DictionaryRole.SPELLING
+    DictionaryKind.EMOJI -> this == DictionaryRole.EMOJI
+}
 
 /**
  * 编码器状态。
@@ -74,7 +120,7 @@ interface DisplayPolicy {
  */
 data class EngineContext(
     val keyboardContext: KeyboardContext,
-    val capability: SchemaCapability,
+    val capability: LanguageCapability,
     val resources: EngineResources,
     val coroutineScope: kotlinx.coroutines.CoroutineScope
 )
@@ -88,7 +134,13 @@ data class EngineResources(
     val fsm: TransliterationFsm? = null,
     val dictionary: Dictionary? = null,
     val candidatePolicy: CandidatePolicy,
-    val displayPolicy: DisplayPolicy
+    val displayPolicy: DisplayPolicy,
+    val resolvedResources: Map<xyz.xiao6.myboard.contract.registry.ResourceRef, ResolvedResourceKey> = emptyMap()
+)
+
+data class ResolvedCapabilityKey(
+    val capabilityId: CapabilityId,
+    val resources: Map<xyz.xiao6.myboard.contract.registry.ResourceRef, ResolvedResourceKey>
 )
 
 /**
@@ -139,6 +191,7 @@ interface InputEngine {
  */
 interface InputSession {
     val capabilityId: CapabilityId
+    val capabilityKey: ResolvedCapabilityKey
     val state: kotlinx.coroutines.flow.StateFlow<InputSessionState>
     
     suspend fun handle(event: InputEvent): EngineResult

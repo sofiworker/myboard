@@ -66,7 +66,7 @@ class ActionDispatcher {
             }
             
             LayoutActionType.SWITCH_SCRIPT -> {
-                val script = actionDef.enumPayload<Script>("script") ?: return InputAction.Noop
+                val script = actionDef.stringPayload("script")?.let(Script::parse) ?: return InputAction.Noop
                 InputAction.SwitchScript(script)
             }
             

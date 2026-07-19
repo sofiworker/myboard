@@ -12,12 +12,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import xyz.xiao6.myboard.ui.settings.SettingsAccent
 
 /**
  * 第 1 页：功能展示。
@@ -58,7 +57,7 @@ fun FeatureShowcasePage(
             icon = Icons.Outlined.Psychology,
             title = "AI 智能联想",
             description = "基于 AI 的精准词句预测，输入更高效",
-            color = MaterialTheme.colorScheme.primary
+            accent = SettingsAccent.Blue
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -67,7 +66,7 @@ fun FeatureShowcasePage(
             icon = Icons.Outlined.Mic,
             title = "语音输入",
             description = "离线语音识别，说话即输入",
-            color = MaterialTheme.colorScheme.tertiary
+            accent = SettingsAccent.Pink
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -76,7 +75,7 @@ fun FeatureShowcasePage(
             icon = Icons.Outlined.Language,
             title = "多语言 & 布局",
             description = "支持中文拼音/双拼、英文、日文假名等",
-            color = MaterialTheme.colorScheme.secondary
+            accent = SettingsAccent.Green
         )
 
         Spacer(modifier = Modifier.weight(1f))
@@ -86,7 +85,7 @@ fun FeatureShowcasePage(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(52.dp),
-            shape = RoundedCornerShape(12.dp)
+            shape = RoundedCornerShape(16.dp)
         ) {
             Text("下一步", fontSize = 16.sp)
         }
@@ -100,7 +99,7 @@ private fun FeatureCard(
     icon: ImageVector,
     title: String,
     description: String,
-    color: Color
+    accent: SettingsAccent
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -120,14 +119,14 @@ private fun FeatureCard(
             Box(
                 modifier = Modifier
                     .size(48.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(color.copy(alpha = 0.12f)),
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(accent.containerColor),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
-                    tint = color,
+                    tint = accent.color,
                     modifier = Modifier.size(24.dp)
                 )
             }

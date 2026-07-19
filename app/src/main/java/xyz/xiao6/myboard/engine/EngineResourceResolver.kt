@@ -1,20 +1,35 @@
 package xyz.xiao6.myboard.engine
 
-import xyz.xiao6.myboard.contract.input.*
-import xyz.xiao6.myboard.contract.layout.*
-import xyz.xiao6.myboard.contract.manifest.*
-import xyz.xiao6.myboard.contract.theme.*
-import xyz.xiao6.myboard.contract.engine.*
-import xyz.xiao6.myboard.contract.bridge.*
-import xyz.xiao6.myboard.contract.registry.*
-import xyz.xiao6.myboard.contract.panel.*
-import xyz.xiao6.myboard.contract.language.*
-import xyz.xiao6.myboard.contract.state.*
+import xyz.xiao6.myboard.contract.engine.EngineResources
+import xyz.xiao6.myboard.contract.manifest.LanguageCapability
+import xyz.xiao6.myboard.contract.manifest.ResolvedResourceKey
+import xyz.xiao6.myboard.contract.registry.ResourceRef
 
-/**
- * 引擎资源解析器。
- * 阶段 01 使用 StubEngineResourceResolver，阶段 05 替换真实实现。
- */
 interface EngineResourceResolver {
-    fun resolve(capability: SchemaCapability, packageId: String): EngineResources
+    fun resolve(capability: LanguageCapability): CapabilityResourceResolution
+    fun resolveResource(reference: ResourceRef, availableResources: Collection<ResolvedResourceKey>): ResourceResolution
+}
+
+class ResolvedResourceCatalog(resources: Collection<ResolvedResourceKey>) {
+    private val snapshot = resources.distinct().toList()
+
+    init {
+        require(snapshot.isNotEmpty()) { "Resolved resource catalog must not be empty" }
+    }
+
+    fun snapshot(): List<ResolvedResourceKey> = snapshot
+}
+
+sealed interface ResourceResolution {
+    data class Resolved(val key: ResolvedResourceKey) : ResourceResolution
+    data class RejectedPackage(val reason: String) : ResourceResolution
+    data class CapabilityDisabled(val reason: String) : ResourceResolution
+    data class CapabilityFallbackRequired(val reason: String) : ResourceResolution
+}
+
+sealed interface CapabilityResourceResolution {
+    data class Resolved(val resources: EngineResources) : CapabilityResourceResolution
+    data class RejectedPackage(val reason: String) : CapabilityResourceResolution
+    data class CapabilityDisabled(val reason: String) : CapabilityResourceResolution
+    data class CapabilityFallbackRequired(val reason: String) : CapabilityResourceResolution
 }

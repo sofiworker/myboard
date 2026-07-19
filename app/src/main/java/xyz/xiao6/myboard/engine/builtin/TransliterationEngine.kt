@@ -37,6 +37,7 @@ class TransliterationEngine : InputEngine {
             script = context.keyboardContext.orthogonal.script,
             schema = context.keyboardContext.orthogonal.schema
         )
+        override val capabilityKey = ResolvedCapabilityKey(capabilityId, context.resources.resolvedResources)
         
         private var fsmState: String = context.resources.fsm?.startState ?: ""
         

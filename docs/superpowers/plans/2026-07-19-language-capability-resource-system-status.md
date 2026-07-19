@@ -1,0 +1,39 @@
+# Language Capability Resource System Status
+
+**Updated:** 2026-07-19
+
+**Overall:** WIP. The implementation plan is not complete and this checkpoint must not be treated as release-ready.
+
+## Completed
+
+- Task 1: Open `Script` value type, standard Script IDs, catalog metadata, layout action parsing, and focused tests.
+- Task 2: Flat `LanguagePackManifest` / `LanguageCapability` contracts, resource bindings, validation, and removal of the old nested Manifest runtime model.
+- Task 3: Versioned resource identity, canonical layout IDs, resource resolution policies, and focused resolver/layout tests.
+- Task 4: `BuiltInLanguagePacks`, real built-in assets, resource catalog hashing, built-in registration, provider snapshot foundation, and registration tests.
+- Task 5: Capability-first IME initialization, no empty-registry hard-coded context fallback, and provider backup test fixtures.
+- Task 6 core path: Pipeline resolves a capability, selects `capability.engine.engineId`, builds an engine context/session, and serializes session replacement.
+
+## Partially Completed
+
+- Task 6: Extended action coverage, late asynchronous dictionary-result rejection, and complete mapping/FSM runtime parsing still require review and additional tests.
+- Task 7: A minimal JVM `PackageStore` fake now covers active versions, leases, delayed removal, hashes, and dependency validation. ZIP staging, crash recovery, persisted activation state, and production PackageStore integration are not complete or verified.
+
+## Not Started
+
+- Task 8: Settings single-source production cleanup and settings Flow integration.
+- Task 9: Final legacy-reference cleanup, RTL presentation completion, and scoped i18n verification.
+- Task 10: External Language Pack import and end-to-end Android regression coverage.
+
+## Verification
+
+- Passed focused Script, Manifest, resource resolver, layout canonical ID, built-in registration, context manager, and base InputPipeline tests during implementation.
+- The latest full `testDebugUnitTest` run was not clean before this checkpoint; subsequent focused provider/context tests passed after fixture fixes.
+- Task 7 has not been compiled or tested after its latest implementation.
+- `lintDebug`, `assembleDebug`, and `connectedDebugAndroidTest` have not been completed for this WIP checkpoint.
+
+## Resume Point
+
+1. Run `PackageLifecycleTest` and the complete JVM test suite with mise Java.
+2. Finish and review Task 6 extended behavior and Task 7 production integration.
+3. Execute Tasks 8-10.
+4. Run `testDebugUnitTest`, `lintDebug`, `assembleDebug`, and device tests when available.

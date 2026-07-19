@@ -21,6 +21,7 @@ class LayoutRegistryImpl : LayoutRegistry {
     
     private val layouts = mutableMapOf<String, LayoutDoc>()
     private val sources = mutableMapOf<String, LayoutSource>()
+    private val versionedLayouts = mutableMapOf<LayoutKey, LayoutDoc>()
     
     override fun register(doc: LayoutDoc, source: LayoutSource): RegisterResult {
         val issues = validate(doc)
@@ -40,9 +41,44 @@ class LayoutRegistryImpl : LayoutRegistry {
         layouts.remove(layoutId)
         sources.remove(layoutId)
     }
+
+    override fun register(key: LayoutKey, doc: LayoutDoc, source: LayoutSource): RegisterResult {
+        val issues = validate(doc)
+        val errors = issues.filter { it.severity == IssueSeverity.ERROR }.map { it.message }.toMutableList()
+        if (doc.id != key.layoutId && doc.id != key.toCanonicalId().value) {
+            errors += "Layout document ID '${doc.id}' does not match '${key.layoutId}'"
+        }
+        if (errors.isNotEmpty()) {
+            return RegisterResult.Failed(errors)
+        }
+
+        versionedLayouts[key] = doc
+        return RegisterResult.Success(key.toCanonicalId().value)
+    }
+
+    override fun unregister(key: LayoutKey) {
+        versionedLayouts.remove(key)
+    }
     
     override fun get(layoutId: String): LayoutDoc? {
         return layouts[layoutId]
+    }
+
+    override fun get(key: LayoutKey): LayoutDoc? = versionedLayouts[key]
+
+    override fun activeVersion(packageId: String, layoutId: String): SemVer? =
+        versionedLayouts.keys
+            .asSequence()
+            .filter { it.packageId == packageId && it.layoutId == layoutId }
+            .map(LayoutKey::packageVersion)
+            .maxOrNull()
+
+    override fun resolve(packageId: String, layoutId: String, packageVersion: SemVer): LayoutKey {
+        val key = LayoutKey(packageId, layoutId, packageVersion)
+        require(key in versionedLayouts) {
+            "Layout ${key.toCanonicalId().value} is not registered for package version $packageVersion"
+        }
+        return key
     }
     
     override fun validate(doc: LayoutDoc): List<LayoutIssue> {
@@ -160,10 +196,31 @@ class LayoutRegistryImpl : LayoutRegistry {
             LayoutActionType.CYCLE_LAYER ->
                 validateEnumListPayload<LayoutLayer>(action, "layers", location, issues)
             LayoutActionType.SWITCH_SCRIPT ->
-                validateEnumPayload<Script>(action, "script", location, issues, required = true)
+                validateScriptPayload(action, location, issues)
             LayoutActionType.OPEN_PANEL ->
                 validateEnumPayload<PanelType>(action, "panel", location, issues, required = true)
             else -> Unit
+        }
+    }
+
+    private fun validateScriptPayload(
+        action: ActionDef,
+        location: String,
+        issues: MutableList<LayoutIssue>
+    ) {
+        val value = (action.payload["script"] as? JsonPrimitive)?.content
+        if (value == null) {
+            issues.add(LayoutIssue(IssueSeverity.ERROR, "$location payload.script is required"))
+            return
+        }
+
+        if (Script.parse(value) == null) {
+            issues.add(
+                LayoutIssue(
+                    IssueSeverity.ERROR,
+                    "$location payload.script must be a four-letter script identifier"
+                )
+            )
         }
     }
 

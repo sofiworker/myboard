@@ -202,5 +202,5 @@ object BuiltInLayouts {
     val all: List<LayoutDoc> = listOf(qwerty)
     
     /** 根据 ID 查找 */
-    fun byId(id: String): LayoutDoc? = all.find { it.id == id }
+    fun byId(id: String): LayoutDoc? = all.find { it.id == id.substringAfter(':', id) }
 }

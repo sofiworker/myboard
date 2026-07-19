@@ -6,7 +6,61 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
 import xyz.xiao6.myboard.common.SchemaVersion
+import xyz.xiao6.myboard.contract.language.SemVer
 import xyz.xiao6.myboard.contract.state.LayoutLayer
+import xyz.xiao6.myboard.layout.LayoutRegistry
+
+/**
+ * Versioned identity of a registered layout resource.
+ *
+ * A layout document name is scoped to its package, and package versions remain
+ * part of the runtime identity even though they are intentionally omitted from
+ * persisted context state.
+ */
+data class LayoutKey(
+    val packageId: String,
+    val layoutId: String,
+    val packageVersion: SemVer
+) {
+    init {
+        require(packageId.isNotBlank() && ':' !in packageId) { "Layout package ID must be non-blank and must not contain ':'" }
+        require(layoutId.isNotBlank() && ':' !in layoutId) { "Layout ID must be non-blank and must not contain ':'" }
+    }
+}
+
+/** Version-independent layout ID persisted by [xyz.xiao6.myboard.contract.state.KeyboardContext]. */
+@JvmInline
+value class LayoutCanonicalId(val value: String) {
+    init {
+        parse(value)
+    }
+
+    internal fun components(): Pair<String, String> = parse(value)
+
+    companion object {
+        fun of(packageId: String, layoutId: String): LayoutCanonicalId {
+            require(packageId.isNotBlank() && ':' !in packageId) { "Layout package ID must be non-blank and must not contain ':'" }
+            require(layoutId.isNotBlank() && ':' !in layoutId) { "Layout ID must be non-blank and must not contain ':'" }
+            return LayoutCanonicalId("$packageId:$layoutId")
+        }
+
+        fun parse(value: String): Pair<String, String> {
+            val separator = value.indexOf(':')
+            require(separator > 0 && separator < value.lastIndex && value.indexOf(':', separator + 1) == -1) {
+                "Invalid layout canonical ID"
+            }
+            return value.substring(0, separator) to value.substring(separator + 1)
+        }
+    }
+}
+
+fun LayoutKey.toCanonicalId(): LayoutCanonicalId = LayoutCanonicalId.of(packageId, layoutId)
+
+/** Restores a versioned key only after the caller has selected a package version. */
+fun LayoutCanonicalId.resolve(packageVersion: SemVer, registry: LayoutRegistry): LayoutKey {
+    val (packageId, layoutId) = components()
+    return registry.resolve(packageId, layoutId, packageVersion)
+}
 
 /**
  * Layout v2 data contract.

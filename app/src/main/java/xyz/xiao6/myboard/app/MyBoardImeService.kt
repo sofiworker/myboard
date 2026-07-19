@@ -40,7 +40,7 @@ import xyz.xiao6.myboard.engine.builtin.*
 import xyz.xiao6.myboard.layout.*
 import xyz.xiao6.myboard.state.*
 import xyz.xiao6.myboard.theme.*
-import xyz.xiao6.myboard.state.BuiltInManifests
+import xyz.xiao6.myboard.pack.BuiltInLanguagePacks
 import xyz.xiao6.myboard.toolbar.ThemeToggler
 import xyz.xiao6.myboard.toolbar.LayoutSwitcher
 import xyz.xiao6.myboard.clipboard.ClipboardManagerWrapper
@@ -99,6 +99,7 @@ class MyBoardImeService : InputMethodService(), LifecycleOwner, SavedStateRegist
 
     private companion object {
         const val KEYBOARD_CHROME_HEIGHT_DP = 40
+        val BUILT_IN_PACKAGE_VERSION = SemVer(1, 0, 0)
     }
 
     override fun onCreate() {
@@ -106,11 +107,12 @@ class MyBoardImeService : InputMethodService(), LifecycleOwner, SavedStateRegist
         savedStateRegistryController.performRestore(null)
         lifecycleRegistry.currentState = Lifecycle.State.CREATED
 
-        initCoreComponents()
+        initRegistrationComponents()
         registerBuiltIns()
+        initRuntimeComponents()
     }
 
-    private fun initCoreComponents() {
+    private fun initRegistrationComponents() {
         // 1. 初始化底层注册表
         engineRegistry = EngineRegistryImpl()
         layoutRegistry = LayoutRegistryImpl()
@@ -124,7 +126,8 @@ class MyBoardImeService : InputMethodService(), LifecycleOwner, SavedStateRegist
             encoderRegistry = encoderRegistry,
             dictionaryRegistry = dictionaryRegistry,
             candidatePolicyRegistry = candidatePolicyRegistry,
-            displayPolicyRegistry = displayPolicyRegistry
+            displayPolicyRegistry = displayPolicyRegistry,
+            resourceCatalog = builtInResourceCatalog()
         )
 
         // 3. 初始化正交注册表
@@ -135,7 +138,11 @@ class MyBoardImeService : InputMethodService(), LifecycleOwner, SavedStateRegist
             engineResourceResolver = engineResourceResolver
         )
 
-        // 4. 初始化状态转移引擎
+        layoutAssetsLoader = LayoutAssetsLoader(this)
+    }
+
+    private fun initRuntimeComponents() {
+        // Capability 已发布后才创建运行态组件。
         transitionEngine = TransitionEngineImpl(orthogonalRegistry)
 
         // 5. 初始化键盘上下文管理器
@@ -161,6 +168,7 @@ class MyBoardImeService : InputMethodService(), LifecycleOwner, SavedStateRegist
 
         // 9. 初始化输入管线
         inputPipeline = InputPipelineImpl(
+            capabilityRegistry = orthogonalRegistry,
             engineRegistry = engineRegistry,
             keyboardContextManager = keyboardContextManager,
             gateway = inputConnectionGateway,
@@ -179,9 +187,6 @@ class MyBoardImeService : InputMethodService(), LifecycleOwner, SavedStateRegist
             else -> BuiltInThemes.light
         }
         themeResolver = ThemeResolverImpl(initialTheme)
-
-        // 12. 初始化布局加载器
-        layoutAssetsLoader = LayoutAssetsLoader(this)
 
         // 13. 初始化 toolbar 组件
         themeToggler = ThemeToggler(settingsRepository, themeResolver)
@@ -211,6 +216,10 @@ class MyBoardImeService : InputMethodService(), LifecycleOwner, SavedStateRegist
         displayPolicyRegistry.register(ShowComposingPolicy())
         displayPolicyRegistry.register(HiddenDisplayPolicy())
 
+        BuiltInLanguagePacks.registerDictionaries(dictionaryRegistry) { path ->
+            runCatching { assets.open(path).use { it.readBytes() } }.getOrNull()
+        }
+
         // 注册内置布局
         val layoutIds = listOf(
             "qwerty",
@@ -229,12 +238,13 @@ class MyBoardImeService : InputMethodService(), LifecycleOwner, SavedStateRegist
         layoutIds.forEach { id ->
             val doc = layoutAssetsLoader.load(id)
             if (doc != null) {
-                layoutRegistry.register(doc, LayoutSource.BUILT_IN)
+                val key = LayoutKey("builtin", id, BUILT_IN_PACKAGE_VERSION)
+                layoutRegistry.register(key, doc.copy(id = key.toCanonicalId().value), LayoutSource.BUILT_IN)
             }
         }
 
         // 注册内置语言包
-        BuiltInManifests.all.forEach { manifest ->
+        BuiltInLanguagePacks.all.forEach { manifest ->
             orthogonalRegistry.register(manifest)
         }
     }
@@ -250,8 +260,15 @@ class MyBoardImeService : InputMethodService(), LifecycleOwner, SavedStateRegist
                 val uiRevision = _uiRevision.longValue
                 val panelLayoutId = PanelLayoutResolver.layoutIdFor(context.activePanel)
                 val activeLayoutId = panelLayoutId ?: context.layoutId
-                val layoutDoc = layoutAssetsLoader.load(activeLayoutId)
-                    ?: layoutRegistry.get(activeLayoutId)
+                val layoutDoc = panelLayoutId?.let(layoutAssetsLoader::load)
+                    ?: runCatching {
+                        val canonicalId = LayoutCanonicalId(activeLayoutId)
+                        val (packageId, layoutId) = canonicalId.components()
+                        val packageVersion = checkNotNull(layoutRegistry.activeVersion(packageId, layoutId))
+                        canonicalId
+                            .resolve(packageVersion, layoutRegistry)
+                            .let(layoutRegistry::get)
+                    }.getOrNull()
                 val isDark = themeResolver.isDark()
 
                 // 观察工具栏配置
@@ -396,7 +413,7 @@ class MyBoardImeService : InputMethodService(), LifecycleOwner, SavedStateRegist
                             )
                         }
                         PanelType.LOCALE_SWITCH, PanelType.LAYOUT_SWITCH -> {
-                            val locales = BuiltInManifests.all.mapNotNull { manifest ->
+                            val locales = BuiltInLanguagePacks.all.mapNotNull { manifest ->
                                 orthogonalRegistry.getLocale(manifest.locale)
                             }
                             LocaleLayoutSwitchPanel(
@@ -406,8 +423,10 @@ class MyBoardImeService : InputMethodService(), LifecycleOwner, SavedStateRegist
                                 schemasForLocale = { locale ->
                                     val localeCap = orthogonalRegistry.getLocale(locale)
                                     val defaultScript = localeCap?.defaults?.script
-                                    val scriptCap = localeCap?.scripts?.get(defaultScript)
-                                    scriptCap?.schemas?.keys?.toList() ?: emptyList()
+                                    localeCap?.capabilities
+                                        ?.filter { it.id.script == defaultScript }
+                                        ?.map { it.id.schema }
+                                        ?: emptyList()
                                 },
                                 getSchemaDisplayName = layoutSwitcher::getSchemaDisplayName,
                                 onLocaleSelected = { targetLocale ->
@@ -518,6 +537,12 @@ class MyBoardImeService : InputMethodService(), LifecycleOwner, SavedStateRegist
 
         composeViewRef = composeView
         return composeView
+    }
+
+    private fun builtInResourceCatalog(): ResolvedResourceCatalog {
+        return BuiltInLanguagePacks.resourceCatalog { path ->
+            runCatching { assets.open(path).use { it.readBytes() } }.getOrNull()
+        }
     }
 
     private fun updateInputView() {

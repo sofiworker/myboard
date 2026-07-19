@@ -14,7 +14,7 @@ import kotlinx.coroutines.launch
 import xyz.xiao6.myboard.contract.state.LocaleTag
 import xyz.xiao6.myboard.contract.state.Schema
 import xyz.xiao6.myboard.data.repository.SettingsRepository
-import xyz.xiao6.myboard.state.BuiltInManifests
+import xyz.xiao6.myboard.pack.BuiltInLanguagePacks
 
 /**
  * 引导页 UI 状态。
@@ -47,7 +47,7 @@ class OnboardingViewModel(
     /** 系统当前语言对应的 LocaleTag，用于预选中。 */
     fun detectSystemLocale(): LocaleTag? {
         val systemLang = java.util.Locale.getDefault().toLanguageTag()
-        val supported = BuiltInManifests.all.map { it.locale }
+        val supported = BuiltInLanguagePacks.all.map { it.locale }
         // 精确匹配
         supported.find { it.value == systemLang }?.let { return it }
         // 前缀匹配 (zh-Hans-CN -> zh-CN)
@@ -61,12 +61,12 @@ class OnboardingViewModel(
     fun initializeWithSystemLocale() {
         val systemLocale = detectSystemLocale()
         val selected = mutableMapOf<LocaleTag, List<Schema>>()
-        val enManifest = BuiltInManifests.all.find { it.locale.value == "en-US" }
+        val enManifest = BuiltInLanguagePacks.all.find { it.locale.value == "en-US" }
         if (enManifest != null) {
             selected[enManifest.locale] = listOf(enManifest.defaults.schema)
         }
         if (systemLocale != null && systemLocale.value != "en-US") {
-            val manifest = BuiltInManifests.all.find { it.locale == systemLocale }
+            val manifest = BuiltInLanguagePacks.all.find { it.locale == systemLocale }
             if (manifest != null && systemLocale !in selected) {
                 selected[systemLocale] = listOf(manifest.defaults.schema)
             }
@@ -172,7 +172,7 @@ class OnboardingViewModel(
         var schemas = _uiState.value.schemaDialogSchemas
         if (schemas.isEmpty()) {
             // 至少保留一个默认方案
-            val manifest = BuiltInManifests.all.find { it.locale == locale }
+            val manifest = BuiltInLanguagePacks.all.find { it.locale == locale }
             schemas = listOf(manifest?.defaults?.schema ?: Schema("LATIN_DIRECT"))
         }
         val updated = _uiState.value.selectedLanguages.toMutableMap()

@@ -16,7 +16,8 @@ class LayoutAssetsLoader(private val context: Context) {
         cache[layoutId]?.let { return it }
 
         // 尝试从 assets 加载 JSONC
-        val fromAssets = loadFromAssets(layoutId)
+        val assetId = layoutId.substringAfter(':', layoutId)
+        val fromAssets = loadFromAssets(assetId)?.copy(id = assetId)
         if (fromAssets != null) {
             cache[layoutId] = fromAssets
             return fromAssets

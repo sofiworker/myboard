@@ -108,15 +108,19 @@ class KeyboardContextManagerImpl(
     
     private fun createInitialContext(): KeyboardContext {
         // 默认使用 en-US / LATN / LATIN_DIRECT
-        val defaultState = registry.defaultState(LocaleTag("en-US"))
-            ?: OrthogonalState(
-                locale = LocaleTag("en-US"),
-                script = Script.LATN,
-                schema = BuiltInSchemas.LATIN_DIRECT
-            )
-        
-        val schemaCap = registry.schemaCapability(defaultState)
-        val layoutId = schemaCap?.layoutId ?: "qwerty"
+        val provider = registry.snapshot().providersByLocale
+            .toSortedMap(compareBy(LocaleTag::value))
+            .values
+            .firstOrNull()
+            ?.firstOrNull()
+            ?: throw IllegalStateException("Cannot create KeyboardContextManager without a registered language capability")
+        val defaultState = checkNotNull(registry.defaultState(provider.locale)) {
+            "Provider '${provider.identity.packageId}' has no default state"
+        }
+        val schemaCap = checkNotNull(registry.schemaCapability(defaultState)) {
+            "Provider '${provider.identity.packageId}' has no default capability"
+        }
+        val layoutId = schemaCap.layout.toLayoutCanonicalId().value
         
         return KeyboardContext(
             orthogonal = defaultState,
