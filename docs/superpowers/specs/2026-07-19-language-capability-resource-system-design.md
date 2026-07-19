@@ -536,7 +536,7 @@ locale_default_provider.zh-CN = builtin.zh-cn
 
 ### 5.3 注册顺序
 
-IME 服务初始化必须调整为：
+IME 服务初始化必须调整为以下顺序。当前 `MyBoardImeService.initCoreComponents()` 与 `registerBuiltIns()` 的边界必须拆分：`registerBuiltIns()` 不能在 `KeyboardContextManagerImpl` 创建之后调用。
 
 ```text
 1. 创建 EngineRegistry
@@ -549,6 +549,14 @@ IME 服务初始化必须调整为：
 8. 创建 KeyboardContextManager
 9. 创建 InputPipeline
 ```
+
+具体实现要求：
+
+- 将 `initCoreComponents()` 拆为“创建注册表/资源加载器”和“创建运行时组件”两个阶段。
+- `registerBuiltIns()` 必须在第二阶段之前执行；内置 Language Pack 的 Manifest、字典、布局和策略注册完成后，才能创建 `KeyboardContextManagerImpl`。
+- `KeyboardContextManagerImpl.createInitialContext()` 必须从已注册能力解析默认 Locale/Script/Schema 和布局。
+- `en-US` 只能作为已注册内置包的默认值，不能再作为注册表为空时的正常硬编码兜底。
+- 只有在启动恢复或包损坏时，才允许通过显式回退策略构造安全的 direct 状态；该回退不能写回能力注册表，也不能掩盖注册失败。
 
 `KeyboardContextManager` 不得在 Manifest 注册前创建并依赖硬编码回退状态。
 
@@ -831,7 +839,7 @@ builtin.zh-cn / zh-CN / HANI / SHUANGPIN_ZIRAN
 6. 扩展 `OrthogonalRegistry`，支持 `state -> capabilities` 和 provider 选择。
 7. 为 `DictionaryRegistry`、`LayoutRegistry` 和资源解析器增加包身份。
 8. 将内置中英日数据适配为内置 Language Pack。
-9. 调整 IME 初始化顺序，先注册能力再创建 Context Manager。
+9. 拆分 `MyBoardImeService.initCoreComponents()`：先执行 `registerBuiltIns()` 和目标 Language Pack 注册，再创建 `KeyboardContextManagerImpl`，最后创建 `InputPipelineImpl`。
 10. 为 `InputPipeline` 注入 Capability Registry 和 Resource Resolver。
 11. 实现 EngineContext 和 InputSession 创建、关闭、串行处理。
 12. 增加 Pipeline、Manifest、开放 Script、RTL presentation、资源依赖和回退测试。
