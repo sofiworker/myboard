@@ -75,6 +75,33 @@ Manifest、依赖、资源路径、资源完整性、引擎 ID、布局 ID、策
 
 用户可以安装一个语言包获得完整能力；系统内部仍分别管理 Language Capability、Dictionary、Layout、Mapping 和 FSM，以支持复用、缓存、升级和依赖关系。
 
+### 2.5 Script 是开放标准标识
+
+`Script` 不使用封闭 Kotlin `enum`。它表示 ISO 15924 风格的四字母文字系统标识，语言包可以声明应用未预置的合法 Script。常用值提供内置常量，但内置常量不是第三方包的注册白名单。
+
+```kotlin
+@JvmInline
+@Serializable
+value class Script private constructor(val value: String) {
+    companion object {
+        val LATN = Script("LATN")
+        val HANI = Script("HANI")
+        val HIRA = Script("HIRA")
+        val KANA = Script("KANA")
+        val HANG = Script("HANG")
+        val ARAB = Script("ARAB")
+        val THAI = Script("THAI")
+        val DEVA = Script("DEVA")
+
+        fun parse(raw: String): Script
+    }
+}
+```
+
+当前 `KATA` 统一为 `KANA`，`HANGUL` 统一为 `HANG`。越南语通常使用 `LATN`，韩语使用 `HANG`，阿拉伯语/波斯语/乌尔都语通常使用 `ARAB`，印地语使用 `DEVA`。
+
+开放 Script 只代表标识合法，不代表当前一定存在可运行能力。未知 Script 由能力注册表决定是否可用，不能因为不在内置目录中就被状态层拒绝。
+
 ## 3. 领域模型
 
 ### 3.1 PackageId 与版本
@@ -99,7 +126,57 @@ builtin.zh-dictionary
 
 Manifest 必须声明 `manifestVersion`、`packageVersion`、`minAppVersion` 和可选的资源 API 版本。
 
-### 3.2 逻辑资源引用与已解析资源身份
+### 3.2 Script 与 ScriptCatalog
+
+```kotlin
+data class ScriptDescriptor(
+    val script: Script,
+    val displayNames: Map<String, String>,
+    val direction: TextDirection,
+    val layoutMirror: LayoutMirrorPolicy,
+    val preferredFont: String? = null
+)
+
+enum class TextDirection { LTR, RTL }
+enum class LayoutMirrorPolicy { NONE, MIRROR_HORIZONTAL }
+```
+
+`ScriptCatalog` 只提供常用 Script 的本地化名称、书写方向、镜像策略、字体和默认 UI 元数据，不决定 Script 是否允许注册。Language Pack 的 `ScriptManifest.descriptor` 是运行时权威来源；未知 Script 必须在包内显式提供 descriptor，不能静默使用 LTR。对于内置 Script，包未覆盖的可选显示字段可以回退到 ScriptCatalog，但 `direction` 和 `layoutMirror` 必须有确定值。
+
+外部 Manifest 的 scripts 使用数组，而不是依赖 enum 或 JSON 动态对象 key：
+
+```json
+{
+  "scripts": [
+    {
+      "id": "LATN",
+      "direction": "LTR",
+      "layoutMirror": "NONE",
+      "defaultSchema": "LATIN_DIRECT"
+    },
+    {
+      "id": "ARAB",
+      "direction": "RTL",
+      "layoutMirror": "MIRROR_HORIZONTAL",
+      "defaultSchema": "ARABIC_DIRECT"
+    }
+  ]
+}
+```
+
+对应模型：
+
+```kotlin
+data class ScriptManifest(
+    val id: Script,
+    val descriptor: ScriptDescriptor,
+    val defaultSchema: Schema
+)
+```
+
+解析后再在内存中建立 `Map<Script, ScriptManifest>` 索引。
+
+### 3.3 逻辑资源引用与已解析资源身份
 
 Manifest 中保存逻辑资源引用。逻辑引用描述依赖目标，但不代表某个已安装版本的物理文件：
 
@@ -149,7 +226,7 @@ data class ResolvedResourceKey(
 
 `USE_CAPABILITY_FALLBACK` 要求所属 `LanguageCapability.fallbackCapabilityIds` 非空；`DISABLE_CAPABILITY` 会让该 capability 不进入可用索引。Layout、FSM、Mapping、Encoder Config 等必需资源默认使用 `REJECT_PACKAGE`，不能因为 optional 包缺失而被隐式忽略。
 
-### 3.3 CapabilityId
+### 3.4 CapabilityId
 
 能力身份保留包信息：
 
@@ -164,7 +241,7 @@ data class CapabilityId(
 
 `CapabilityId` 是能力目录和 `InputSession` 的身份，不是新的正交状态轴。
 
-### 3.4 LanguagePackManifest
+### 3.5 LanguagePackManifest
 
 ```kotlin
 data class LanguagePackManifest(
@@ -174,7 +251,7 @@ data class LanguagePackManifest(
     val locale: LocaleTag,
     val displayName: LocalizedText,
     val defaults: LocaleDefaults,
-    val scriptDefaults: Map<Script, Schema>,
+    val scripts: List<ScriptManifest>,
     val dependencies: List<PackageDependency>,
     val capabilities: List<LanguageCapability>
 )
@@ -182,9 +259,9 @@ data class LanguagePackManifest(
 
 一个语言包可以包含多个 Script 和 Schema。语言包不要求一个 Locale 只能有一个包；同一状态由多个包提供时，由能力选择策略决定当前 provider。
 
-`defaults` 定义 Locale 默认 Script、Schema 和基础布局；`scriptDefaults` 定义每个 Script 的默认 Schema。初始化、切换 Locale 和切换 Script 都必须从当前 provider 的默认值解析。外部 provider 默认不能覆盖内置默认值，除非用户显式选择它为该 Locale 的默认能力来源。
+`defaults` 定义 Locale 默认 Script、Schema 和基础布局；每个 `ScriptManifest` 定义该 Script 的方向、镜像策略和默认 Schema。初始化、切换 Locale 和切换 Script 都必须从当前 provider 的默认值解析。外部 provider 默认不能覆盖内置默认值，除非用户显式选择它为该 Locale 的默认能力来源。
 
-### 3.5 LanguageCapability
+### 3.6 LanguageCapability
 
 ```kotlin
 data class LanguageCapability(
@@ -202,6 +279,19 @@ data class LanguageCapability(
     val fallbackCapabilityIds: List<CapabilityId> = emptyList()
 )
 ```
+
+能力解析后生成只读的运行时投影，供布局、候选栏和输入服务消费：
+
+```kotlin
+data class ResolvedCapability(
+    val capability: LanguageCapability,
+    val scriptDescriptor: ScriptDescriptor,
+    val layoutKey: LayoutKey,
+    val resources: ResolvedResources
+)
+```
+
+`scriptDescriptor.direction` 和 `layoutMirror` 只能通过该解析结果进入渲染层；Layout 文档本身不读取 Locale、Script 或 Settings。候选栏、工具栏和键盘布局根据 `ResolvedCapability` 的 presentation 投影决定 RTL 排列和水平镜像，`OrthogonalState` 不增加方向字段。
 
 引擎绑定只引用已注册的引擎和资源：
 
@@ -233,7 +323,7 @@ enum class DictionaryRole {
 
 这覆盖现有 `dictionaryOptional`、`conversionDictionary` 和不同候选资源的职责。`subtype` 保留内置能力导出 Android subtype 所需元数据；外部包仍不参与构建期 `method.xml` 生成。
 
-### 3.6 Dictionary
+### 3.7 Dictionary
 
 字典是可复用的只读运行时资源。字典可以随语言包提供，也可以由独立 Dictionary Pack 提供。
 
@@ -250,7 +340,7 @@ enum class DictionaryKind {
 
 用户词典不属于 Language Pack，单独存储并通过统一 `Dictionary` 接口参与候选查询。
 
-### 3.7 包依赖
+### 3.8 包依赖
 
 ```kotlin
 data class PackageDependency(
@@ -264,7 +354,7 @@ data class PackageDependency(
 
 Optional 依赖只有在所有指向该包的 `ResourceRef` 都明确使用 `DISABLE_CAPABILITY` 或 `USE_CAPABILITY_FALLBACK` 时才合法；否则 Manifest 校验失败。安装器通过资源引用反向索引确定受影响 capability，不允许存在“optional 但缺失后行为未知”的依赖。
 
-### 3.8 Layout
+### 3.9 Layout
 
 Layout 只描述键位结构、显示内容、动作、层级、命中区域和测量属性。Layout 不读取语言设置，不查询字典，也不实现输入算法。
 
@@ -288,7 +378,7 @@ data class LayoutKey(
 
 Manifest 中的 `ResourceRef` 解析为 `LayoutKey`，`KeyboardContext` 第一阶段保存可序列化的 canonical ID，例如 `builtin:qwerty`。不同包提供同名 `qwerty` 时不会覆盖。用户布局覆盖必须通过目标 capability 的 token/action 契约校验。
 
-### 3.9 Engine
+### 3.10 Engine
 
 第一阶段只允许以下内置引擎：
 
@@ -543,6 +633,14 @@ Layout key
 
 Pipeline 才负责将 Action 转换成 InputEvent、调用 Session 和执行 EngineResult。布局不能直接调用 `InputConnection` 或字典。
 
+布局中的 `switch_script` action 使用字符串 Script ID：
+
+```json
+{ "action": "switch_script", "script": "ARAB" }
+```
+
+`ActionDispatcher` 通过 `Script.parse` 解析；`LayoutRegistry` 通过开放值校验器检查格式，不再调用 `enumPayload<Script>()`。解析成功只表示 Script 标识合法，`TransitionEngine` 仍需通过当前 Locale 的能力目录判断是否支持该 Script。
+
 ### 6.4 KeyboardContext 投影
 
 第一阶段保留当前 `KeyboardContext.layoutId` 字段，但约束为：
@@ -551,6 +649,7 @@ Pipeline 才负责将 Action 转换成 InputEvent、调用 Session 和执行 Eng
 - `layoutId` 是当前 capability 的 canonical `LayoutKey` 投影。
 - Schema 切换后由 capability resolver 更新默认布局。
 - 用户自定义布局以后通过独立的布局偏好覆盖。
+- `ResolvedCapability.scriptDescriptor` 是当前布局和候选区方向/镜像策略的唯一运行时来源。
 
 后续如支持主题布局绑定，再引入 `baseLayoutId` 与 `effectiveLayoutId`，不把它们加入正交状态。
 
@@ -592,6 +691,8 @@ builtin.zh-cn / zh-CN / HANI / SHUANGPIN_ZIRAN
 ### 8.1 安装期
 
 - Manifest 非法：拒绝整包。
+- 每个 `ScriptManifest` 必须提供可解析的 `direction` 和 `layoutMirror`；未知 RTL Script 缺少方向声明时拒绝该 Manifest。
+- `scripts` 数组中的 Script ID 必须唯一；`descriptor.script` 必须与 `id` 一致；每个 `defaultSchema` 必须对应 capability；所有 `CapabilityId` 必须唯一，否则拒绝 Manifest。
 - 依赖缺失：拒绝整包，除非依赖标记为 optional 且能力可以安全降级。
 - 引擎 ID 不存在：拒绝引用该能力，必要时拒绝整包。
 - 布局或字典缺失：拒绝依赖该资源的能力。
@@ -626,6 +727,10 @@ builtin.zh-cn / zh-CN / HANI / SHUANGPIN_ZIRAN
 - 不存在的 engineId、encoderId、policyId 被拒绝。
 - 同一 `OrthogonalState` 的多个 provider 能按优先级解析。
 - Locale 切换先按 LocaleDefaultProviderPreference 选择 Manifest，再解析默认 Script/Schema。
+- `THAI`、`ARAB`、`DEVA` 等常用 Script，以及未来不在内置常量目录中的合法 Script，都可以完成 Manifest 解析；格式非法的 Script 被拒绝。
+- `KANA` 和 `HANG` 使用新的标准标识，Manifest 不再依赖 `KATA` 或 `HANGUL` enum 名称。
+- 未知 RTL Script 的 descriptor 会驱动 RTL 候选区和键盘镜像；缺少 capability 时不会污染 `OrthogonalState`。
+- 重复 Script ID、descriptor/script 不一致、缺失 default capability 和重复 CapabilityId 都会在数组转索引前被拒绝，不允许静默覆盖。
 - 包卸载后 capability 和资源索引被清理。
 - 同优先级 provider 使用稳定 tie-breaker，重复解析结果一致。
 - 依赖环、版本区间冲突和 optional 降级分别被正确处理。
@@ -664,6 +769,8 @@ builtin.zh-cn / zh-CN / HANI / SHUANGPIN_ZIRAN
 - 中文拼音、双拼、T9、英文直输和日文罗马字分别解析到正确引擎。
 - 内置包加载顺序不会产生硬编码初始状态回退。
 - 现有 `dictionaryOptional`、`conversionDictionary`、`outputScript` 和 subtype 元数据完成无损迁移。
+- 未知但格式合法的 Script 可被能力目录保存和查询；缺少能力时不会被状态层误认为非法。
+- `ARAB` 等 RTL Script 的 descriptor 会驱动键盘镜像和候选区方向，且不污染 `OrthogonalState`。
 
 ### 10.6 设置同步
 
@@ -673,16 +780,19 @@ builtin.zh-cn / zh-CN / HANI / SHUANGPIN_ZIRAN
 
 ## 11. 实施顺序
 
-1. 定义 `ResourceRef`、Package Identity、Manifest 和 Capability 模型。
-2. 扩展 `OrthogonalRegistry`，支持 `state -> capabilities` 和 provider 选择。
-3. 为 `DictionaryRegistry`、`LayoutRegistry` 和资源解析器增加包身份。
-4. 将内置中英日数据适配为内置 Language Pack。
-5. 调整 IME 初始化顺序，先注册能力再创建 Context Manager。
-6. 为 `InputPipeline` 注入 Capability Registry 和 Resource Resolver。
-7. 实现 EngineContext 和 InputSession 创建、关闭、串行处理。
-8. 增加 Pipeline、Manifest、资源依赖和回退测试。
-9. 在完整输入链路稳定后，再实现外部 Language Pack 导入。
-10. 最后评估独立 Dictionary Pack、Layout Pack 和 Engine Plugin。
+1. 将 `Script` 从 enum 改为开放标准值类型，统一 `KANA`/`HANG` 标识并增加 `ScriptCatalog`。
+2. 定义 `ScriptManifest`、方向/镜像策略和 `ResolvedCapability` presentation 投影。
+3. 定义 `ResourceRef`、Package Identity、Manifest 和 Capability 模型。
+4. 将外部 Manifest 的 scripts 改为数组，扩展 Script 解析、布局动作和校验逻辑。
+5. 扩展 `OrthogonalRegistry`，支持 `state -> capabilities` 和 provider 选择。
+6. 为 `DictionaryRegistry`、`LayoutRegistry` 和资源解析器增加包身份。
+7. 将内置中英日数据适配为内置 Language Pack。
+8. 调整 IME 初始化顺序，先注册能力再创建 Context Manager。
+9. 为 `InputPipeline` 注入 Capability Registry 和 Resource Resolver。
+10. 实现 EngineContext 和 InputSession 创建、关闭、串行处理。
+11. 增加 Pipeline、Manifest、开放 Script、RTL presentation、资源依赖和回退测试。
+12. 在完整输入链路稳定后，再实现外部 Language Pack 导入。
+13. 最后评估独立 Dictionary Pack、Layout Pack 和 Engine Plugin。
 
 ## 12. 设计结论
 
