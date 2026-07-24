@@ -66,6 +66,8 @@
     <string name="settings_language_pack_uninstall">Uninstall</string>
     <string name="settings_language_pack_uninstall_title">Uninstall language pack?</string>
     <string name="settings_language_pack_uninstall_message">The package data will be removed. Active input will switch to an available provider.</string>
+    <string name="settings_language_pack_provider_use">Use this provider</string>
+    <string name="settings_language_pack_provider_selected">Selected provider</string>
 
     <!-- Schema display names -->
     <string name="schema_pinyin">Pinyin</string>

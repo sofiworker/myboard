@@ -28,6 +28,7 @@ data class InstalledLanguagePack(
 data class LanguagePackManagementState(
     val installed: List<InstalledLanguagePack> = emptyList(),
     val preferences: LanguagePackPreferences = LanguagePackPreferences(),
+    val providerOptions: Map<OrthogonalState, List<String>> = emptyMap(),
     val isWorking: Boolean = false,
     val message: String? = null
 )
@@ -145,11 +146,19 @@ class LanguagePackCoordinator(
 
     private suspend fun refreshLocked() {
         val preferences = preferencesStore.getLanguagePackPreferences()
+        val effective = buildEffectiveRegistrySnapshot(
+            manifests = builtInManifests + packageStore.installedManifests(),
+            builtInPackageIds = builtInManifests.map { it.identity.packageId }.toSet(),
+            enabledExternalPackageIds = preferences.enabledPackageIds
+        )
         _state.value = LanguagePackManagementState(
             installed = packageStore.installedManifests()
                 .sortedBy { it.identity.packageId }
                 .map { InstalledLanguagePack(it.identity, it.displayName, it.identity.packageId in preferences.enabledPackageIds) },
-            preferences = preferences
+            preferences = preferences,
+            providerOptions = effective.snapshot.capabilitiesByState
+                .mapValues { (_, capabilities) -> capabilities.map { it.id.packageId }.distinct() }
+                .filterValues { it.size > 1 }
         )
     }
 

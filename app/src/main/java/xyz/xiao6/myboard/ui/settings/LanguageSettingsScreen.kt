@@ -54,6 +54,7 @@ import xyz.xiao6.myboard.contract.manifest.LanguagePackManifest
 import xyz.xiao6.myboard.contract.state.BuiltInSchemas
 import xyz.xiao6.myboard.contract.state.LocaleTag
 import xyz.xiao6.myboard.contract.state.Schema
+import xyz.xiao6.myboard.contract.state.OrthogonalState
 import xyz.xiao6.myboard.pack.BuiltInLanguagePacks
 import java.util.Locale
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -132,6 +133,8 @@ fun LanguageSettingsScreen(
                 onClickLocale = { viewModel.startEditSchemas(it) },
                 onAddLanguage = { viewModel.startAddLanguage() },
                 installedPackages = uiState.installedPackages,
+                providerOptions = uiState.providerOptions,
+                providerPreferences = uiState.providerPreferences,
                 packageOperationInProgress = uiState.packageOperationInProgress,
                 packageMessage = uiState.packageMessage,
                 onImportPackage = {
@@ -139,6 +142,7 @@ fun LanguageSettingsScreen(
                 },
                 onSetPackageEnabled = viewModel::setPackageEnabled,
                 onUninstallPackage = { pendingUninstall = it },
+                onSelectProvider = viewModel::selectProvider,
                 onBack = onBack
             )
         }
@@ -198,11 +202,14 @@ private fun LanguageListContent(
     onClickLocale: (LocaleTag) -> Unit,
     onAddLanguage: () -> Unit,
     installedPackages: List<InstalledLanguagePack>,
+    providerOptions: Map<OrthogonalState, List<String>>,
+    providerPreferences: Map<OrthogonalState, String>,
     packageOperationInProgress: Boolean,
     packageMessage: String?,
     onImportPackage: () -> Unit,
     onSetPackageEnabled: (String, Boolean) -> Unit,
     onUninstallPackage: (String) -> Unit,
+    onSelectProvider: (OrthogonalState, String) -> Unit,
     onBack: () -> Unit
 ) {
     SettingsScaffold(
@@ -395,6 +402,23 @@ private fun LanguageListContent(
                                         TextButton(onClick = { onUninstallPackage(pack.identity.packageId) }) {
                                             Text(stringResource(R.string.settings_language_pack_uninstall))
                                         }
+                                        providerOptions
+                                            .filterValues { pack.identity.packageId in it }
+                                            .forEach { (state, options) ->
+                                                val selected = providerPreferences[state] ?: options.first()
+                                                TextButton(
+                                                    onClick = { onSelectProvider(state, pack.identity.packageId) },
+                                                    enabled = selected != pack.identity.packageId
+                                                ) {
+                                                    Text(
+                                                        if (selected == pack.identity.packageId) {
+                                                            stringResource(R.string.settings_language_pack_provider_selected)
+                                                        } else {
+                                                            stringResource(R.string.settings_language_pack_provider_use)
+                                                        }
+                                                    )
+                                                }
+                                            }
                                     }
                                     Switch(
                                         checked = pack.enabled,

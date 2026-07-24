@@ -16,19 +16,20 @@
 - Task 7: Package lifecycle is transactional and persistent. It includes upgrade/uninstall leases, dependency-cycle validation, Unicode/path/hash checks, atomic staging/current/backup recovery, safe ZIP staging with executable and size limits, a transactional importer boundary, process-wide app-private storage, and restored resource/Manifest registration during IME startup.
 - Task 8: `SettingsActivity` is the production settings composition root. Settings screens require explicit ViewModel/Repository injection, the Input route is reachable, a static regression test prevents screen-local database creation, and the IME observes the shared Room Flow for locale changes.
 - Task 9: Legacy capability references are cleared. Manifest `ScriptDescriptor` metadata is the single source for candidate direction and keyboard mirroring, Arabic RTL presentation is covered by tests, default/Chinese/Japanese string keys are kept in sync by a static regression test, and the obsolete View-based IME layout was removed.
+- Task 10 core: External ZIP packages use a strict JSON DTO decoder, transactional staging/install, enabled-package filtering, provider preferences, rollback checkpoints, and app-private persistence. `SettingsActivity` composes the process store/coordinator/document source, the language settings page imports through the Storage Access Framework without storage permission, and users can enable, disable, select a provider, or uninstall external packages. The IME observes the same Room preferences, rebuilds external layouts/resources/capabilities, applies provider preferences through an atomic registry delegate, and recreates the input session safely.
 
-## Not Started
+## Pending Device Verification
 
-- Task 10: External Language Pack import and end-to-end Android regression coverage.
+- Task 10 connected Android regression and final manual input-flow verification remain pending because `adb` is not available in the current environment.
 
 ## Verification
 
 - Passed focused Script, Manifest, resource resolver, layout canonical ID, built-in registration, context manager, and base InputPipeline tests during implementation.
-- The latest full `testDebugUnitTest` and `assembleDebug` run passed after completing Task 9.
-- `lintDebug` passed after removing the unused legacy `ime_view.xml`; `connectedDebugAndroidTest` has not been run because no device verification was requested or available for this checkpoint.
+- The latest full `testDebugUnitTest`, `lintDebug`, and `assembleDebug` run passed after the Task 10 implementation.
+- APK: `app/build/outputs/apk/debug/app-debug.apk`.
+- `connectedDebugAndroidTest` was not run: the `adb` executable is unavailable in the current environment. No device-test success is claimed.
 
 ## Resume Point
 
-1. Execute Task 10 external package import and Android regression coverage.
-2. Run `connectedDebugAndroidTest` when a device is available.
-3. Complete the final manual input-flow verification checklist.
+1. Make Android SDK platform tools / `adb` available and run `connectedDebugAndroidTest` on an authorized device or emulator.
+2. Complete the final manual import, provider switch, RTL layout, upgrade, disable, and uninstall input-flow checklist.

@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import xyz.xiao6.myboard.contract.state.LocaleTag
 import xyz.xiao6.myboard.contract.state.Schema
+import xyz.xiao6.myboard.contract.state.OrthogonalState
 import xyz.xiao6.myboard.data.repository.SettingsRepository
 import android.net.Uri
 import xyz.xiao6.myboard.pack.InstalledLanguagePack
@@ -37,6 +38,8 @@ class LanguageSettingsViewModel(
         /** 当前正在添加新语言 */
         val isAddingLanguage: Boolean = false,
         val installedPackages: List<InstalledLanguagePack> = emptyList(),
+        val providerOptions: Map<OrthogonalState, List<String>> = emptyMap(),
+        val providerPreferences: Map<OrthogonalState, String> = emptyMap(),
         val packageOperationInProgress: Boolean = false,
         val packageMessage: String? = null
     )
@@ -63,6 +66,8 @@ class LanguageSettingsViewModel(
             packageCoordinator.state.collect { packageState ->
                 _uiState.value = _uiState.value.copy(
                     installedPackages = packageState.installed,
+                    providerOptions = packageState.providerOptions,
+                    providerPreferences = packageState.preferences.providerPreferences,
                     packageOperationInProgress = packageState.isWorking,
                     packageMessage = packageState.message
                 )
@@ -161,6 +166,10 @@ class LanguageSettingsViewModel(
 
     fun uninstallPackage(packageId: String) {
         viewModelScope.launch { packageCoordinator.uninstall(packageId) }
+    }
+
+    fun selectProvider(state: OrthogonalState, packageId: String) {
+        viewModelScope.launch { packageCoordinator.selectProvider(state, packageId) }
     }
 
     private fun persist(configs: Map<LocaleTag, List<Schema>>) {

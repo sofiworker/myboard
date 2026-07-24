@@ -62,6 +62,8 @@
     <string name="settings_language_pack_uninstall">アンインストール</string>
     <string name="settings_language_pack_uninstall_title">言語パックをアンインストールしますか？</string>
     <string name="settings_language_pack_uninstall_message">パックのデータを削除し、現在の入力を利用可能なプロバイダーへ切り替えます。</string>
+    <string name="settings_language_pack_provider_use">このプロバイダーを使用</string>
+    <string name="settings_language_pack_provider_selected">選択中のプロバイダー</string>
 
     <string name="schema_pinyin">ピンイン</string>
     <string name="schema_shuangpin">双拼</string>
