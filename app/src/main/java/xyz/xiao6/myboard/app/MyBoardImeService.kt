@@ -21,6 +21,7 @@ import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.map
 import xyz.xiao6.myboard.androidbridge.*
 import xyz.xiao6.myboard.contract.input.*
 import xyz.xiao6.myboard.contract.layout.*
@@ -45,6 +46,7 @@ import xyz.xiao6.myboard.theme.*
 import xyz.xiao6.myboard.pack.BuiltInLanguagePacks
 import xyz.xiao6.myboard.pack.PackageStore
 import xyz.xiao6.myboard.pack.PackageStoreProvider
+import xyz.xiao6.myboard.pack.ProcessActiveOrthogonalStateSource
 import xyz.xiao6.myboard.toolbar.ThemeToggler
 import xyz.xiao6.myboard.toolbar.LayoutSwitcher
 import xyz.xiao6.myboard.clipboard.ClipboardManagerWrapper
@@ -74,7 +76,7 @@ class MyBoardImeService : InputMethodService(), LifecycleOwner, SavedStateRegist
     private lateinit var layoutRegistry: LayoutRegistryImpl
     private lateinit var layoutMeasurer: LayoutMeasurerImpl
     private lateinit var engineRegistry: EngineRegistryImpl
-    private lateinit var orthogonalRegistry: OrthogonalRegistryImpl
+    private lateinit var orthogonalRegistry: DelegatingOrthogonalRegistry
     private lateinit var transitionEngine: TransitionEngineImpl
     private lateinit var themeResolver: ThemeResolverImpl
     private lateinit var layoutAssetsLoader: LayoutAssetsLoader
@@ -141,12 +143,12 @@ class MyBoardImeService : InputMethodService(), LifecycleOwner, SavedStateRegist
         )
 
         // 3. 初始化正交注册表
-        orthogonalRegistry = OrthogonalRegistryImpl(
+        orthogonalRegistry = DelegatingOrthogonalRegistry(OrthogonalRegistryImpl(
             engineRegistry = engineRegistry,
             layoutRegistry = layoutRegistry,
             dictionaryRegistry = dictionaryRegistry,
             engineResourceResolver = engineResourceResolver
-        )
+        ))
 
         layoutAssetsLoader = LayoutAssetsLoader(this)
     }
@@ -170,7 +172,6 @@ class MyBoardImeService : InputMethodService(), LifecycleOwner, SavedStateRegist
         serviceScope.launch {
             SpToRoomMigration(this@MyBoardImeService, settingsDatabase.settingsDao()).migrateIfNeeded()
         }
-
         // 8. 初始化 Android 桥接层
         inputConnectionGateway = InputConnectionGatewayImpl()
         feedbackPlayer = FeedbackPlayerImpl(this, settingsRepository, serviceScope)
@@ -194,6 +195,22 @@ class MyBoardImeService : InputMethodService(), LifecycleOwner, SavedStateRegist
                     updateInputView()
                 }
         }
+        serviceScope.launch {
+            settingsRepository.settings
+                .map { settings ->
+                    SettingsRepository.parseEnabledPackageIds(settings[SettingsRepository.KEY_ENABLED_LANGUAGE_PACKAGES]) to
+                        SettingsRepository.parseProviderPreferences(settings[SettingsRepository.KEY_PROVIDER_PREFERENCES])
+                }
+                .distinctUntilChanged()
+                .collect { (enabledPackageIds, providerPreferences) ->
+                    reloadLanguagePackRuntime(enabledPackageIds, providerPreferences)
+                }
+        }
+        serviceScope.launch {
+            keyboardContextManager.context.collect { context ->
+                ProcessActiveOrthogonalStateSource.update(context.orthogonal)
+            }
+        }
 
         // 10. 初始化布局测量器
         layoutMeasurer = LayoutMeasurerImpl()
@@ -215,6 +232,61 @@ class MyBoardImeService : InputMethodService(), LifecycleOwner, SavedStateRegist
         // 14. 初始化剪贴板管理器
         clipboardManager = ClipboardManagerWrapper(this)
         clipboardManager.startListening()
+    }
+
+    private suspend fun reloadLanguagePackRuntime(
+        enabledPackageIds: Set<String>,
+        providerPreferences: Map<OrthogonalState, String>
+    ) = withContext(Dispatchers.Default) {
+        val externalManifests = packageStore.installedManifests()
+            .filter { it.identity.packageId in enabledPackageIds }
+        externalManifests.forEach { manifest ->
+            manifest.capabilities.map(LanguageCapability::layout).distinct().forEach { reference ->
+                if (reference.packageId == manifest.identity.packageId) {
+                    packageStore.acquireResource(reference.packageId, reference.path) { bytes ->
+                        LayoutDocParser.parse(bytes.decodeToString())
+                    }.use { handle ->
+                        val doc = handle?.value ?: return@use
+                        val layoutId = reference.toLayoutCanonicalId().components().second
+                        val key = LayoutKey(manifest.identity.packageId, layoutId, manifest.identity.version)
+                        layoutRegistry.register(key, doc.copy(id = key.toCanonicalId().value), LayoutSource.LANGUAGE_PACK)
+                    }
+                }
+            }
+        }
+        val resolver = EngineResourceResolverImpl(
+            encoderRegistry = encoderRegistry,
+            dictionaryRegistry = dictionaryRegistry,
+            candidatePolicyRegistry = candidatePolicyRegistry,
+            displayPolicyRegistry = displayPolicyRegistry,
+            resourceCatalog = ResolvedResourceCatalog.combine(builtInResourceCatalog(), packageStore.resourceCatalog())
+        )
+        val replacement = OrthogonalRegistryImpl(engineRegistry, layoutRegistry, dictionaryRegistry, resolver)
+        BuiltInLanguagePacks.all.forEach(replacement::register)
+        externalManifests.forEach(replacement::register)
+        withContext(Dispatchers.Main) {
+            orthogonalRegistry.replace(replacement, providerPreferences)
+            val current = keyboardContextManager.context.value
+            val target = if (orthogonalRegistry.isSupported(current.orthogonal)) {
+                current
+            } else {
+                val fallbackManifest = orthogonalRegistry.snapshot().providersByLocale.values.flatten().firstOrNull()
+                val fallbackState = fallbackManifest?.let { orthogonalRegistry.defaultState(it.locale) }
+                val fallbackCapability = fallbackState?.let(orthogonalRegistry::schemaCapability)
+                if (fallbackState != null && fallbackCapability != null) {
+                    current.copy(
+                        orthogonal = fallbackState,
+                        layoutId = fallbackCapability.layout.toLayoutCanonicalId().value,
+                        composingText = "",
+                        candidates = emptyList()
+                    )
+                } else current
+            }
+            keyboardContextManager.forceSet(target)
+            ProcessActiveOrthogonalStateSource.update(target.orthogonal)
+            inputPipeline.onContextChanged(target)
+            updateInputView()
+        }
     }
 
     private fun registerBuiltIns() {
@@ -610,6 +682,7 @@ class MyBoardImeService : InputMethodService(), LifecycleOwner, SavedStateRegist
 
     override fun onDestroy() {
         lifecycleRegistry.currentState = Lifecycle.State.DESTROYED
+        ProcessActiveOrthogonalStateSource.update(null)
         serviceScope.cancel()
         super.onDestroy()
     }
