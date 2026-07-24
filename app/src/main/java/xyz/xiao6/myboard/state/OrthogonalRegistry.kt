@@ -2,6 +2,7 @@ package xyz.xiao6.myboard.state
 
 import xyz.xiao6.myboard.contract.manifest.LanguageCapability
 import xyz.xiao6.myboard.contract.manifest.LanguagePackManifest
+import xyz.xiao6.myboard.contract.manifest.ScriptDescriptor
 import xyz.xiao6.myboard.contract.engine.EngineResources
 import xyz.xiao6.myboard.contract.engine.ResolvedCapabilityKey
 import xyz.xiao6.myboard.contract.registry.RegisterResult
@@ -16,7 +17,8 @@ interface CapabilityRegistry {
 
 data class ResolvedLanguageCapability(
     val capability: LanguageCapability,
-    val resources: EngineResources
+    val resources: EngineResources,
+    val scriptDescriptor: ScriptDescriptor
 ) {
     val key = ResolvedCapabilityKey(capability.id, resources.resolvedResources)
 }

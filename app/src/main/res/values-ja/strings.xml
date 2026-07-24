@@ -1,0 +1,125 @@
+<resources>
+    <string name="app_name">MyBoard</string>
+    <string name="common_back">戻る</string>
+    <string name="common_done">完了</string>
+    <string name="common_edit">編集</string>
+    <string name="common_remove">削除</string>
+
+    <string name="toolbar_settings">設定</string>
+    <string name="toolbar_hide_keyboard">キーボードを閉じる</string>
+    <string name="toolbar_locale_switch">言語</string>
+    <string name="toolbar_theme_toggle">テーマ</string>
+    <string name="toolbar_emoji">絵文字</string>
+    <string name="toolbar_symbol">記号</string>
+    <string name="toolbar_clipboard">クリップボード</string>
+    <string name="toolbar_layout_switch">レイアウト</string>
+    <string name="toolbar_voice_input">音声</string>
+
+    <string name="toolbar_settings_title">ツールバー設定</string>
+    <string name="toolbar_layout_mode">レイアウトモード</string>
+    <string name="toolbar_layout_scrollable">スクロール</string>
+    <string name="toolbar_layout_scrollable_desc">ボタンが収まらない場合は横にスクロールします</string>
+    <string name="toolbar_layout_fixed">固定</string>
+    <string name="toolbar_layout_fixed_desc">ボタンが画面幅を均等に使用します</string>
+    <string name="toolbar_manage_buttons">ボタンを管理</string>
+    <string name="toolbar_available_buttons">利用可能なボタン</string>
+    <string name="toolbar_add">追加</string>
+    <string name="toolbar_move_up">上へ移動</string>
+    <string name="toolbar_move_down">下へ移動</string>
+
+    <string name="settings_title">MyBoard 設定</string>
+    <string name="settings_section_input_method">入力方式</string>
+    <string name="settings_section_keyboard">キーボード</string>
+    <string name="settings_section_input">入力</string>
+    <string name="settings_section_vibration">振動</string>
+    <string name="settings_section_sound">サウンド</string>
+    <string name="settings_section_ai">AI</string>
+    <string name="settings_appearance">外観</string>
+    <string name="settings_feedback">サウンドと振動</string>
+    <string name="settings_feedback_desc">キー音と触覚フィードバック</string>
+    <string name="settings_about">アプリについて</string>
+
+    <string name="settings_language_layout">言語とレイアウト</string>
+    <string name="settings_language_and_input">言語と入力</string>
+    <string name="settings_language_layout_language">言語</string>
+    <string name="settings_language_layout_layouts">有効なレイアウト</string>
+    <string name="settings_language_layout_enabled_title">有効な言語</string>
+    <string name="settings_language_layout_enable">有効にする</string>
+    <string name="settings_current_language">既定の言語</string>
+    <string name="settings_language_add">言語を追加</string>
+    <string name="settings_language_search">言語を検索</string>
+    <string name="settings_language_no_schema">入力方式なし</string>
+    <string name="settings_language_set_default">既定に設定</string>
+    <string name="settings_language_current_badge">既定</string>
+    <string name="settings_language_schemas_title">入力方式</string>
+    <string name="language_switch_panel_title">言語と入力方式</string>
+    <string name="language_switch_hide_keyboard">キーボードを閉じる</string>
+    <string name="language_switch_selected">選択済み</string>
+
+    <string name="schema_pinyin">ピンイン</string>
+    <string name="schema_shuangpin">双拼</string>
+    <string name="schema_t9_pinyin">T9 ピンイン</string>
+    <string name="schema_double_pinyin">ダブルピンイン</string>
+    <string name="schema_latin_direct">QWERTY</string>
+    <string name="schema_romaji">ローマ字 / かな</string>
+    <string name="schema_voice">音声</string>
+    <string name="schema_handwriting">手書き</string>
+
+    <string name="settings_toolbar">ツールバー</string>
+    <string name="settings_toolbar_manage">ツールバーのボタンを管理</string>
+    <string name="settings_keyboard_height">キーボードの高さ</string>
+    <string name="settings_keyboard_horizontal_inset">キーボードの横余白</string>
+    <string name="settings_key_font_size">キーの文字サイズ</string>
+
+    <string name="settings_input_behavior">入力動作</string>
+    <string name="settings_double_space_period">スペースのダブルタップで句点</string>
+    <string name="settings_double_space_period_desc">スペースを2回タップして句点を入力します</string>
+    <string name="settings_auto_capitalize">自動大文字</string>
+    <string name="settings_auto_capitalize_desc">文頭を自動的に大文字にします</string>
+
+    <string name="settings_vibration_follow_system">振動フィードバック</string>
+    <string name="settings_vibration_follow_system_desc">キー入力時に振動します</string>
+    <string name="settings_sound_feedback">サウンドフィードバック</string>
+    <string name="settings_sound_feedback_desc">キー入力時に音を再生します</string>
+
+    <string name="settings_theme">テーマ</string>
+    <string name="settings_theme_mode">テーマモード</string>
+    <string name="settings_keyboard_theme">キーボードテーマ</string>
+    <string name="settings_theme_auto">自動</string>
+    <string name="settings_theme_auto_desc">システムのダークモード設定に従います</string>
+    <string name="settings_theme_light">ライト</string>
+    <string name="settings_theme_light_desc">常にライトテーマを使用します</string>
+    <string name="settings_theme_dark">ダーク</string>
+    <string name="settings_theme_dark_desc">常にダークテーマを使用します</string>
+
+    <string name="settings_voice_input">音声入力</string>
+    <string name="settings_llm">LLM</string>
+    <string name="settings_llm_title">LLM 設定</string>
+    <string name="settings_llm_provider">プロバイダー</string>
+    <string name="settings_llm_provider_disabled">オフ</string>
+    <string name="settings_llm_provider_local">オンデバイス</string>
+    <string name="settings_llm_provider_cloud">クラウド</string>
+    <string name="settings_llm_cloud">クラウド設定</string>
+    <string name="settings_llm_api_key">API キー</string>
+    <string name="settings_llm_endpoint">エンドポイント</string>
+    <string name="settings_stt_title">音声入力設定</string>
+    <string name="settings_stt_provider">音声認識プロバイダー</string>
+    <string name="settings_stt_provider_system">システム</string>
+    <string name="settings_stt_provider_on_device">オンデバイス</string>
+    <string name="settings_stt_provider_system_desc">Android システムの音声認識を使用します</string>
+    <string name="settings_stt_provider_on_device_desc">オンデバイスモデルを使用します（近日対応予定）</string>
+
+    <string name="settings_version">バージョン</string>
+    <string name="settings_open_source">オープンソースライセンス</string>
+
+    <string name="keyboard_key_shift">シフト</string>
+    <string name="keyboard_key_backspace">削除</string>
+    <string name="keyboard_key_language">言語</string>
+    <string name="keyboard_key_space">空白</string>
+    <string name="keyboard_key_enter">改行</string>
+    <string name="layout_category_recent">最近</string>
+    <string name="layout_category_zh">中国語</string>
+    <string name="layout_category_en">英語</string>
+    <string name="layout_category_math">数学</string>
+    <string name="layout_category_order">番号</string>
+</resources>

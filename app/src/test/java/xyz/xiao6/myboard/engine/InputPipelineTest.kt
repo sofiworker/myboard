@@ -48,6 +48,7 @@ import xyz.xiao6.myboard.state.ResolvedLanguageCapability
 import xyz.xiao6.myboard.engine.builtin.DirectEngine
 import xyz.xiao6.myboard.contract.language.SemVer
 import xyz.xiao6.myboard.contract.manifest.ResolvedResourceKey
+import xyz.xiao6.myboard.contract.manifest.ScriptCatalog
 
 class InputPipelineTest {
 
@@ -263,7 +264,8 @@ class InputPipelineTest {
         override fun resolve(state: OrthogonalState): ResolvedLanguageCapability? =
             ResolvedLanguageCapability(
                 capability,
-                resources.copy(resolvedResources = resolvedResourceKeys)
+                resources.copy(resolvedResources = resolvedResourceKeys),
+                checkNotNull(ScriptCatalog[capability.id.script])
             ).takeIf { it.capability.id.locale == state.locale && it.capability.id.script == state.script && it.capability.id.schema == state.schema }
     }
 

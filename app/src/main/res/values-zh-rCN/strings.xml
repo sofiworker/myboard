@@ -56,6 +56,9 @@
     <string name="settings_language_set_default">设为默认</string>
     <string name="settings_language_current_badge">默认</string>
     <string name="settings_language_schemas_title">输入方案</string>
+    <string name="language_switch_panel_title">语言与方案</string>
+    <string name="language_switch_hide_keyboard">收起键盘</string>
+    <string name="language_switch_selected">已选</string>
 
     <!-- Schema display names -->
     <string name="schema_pinyin">拼音</string>

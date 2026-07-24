@@ -56,6 +56,9 @@
     <string name="settings_language_set_default">Set default</string>
     <string name="settings_language_current_badge">Default</string>
     <string name="settings_language_schemas_title">Input methods</string>
+    <string name="language_switch_panel_title">Language &amp; input method</string>
+    <string name="language_switch_hide_keyboard">Hide keyboard</string>
+    <string name="language_switch_selected">Selected</string>
 
     <!-- Schema display names -->
     <string name="schema_pinyin">Pinyin</string>

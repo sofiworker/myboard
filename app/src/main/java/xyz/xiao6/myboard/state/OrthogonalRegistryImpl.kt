@@ -39,6 +39,9 @@ class OrthogonalRegistryImpl(
             }
             when (val result = engineResourceResolver.resolve(capability)) {
                 is CapabilityResourceResolution.Resolved -> {
+                    val scriptDescriptor = manifest.scripts
+                        .first { it.id == capability.id.script }
+                        .descriptor
                     val layoutKey = result.resources.resolvedResources[capability.layout]
                         ?: return RegisterResult.Failed(listOf("Layout '${capability.layout.path}' was not resolved"))
                     val canonicalId = capability.layout.toLayoutCanonicalId()
@@ -52,7 +55,7 @@ class OrthogonalRegistryImpl(
                     if (!layoutRegistered) {
                         return RegisterResult.Failed(listOf("Layout '${canonicalId.value}' is not registered"))
                     }
-                    resolvedCapabilities += ResolvedLanguageCapability(capability, result.resources)
+                    resolvedCapabilities += ResolvedLanguageCapability(capability, result.resources, scriptDescriptor)
                 }
                 is CapabilityResourceResolution.RejectedPackage -> return RegisterResult.Failed(listOf(result.reason))
                 is CapabilityResourceResolution.CapabilityDisabled,

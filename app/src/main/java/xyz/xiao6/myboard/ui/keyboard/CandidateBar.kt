@@ -13,13 +13,16 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.LayoutDirection
 import xyz.xiao6.myboard.contract.input.Candidate
 import xyz.xiao6.myboard.contract.theme.ChromeColors
 
@@ -29,16 +32,20 @@ fun CandidateBar(
     selectedIndex: Int,
     onCandidateClick: (Int) -> Unit,
     chrome: ChromeColors,
+    isRtl: Boolean,
     modifier: Modifier = Modifier
 ) {
-    Row(
+    CompositionLocalProvider(
+        LocalLayoutDirection provides if (isRtl) LayoutDirection.Rtl else LayoutDirection.Ltr
+    ) {
+      Row(
         modifier = modifier
             .fillMaxWidth()
             .height(40.dp)
             .background(chrome.candidateBackground)
             .padding(horizontal = 6.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically
-    ) {
+      ) {
         Row(
             modifier = Modifier
                 .weight(1f)
@@ -68,5 +75,6 @@ fun CandidateBar(
                 }
             }
         }
+      }
     }
 }

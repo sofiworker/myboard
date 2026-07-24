@@ -20,6 +20,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
+import xyz.xiao6.myboard.R
 import xyz.xiao6.myboard.contract.manifest.LanguagePackManifest
 import xyz.xiao6.myboard.contract.state.LocaleTag
 import xyz.xiao6.myboard.contract.state.Schema
@@ -74,11 +76,11 @@ fun LocaleLayoutSwitchPanel(
             verticalAlignment = Alignment.CenterVertically
         ) {
             TextButton(onClick = onBack) {
-                Text("返回", fontSize = 12.sp)
+                Text(stringResource(R.string.common_back), fontSize = 12.sp)
             }
-            Text("语言与方案", fontWeight = FontWeight.Bold, fontSize = 14.sp, modifier = Modifier.weight(1f))
+            Text(stringResource(R.string.language_switch_panel_title), fontWeight = FontWeight.Bold, fontSize = 14.sp, modifier = Modifier.weight(1f))
             IconButton(onClick = onHideKeyboard, modifier = Modifier.size(28.dp)) {
-                Icon(Icons.Default.KeyboardHide, "收起键盘", modifier = Modifier.size(18.dp))
+                Icon(Icons.Default.KeyboardHide, stringResource(R.string.language_switch_hide_keyboard), modifier = Modifier.size(18.dp))
             }
         }
 
@@ -110,7 +112,7 @@ fun LocaleLayoutSwitchPanel(
         }
 
         // 分隔线
-        Divider(
+        HorizontalDivider(
             modifier = Modifier.padding(horizontal = 8.dp),
             color = Color(0xFFDADCE0),
             thickness = 0.5.dp
@@ -153,7 +155,7 @@ fun LocaleLayoutSwitchPanel(
                     if (isSelected) {
                         Icon(
                             Icons.Default.Check,
-                            contentDescription = "已选",
+                            contentDescription = stringResource(R.string.language_switch_selected),
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(18.dp)
                         )

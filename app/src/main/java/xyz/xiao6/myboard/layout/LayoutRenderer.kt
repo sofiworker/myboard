@@ -40,6 +40,7 @@ fun LayoutRenderer(
     context: KeyboardContext,
     themeResolver: ThemeResolver,
     onAction: (InputAction) -> Unit,
+    mirrorHorizontal: Boolean,
     modifier: Modifier = Modifier
 ) {
     val textMeasurer = rememberTextMeasurer()
@@ -72,7 +73,7 @@ fun LayoutRenderer(
                         
                         val downPos = down.position
                         
-                        val hitKey = findHitKey(downPos, measuredLayout)
+                        val hitKey = findHitKey(downPos, measuredLayout, mirrorHorizontal)
                         if (hitKey == null) continue
                         
                         pressedKeyId = hitKey.key.id
@@ -114,13 +115,14 @@ fun LayoutRenderer(
                 }
             }
     ) {
-        drawMeasuredLayout(measuredLayout, themeResolver, textMeasurer, pressedKeyId, labelLookup)
+        drawMeasuredLayout(measuredLayout, themeResolver, textMeasurer, pressedKeyId, labelLookup, mirrorHorizontal)
     }
 }
 
-private fun findHitKey(pos: Offset, layout: MeasuredLayout): MeasuredKey? {
+private fun findHitKey(pos: Offset, layout: MeasuredLayout, mirrorHorizontal: Boolean): MeasuredKey? {
+    val hitX = if (mirrorHorizontal) layout.viewWidth - pos.x else pos.x
     for (key in layout.keys) {
-        if (key.rect.contains(pos.x, pos.y)) {
+        if (key.rect.contains(hitX, pos.y)) {
             return key
         }
     }
@@ -132,7 +134,8 @@ private fun DrawScope.drawMeasuredLayout(
     themeResolver: ThemeResolver,
     textMeasurer: androidx.compose.ui.text.TextMeasurer,
     pressedKeyId: String?,
-    labelLookup: (String) -> String?
+    labelLookup: (String) -> String?,
+    mirrorHorizontal: Boolean
 ) {
     val chrome = themeResolver.resolveChromeColors()
     val isDark = themeResolver.isDark()
@@ -142,6 +145,16 @@ private fun DrawScope.drawMeasuredLayout(
 
     for (measuredKey in layout.keys) {
         val key = measuredKey.key
+        val displayedRect = if (mirrorHorizontal) {
+            RectF(
+                layout.viewWidth - measuredKey.rect.right,
+                measuredKey.rect.top,
+                layout.viewWidth - measuredKey.rect.left,
+                measuredKey.rect.bottom
+            )
+        } else {
+            measuredKey.rect
+        }
         val isPressed = key.id == pressedKeyId
 
         val styleRef = key.styleRef ?: "key_default"
@@ -150,10 +163,10 @@ private fun DrawScope.drawMeasuredLayout(
         val bgColor = if (isPressed) style.pressedBackground else style.background
         val cornerRadius = style.cornerRadius.coerceAtLeast(6f)
 
-        val left = measuredKey.rect.left + keyGapInset
-        val top = measuredKey.rect.top + keyGapInset
-        val width = (measuredKey.rect.width() - keyGapInset * 2f).coerceAtLeast(1f)
-        val height = (measuredKey.rect.height() - keyGapInset * 2f).coerceAtLeast(1f)
+        val left = displayedRect.left + keyGapInset
+        val top = displayedRect.top + keyGapInset
+        val width = (displayedRect.width() - keyGapInset * 2f).coerceAtLeast(1f)
+        val height = (displayedRect.height() - keyGapInset * 2f).coerceAtLeast(1f)
 
         // Soft drop shadow for raised key look
         if (!isPressed) {
@@ -190,8 +203,8 @@ private fun DrawScope.drawMeasuredLayout(
                 fontWeight = androidx.compose.ui.text.font.FontWeight.Medium
             )
             val measured = textMeasurer.measure(label, textStyle)
-            val x = measuredKey.rect.centerX() - measured.size.width / 2f
-            val y = measuredKey.rect.centerY() - measured.size.height / 2f + if (isPressed) 0.5f else 0f
+            val x = displayedRect.centerX() - measured.size.width / 2f
+            val y = displayedRect.centerY() - measured.size.height / 2f + if (isPressed) 0.5f else 0f
             drawText(measured, topLeft = Offset(x, y))
         }
 
@@ -206,7 +219,7 @@ private fun DrawScope.drawMeasuredLayout(
                 val hintMeasured = textMeasurer.measure(resolvedHint, hintStyle)
                 val (hx, hy) = resolveHintPosition(
                     position,
-                    measuredKey.rect,
+                    displayedRect,
                     hintMeasured.size.width.toFloat(),
                     hintMeasured.size.height.toFloat()
                 )

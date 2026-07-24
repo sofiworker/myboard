@@ -280,6 +280,10 @@ class MyBoardImeService : InputMethodService(), LifecycleOwner, SavedStateRegist
         val composeView = ComposeView(this).apply {
             setContent {
                 val context by keyboardContextManager.context.collectAsState()
+                val layoutPresentation = orthogonalRegistry.resolve(context.orthogonal)
+                    ?.scriptDescriptor
+                    ?.toLayoutPresentation()
+                    ?: LayoutPresentation(isRtl = false, mirrorHorizontal = false)
                 // 观察单调递增计数器，确保 updateInputView() 能触发重组
                 @Suppress("UNUSED_VARIABLE")
                 val uiRevision = _uiRevision.longValue
@@ -494,6 +498,7 @@ class MyBoardImeService : InputMethodService(), LifecycleOwner, SavedStateRegist
                                     }
                                 },
                                 chrome = chrome,
+                                isRtl = layoutPresentation.isRtl,
                                 modifier = Modifier.fillMaxWidth()
                             )
                         } else {
@@ -546,6 +551,7 @@ class MyBoardImeService : InputMethodService(), LifecycleOwner, SavedStateRegist
                                     updateInputView()
                                 }
                             },
+                            mirrorHorizontal = layoutPresentation.mirrorHorizontal,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .weight(1f)
