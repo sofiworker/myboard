@@ -59,6 +59,13 @@
     <string name="language_switch_panel_title">Language &amp; input method</string>
     <string name="language_switch_hide_keyboard">Hide keyboard</string>
     <string name="language_switch_selected">Selected</string>
+    <string name="settings_language_packs_title">Language packs</string>
+    <string name="settings_language_pack_import">Import language pack</string>
+    <string name="settings_language_pack_none">No external language packs installed</string>
+    <string name="settings_language_pack_version">Version %1$s</string>
+    <string name="settings_language_pack_uninstall">Uninstall</string>
+    <string name="settings_language_pack_uninstall_title">Uninstall language pack?</string>
+    <string name="settings_language_pack_uninstall_message">The package data will be removed. Active input will switch to an available provider.</string>
 
     <!-- Schema display names -->
     <string name="schema_pinyin">Pinyin</string>

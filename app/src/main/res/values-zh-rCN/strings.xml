@@ -59,6 +59,13 @@
     <string name="language_switch_panel_title">语言与方案</string>
     <string name="language_switch_hide_keyboard">收起键盘</string>
     <string name="language_switch_selected">已选</string>
+    <string name="settings_language_packs_title">语言包</string>
+    <string name="settings_language_pack_import">导入语言包</string>
+    <string name="settings_language_pack_none">尚未安装外部语言包</string>
+    <string name="settings_language_pack_version">版本 %1$s</string>
+    <string name="settings_language_pack_uninstall">卸载</string>
+    <string name="settings_language_pack_uninstall_title">卸载语言包？</string>
+    <string name="settings_language_pack_uninstall_message">语言包数据将被移除，当前输入会切换到可用的提供方。</string>
 
     <!-- Schema display names -->
     <string name="schema_pinyin">拼音</string>

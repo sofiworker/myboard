@@ -34,6 +34,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.Switch
+import androidx.compose.material3.AlertDialog
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -54,6 +56,9 @@ import xyz.xiao6.myboard.contract.state.LocaleTag
 import xyz.xiao6.myboard.contract.state.Schema
 import xyz.xiao6.myboard.pack.BuiltInLanguagePacks
 import java.util.Locale
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import xyz.xiao6.myboard.pack.InstalledLanguagePack
 
 /**
  * 语言与输入法设置页面。
@@ -67,6 +72,29 @@ fun LanguageSettingsScreen(
     val uiState by viewModel.uiState.collectAsState()
     val allManifests = remember { BuiltInLanguagePacks.all }
     val uiLocaleTag = rememberUiLocaleTag()
+    var pendingUninstall by remember { mutableStateOf<String?>(null) }
+    val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        uri?.let(viewModel::importPackage)
+    }
+
+    pendingUninstall?.let { packageId ->
+        AlertDialog(
+            onDismissRequest = { pendingUninstall = null },
+            title = { Text(stringResource(R.string.settings_language_pack_uninstall_title)) },
+            text = { Text(stringResource(R.string.settings_language_pack_uninstall_message)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    pendingUninstall = null
+                    viewModel.uninstallPackage(packageId)
+                }) { Text(stringResource(R.string.settings_language_pack_uninstall)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingUninstall = null }) {
+                    Text(stringResource(R.string.common_back))
+                }
+            }
+        )
+    }
 
     when {
         uiState.editingLocale != null -> {
@@ -103,6 +131,14 @@ fun LanguageSettingsScreen(
                 onSelectLocale = { viewModel.setCurrentLocale(it) },
                 onClickLocale = { viewModel.startEditSchemas(it) },
                 onAddLanguage = { viewModel.startAddLanguage() },
+                installedPackages = uiState.installedPackages,
+                packageOperationInProgress = uiState.packageOperationInProgress,
+                packageMessage = uiState.packageMessage,
+                onImportPackage = {
+                    importLauncher.launch(arrayOf("application/zip", "application/octet-stream", "application/x-zip-compressed"))
+                },
+                onSetPackageEnabled = viewModel::setPackageEnabled,
+                onUninstallPackage = { pendingUninstall = it },
                 onBack = onBack
             )
         }
@@ -161,6 +197,12 @@ private fun LanguageListContent(
     onSelectLocale: (LocaleTag) -> Unit,
     onClickLocale: (LocaleTag) -> Unit,
     onAddLanguage: () -> Unit,
+    installedPackages: List<InstalledLanguagePack>,
+    packageOperationInProgress: Boolean,
+    packageMessage: String?,
+    onImportPackage: () -> Unit,
+    onSetPackageEnabled: (String, Boolean) -> Unit,
+    onUninstallPackage: (String) -> Unit,
     onBack: () -> Unit
 ) {
     SettingsScaffold(
@@ -292,6 +334,77 @@ private fun LanguageListContent(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(stringResource(R.string.settings_language_add))
+                    }
+                }
+            }
+
+            if (!isEditing) {
+                item {
+                    SettingsSectionHeader(stringResource(R.string.settings_language_packs_title))
+                }
+                item {
+                    FilledTonalButton(
+                        onClick = onImportPackage,
+                        enabled = !packageOperationInProgress,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(stringResource(R.string.settings_language_pack_import))
+                    }
+                }
+                packageMessage?.let { message ->
+                    item {
+                        Text(
+                            text = message,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(vertical = 8.dp)
+                        )
+                    }
+                }
+                if (installedPackages.isEmpty()) {
+                    item {
+                        Text(
+                            stringResource(R.string.settings_language_pack_none),
+                            modifier = Modifier.padding(vertical = 12.dp),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                } else {
+                    item {
+                        SettingsGroup {
+                            installedPackages.forEachIndexed { index, pack ->
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 14.dp, vertical = 10.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            pack.displayName[uiLocaleTag]
+                                                ?: pack.displayName["en-US"]
+                                                ?: pack.identity.packageId
+                                        )
+                                        Text(
+                                            stringResource(R.string.settings_language_pack_version, pack.identity.version.toString()),
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                        TextButton(onClick = { onUninstallPackage(pack.identity.packageId) }) {
+                                            Text(stringResource(R.string.settings_language_pack_uninstall))
+                                        }
+                                    }
+                                    Switch(
+                                        checked = pack.enabled,
+                                        enabled = !packageOperationInProgress,
+                                        onCheckedChange = { onSetPackageEnabled(pack.identity.packageId, it) }
+                                    )
+                                }
+                                if (index < installedPackages.lastIndex) SettingsGroupDivider()
+                            }
+                        }
                     }
                 }
             }

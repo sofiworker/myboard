@@ -10,13 +10,17 @@ import kotlinx.coroutines.launch
 import xyz.xiao6.myboard.contract.state.LocaleTag
 import xyz.xiao6.myboard.contract.state.Schema
 import xyz.xiao6.myboard.data.repository.SettingsRepository
+import android.net.Uri
+import xyz.xiao6.myboard.pack.InstalledLanguagePack
+import xyz.xiao6.myboard.pack.LanguagePackCoordinator
 
 /**
  * 语言设置 ViewModel。
  * 管理语言配置状态，支持添加/移除语言、编辑每语言的输入方案。
  */
 class LanguageSettingsViewModel(
-    private val repo: SettingsRepository
+    private val repo: SettingsRepository,
+    private val packageCoordinator: LanguagePackCoordinator
 ) : ViewModel() {
 
     data class UiState(
@@ -31,7 +35,10 @@ class LanguageSettingsViewModel(
         /** 方案编辑中的临时选中列表 */
         val editingSchemas: List<Schema>? = null,
         /** 当前正在添加新语言 */
-        val isAddingLanguage: Boolean = false
+        val isAddingLanguage: Boolean = false,
+        val installedPackages: List<InstalledLanguagePack> = emptyList(),
+        val packageOperationInProgress: Boolean = false,
+        val packageMessage: String? = null
     )
 
     private val _uiState = MutableStateFlow(UiState())
@@ -50,6 +57,16 @@ class LanguageSettingsViewModel(
                 localeConfigs = configs,
                 currentLocale = LocaleTag(localeStr)
             )
+        }
+        viewModelScope.launch {
+            packageCoordinator.refresh()
+            packageCoordinator.state.collect { packageState ->
+                _uiState.value = _uiState.value.copy(
+                    installedPackages = packageState.installed,
+                    packageOperationInProgress = packageState.isWorking,
+                    packageMessage = packageState.message
+                )
+            }
         }
     }
 
@@ -132,6 +149,20 @@ class LanguageSettingsViewModel(
         }
     }
 
+    fun importPackage(uri: Uri) {
+        viewModelScope.launch { packageCoordinator.import(uri) }
+    }
+
+    fun setPackageEnabled(packageId: String, enabled: Boolean) {
+        viewModelScope.launch {
+            if (enabled) packageCoordinator.enable(packageId) else packageCoordinator.disable(packageId)
+        }
+    }
+
+    fun uninstallPackage(packageId: String) {
+        viewModelScope.launch { packageCoordinator.uninstall(packageId) }
+    }
+
     private fun persist(configs: Map<LocaleTag, List<Schema>>) {
         viewModelScope.launch {
             repo.setEnabledLocaleConfigs(configs)
@@ -144,10 +175,13 @@ class LanguageSettingsViewModel(
         }
     }
 
-    class Factory(private val repo: SettingsRepository) : ViewModelProvider.Factory {
+    class Factory(
+        private val repo: SettingsRepository,
+        private val packageCoordinator: LanguagePackCoordinator
+    ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
-            return LanguageSettingsViewModel(repo) as T
+            return LanguageSettingsViewModel(repo, packageCoordinator) as T
         }
     }
 }

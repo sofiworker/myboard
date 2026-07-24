@@ -55,6 +55,13 @@
     <string name="language_switch_panel_title">言語と入力方式</string>
     <string name="language_switch_hide_keyboard">キーボードを閉じる</string>
     <string name="language_switch_selected">選択済み</string>
+    <string name="settings_language_packs_title">言語パック</string>
+    <string name="settings_language_pack_import">言語パックをインポート</string>
+    <string name="settings_language_pack_none">外部言語パックはインストールされていません</string>
+    <string name="settings_language_pack_version">バージョン %1$s</string>
+    <string name="settings_language_pack_uninstall">アンインストール</string>
+    <string name="settings_language_pack_uninstall_title">言語パックをアンインストールしますか？</string>
+    <string name="settings_language_pack_uninstall_message">パックのデータを削除し、現在の入力を利用可能なプロバイダーへ切り替えます。</string>
 
     <string name="schema_pinyin">ピンイン</string>
     <string name="schema_shuangpin">双拼</string>

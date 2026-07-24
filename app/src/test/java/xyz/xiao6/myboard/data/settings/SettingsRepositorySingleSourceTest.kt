@@ -31,6 +31,9 @@ class SettingsRepositorySingleSourceTest {
         ).readText()
 
         assertTrue("SettingsActivity must create the shared repository", "SettingsRepository(" in source)
+        assertTrue("SettingsActivity must use the process package store", "PackageStoreProvider.get" in source)
+        assertTrue("SettingsActivity must create the package coordinator", "LanguagePackCoordinator(" in source)
+        assertTrue("Language settings must receive the shared coordinator", "LanguageSettingsViewModel.Factory(repo, packageCoordinator)" in source)
         assertTrue("Input settings must be reachable from SettingsActivity", "composable(\"input\")" in source)
         assertFalse("SettingsActivity must not create a repository per route", "composable(\"settings\") {\n                            val repo" in source)
     }

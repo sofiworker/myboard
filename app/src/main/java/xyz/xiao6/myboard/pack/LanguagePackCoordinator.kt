@@ -1,6 +1,7 @@
 package xyz.xiao6.myboard.pack
 
 import java.io.InputStream
+import android.net.Uri
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -37,7 +38,8 @@ class LanguagePackCoordinator(
     private val importer: LanguagePackImporter = TransactionalLanguagePackImporter(packageStore),
     private val manifestDecoder: LanguagePackManifestDecoder = JsonLanguagePackManifestDecoder(),
     private val builtInManifests: List<LanguagePackManifest> = BuiltInLanguagePacks.all,
-    private val activeStateSource: ActiveOrthogonalStateSource = ActiveOrthogonalStateSource { null }
+    private val activeStateSource: ActiveOrthogonalStateSource = ActiveOrthogonalStateSource { null },
+    private val documentSource: LanguagePackDocumentSource? = null
 ) {
     private val mutex = Mutex()
     private val _state = MutableStateFlow(LanguagePackManagementState())
@@ -47,6 +49,14 @@ class LanguagePackCoordinator(
 
     suspend fun import(input: InputStream): PackageOperationResult = operation {
         withContext(Dispatchers.IO) {
+            input.use { importer.import(it, manifestDecoder) }
+        }
+    }
+
+    suspend fun import(uri: Uri): PackageOperationResult = operation {
+        withContext(Dispatchers.IO) {
+            val source = requireNotNull(documentSource) { "Language pack document source is unavailable" }
+            val input = requireNotNull(source.open(uri)) { "Selected language pack could not be opened" }
             input.use { importer.import(it, manifestDecoder) }
         }
     }

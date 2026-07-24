@@ -18,6 +18,12 @@ import xyz.xiao6.myboard.data.db.SettingsDatabase
 import xyz.xiao6.myboard.data.repository.SettingsRepository
 import xyz.xiao6.myboard.ui.settings.*
 import xyz.xiao6.myboard.ui.theme.MyBoardTheme
+import xyz.xiao6.myboard.pack.ContentResolverLanguagePackDocumentSource
+import xyz.xiao6.myboard.pack.JsonLanguagePackManifestDecoder
+import xyz.xiao6.myboard.pack.LanguagePackCoordinator
+import xyz.xiao6.myboard.pack.PackageStoreProvider
+import xyz.xiao6.myboard.pack.ProcessActiveOrthogonalStateSource
+import xyz.xiao6.myboard.pack.TransactionalLanguagePackImporter
 
 /**
  * 设置页面 Activity。
@@ -33,6 +39,17 @@ class SettingsActivity : AppCompatActivity() {
                     val navController = rememberNavController()
                     val repo = remember {
                         SettingsRepository(SettingsDatabase.getInstance(this@SettingsActivity).settingsDao())
+                    }
+                    val packageCoordinator = remember {
+                        val packageStore = PackageStoreProvider.get(this@SettingsActivity)
+                        LanguagePackCoordinator(
+                            packageStore = packageStore,
+                            preferencesStore = repo,
+                            importer = TransactionalLanguagePackImporter(packageStore),
+                            manifestDecoder = JsonLanguagePackManifestDecoder(),
+                            activeStateSource = ProcessActiveOrthogonalStateSource,
+                            documentSource = ContentResolverLanguagePackDocumentSource(contentResolver)
+                        )
                     }
                     val configuration = LocalConfiguration.current
                     LaunchedEffect(configuration.screenHeightDp, configuration.screenWidthDp) {
@@ -53,7 +70,7 @@ class SettingsActivity : AppCompatActivity() {
                         composable("language") {
                             LanguageSettingsScreen(
                                 onBack = { navController.popBackStack() },
-                                viewModel = viewModel(factory = LanguageSettingsViewModel.Factory(repo))
+                                viewModel = viewModel(factory = LanguageSettingsViewModel.Factory(repo, packageCoordinator))
                             )
                         }
                         composable("input") {
