@@ -1,5 +1,8 @@
 package xyz.xiao6.myboard.engine
 
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import xyz.xiao6.myboard.contract.engine.CandidatePolicy
 import xyz.xiao6.myboard.contract.engine.DisplayPolicy
 import xyz.xiao6.myboard.contract.engine.EngineResources
@@ -86,18 +89,64 @@ class EngineResourceResolverImpl(
         val candidatePolicy = candidatePolicyRegistry.get(capability.candidatePolicyId) ?: fallbackCandidatePolicy
         val displayPolicy = capability.displayPolicyId?.let(displayPolicyRegistry::get) ?: fallbackDisplayPolicy
 
+        val mapping = capability.mapping?.let { reference ->
+            val key = checkNotNull(resolvedResources[reference])
+            parseResource(key, ::parseKeyMapping)
+                .getOrElse { return CapabilityResourceResolution.RejectedPackage(it.message ?: "Invalid mapping resource") }
+        }
+        val fsm = capability.fsm?.let { reference ->
+            val key = checkNotNull(resolvedResources[reference])
+            parseResource(key, ::parseTransliterationFsm)
+                .getOrElse { return CapabilityResourceResolution.RejectedPackage(it.message ?: "Invalid FSM resource") }
+        }
+
         return CapabilityResourceResolution.Resolved(EngineResources(
-            mapping = capability.mapping
-                ?.let(resolvedResources::get)
-                ?.let { KeyMapping(it.normalizedPath, emptyMap()) },
+            mapping = mapping,
             encoder = encoder,
-            fsm = capability.fsm
-                ?.let(resolvedResources::get)
-                ?.let { TransliterationFsm(it.normalizedPath, "", emptyMap<String, Map<String, FsmTransition>>()) },
+            fsm = fsm,
             dictionary = dictionary,
             candidatePolicy = candidatePolicy,
-            displayPolicy = displayPolicy
+            displayPolicy = displayPolicy,
+            resolvedResources = resolvedResources
         ))
+    }
+
+    private fun <T> parseResource(
+        key: ResolvedResourceKey,
+        parser: (ByteArray) -> T
+    ): Result<T> = runCatching {
+        parser(requireNotNull(resourceCatalog.read(key)) {
+            "Resource bytes are unavailable for ${key.packageId}:${key.normalizedPath}"
+        })
+    }
+
+    private fun parseKeyMapping(bytes: ByteArray): KeyMapping {
+        val root = Json.parseToJsonElement(bytes.decodeToString()).jsonObject
+        val layers = root.getValue("layers").jsonObject.mapValues { (_, layer) ->
+            layer.jsonObject.mapValues { (_, token) -> token.jsonPrimitive.content }
+        }
+        return KeyMapping(
+            id = root.getValue("id").jsonPrimitive.content,
+            layers = layers
+        )
+    }
+
+    private fun parseTransliterationFsm(bytes: ByteArray): TransliterationFsm {
+        val root = Json.parseToJsonElement(bytes.decodeToString()).jsonObject
+        val states = root.getValue("states").jsonObject.mapValues { (_, transitions) ->
+            transitions.jsonObject.mapValues { (_, transition) ->
+                val value = transition.jsonObject
+                FsmTransition(
+                    next = value["next"]?.jsonPrimitive?.content,
+                    emit = value["emit"]?.jsonPrimitive?.content
+                )
+            }
+        }
+        return TransliterationFsm(
+            id = root.getValue("id").jsonPrimitive.content,
+            startState = root.getValue("startState").jsonPrimitive.content,
+            states = states
+        )
     }
 
     private val fallbackCandidatePolicy = object : CandidatePolicy {

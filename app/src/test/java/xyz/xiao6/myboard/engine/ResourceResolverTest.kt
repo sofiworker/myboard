@@ -123,16 +123,53 @@ class ResourceResolverTest {
         assertTrue(resolver.resolve(capability) is CapabilityResourceResolution.RejectedPackage)
     }
 
+    @Test
+    fun `loads mapping and fsm content and preserves resolved resource identities`() {
+        val layout = resource()
+        val mapping = resource(path = "maps/test.json", kind = ResourceKind.MAPPING)
+        val fsm = resource(path = "rules/test.json", kind = ResourceKind.FSM)
+        val bytes = mapOf(
+            mapping to """{"id":"test-map","layers":{"default":{"a":"alpha"}}}""".encodeToByteArray(),
+            fsm to """{"id":"test-fsm","startState":"start","states":{"start":{"k":{"next":"done","emit":"か"}}}}""".encodeToByteArray()
+        )
+        val resolver = EngineResourceResolverImpl(
+            encoderRegistry = emptyEncoderRegistry,
+            dictionaryRegistry = emptyDictionaryRegistry,
+            candidatePolicyRegistry = emptyCandidatePolicyRegistry,
+            displayPolicyRegistry = emptyDisplayPolicyRegistry,
+            resourceCatalog = ResolvedResourceCatalog(listOf(layout, mapping, fsm), bytes::get)
+        )
+        val capability = LanguageCapability(
+            id = CapabilityId("pack.en", LocaleTag("en-US"), Script.LATN, Schema("DIRECT")),
+            engine = EngineBinding(engineId = "direct"),
+            layout = ResourceRef("pack.en", layout.normalizedPath, ResourceKind.LAYOUT),
+            dictionaries = emptyList(),
+            mapping = ResourceRef("pack.en", mapping.normalizedPath, ResourceKind.MAPPING),
+            fsm = ResourceRef("pack.en", fsm.normalizedPath, ResourceKind.FSM),
+            candidatePolicyId = "default",
+            supportsShift = false
+        )
+
+        val resources = (resolver.resolve(capability) as CapabilityResourceResolution.Resolved).resources
+
+        assertEquals("alpha", resources.mapping?.layers?.get("default")?.get("a"))
+        assertEquals("か", resources.fsm?.states?.get("start")?.get("k")?.emit)
+        assertEquals(setOf(layout, mapping, fsm), resources.resolvedResources.values.toSet())
+    }
+
     private fun resolveMissing(
         policy: MissingResourcePolicy,
         resources: List<ResolvedResourceKey>
     ) = resolver.resolveResource(ResourceRef("pack.en", "layouts/missing.json", ResourceKind.LAYOUT, onMissing = policy), resources)
 
-    private fun resource(path: String = "layouts/qwerty.json") = ResolvedResourceKey(
+    private fun resource(
+        path: String = "layouts/qwerty.json",
+        kind: ResourceKind = ResourceKind.LAYOUT
+    ) = ResolvedResourceKey(
         packageId = "pack.en",
         packageVersion = SemVer(1, 0, 0),
         normalizedPath = path,
-        kind = ResourceKind.LAYOUT,
+        kind = kind,
         sha256 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
     )
 

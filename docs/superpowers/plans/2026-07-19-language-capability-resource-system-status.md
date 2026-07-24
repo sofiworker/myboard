@@ -12,10 +12,10 @@
 - Task 4: `BuiltInLanguagePacks`, real built-in assets, resource catalog hashing, built-in registration, provider snapshot foundation, and registration tests.
 - Task 5: Capability-first IME initialization, no empty-registry hard-coded context fallback, and provider backup test fixtures.
 - Task 6 core path: Pipeline resolves a capability, selects `capability.engine.engineId`, builds an engine context/session, and serializes session replacement.
+- Task 6 completion: Mapping/FSM resources are parsed from verified package bytes, resolved resource generations are retained in `ResolvedCapabilityKey`, rejected transitions preserve the active session, resource generation changes recreate it, and late results from replaced sessions are discarded.
 
 ## Partially Completed
 
-- Task 6: Extended action coverage, late asynchronous dictionary-result rejection, and complete mapping/FSM runtime parsing still require review and additional tests.
 - Task 7: A minimal JVM `PackageStore` fake now covers active versions, leases, delayed removal, hashes, and dependency validation. ZIP staging, crash recovery, persisted activation state, and production PackageStore integration are not complete or verified.
 
 ## Not Started
@@ -27,13 +27,12 @@
 ## Verification
 
 - Passed focused Script, Manifest, resource resolver, layout canonical ID, built-in registration, context manager, and base InputPipeline tests during implementation.
-- The latest full `testDebugUnitTest` run was not clean before this checkpoint; subsequent focused provider/context tests passed after fixture fixes.
+- The latest full `testDebugUnitTest` and `assembleDebug` run passed after completing Task 6.
 - Task 7 has not been compiled or tested after its latest implementation.
-- `lintDebug`, `assembleDebug`, and `connectedDebugAndroidTest` have not been completed for this WIP checkpoint.
+- `lintDebug` and `connectedDebugAndroidTest` have not been completed for this WIP checkpoint.
 
 ## Resume Point
 
-1. Run `PackageLifecycleTest` and the complete JVM test suite with mise Java.
-2. Finish and review Task 6 extended behavior and Task 7 production integration.
-3. Execute Tasks 8-10.
-4. Run `testDebugUnitTest`, `lintDebug`, `assembleDebug`, and device tests when available.
+1. Run `PackageLifecycleTest` and finish Task 7 production integration.
+2. Execute Tasks 8-10.
+3. Run `testDebugUnitTest`, `lintDebug`, `assembleDebug`, and device tests when available.

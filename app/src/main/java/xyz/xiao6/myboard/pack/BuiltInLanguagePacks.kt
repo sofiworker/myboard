@@ -56,12 +56,13 @@ object BuiltInLanguagePacks {
 
     val all: List<LanguagePackManifest> = listOf(zhCN, enUS, jaJP)
 
-    fun resourceCatalog(readAsset: (String) -> ByteArray?): ResolvedResourceCatalog = ResolvedResourceCatalog(
-        all.flatMap(::references).distinct().map { ref ->
+    fun resourceCatalog(readAsset: (String) -> ByteArray?): ResolvedResourceCatalog {
+        val resources = all.flatMap(::references).distinct().associate { ref ->
             val bytes = requireNotNull(readAsset(ref.path)) { "Built-in resource ${ref.path} is missing" }
-            ResolvedResourceKey(ref.packageId, versionFor(ref.packageId), normalizeResourcePath(ref.path), ref.kind, sha256(bytes))
+            ResolvedResourceKey(ref.packageId, versionFor(ref.packageId), normalizeResourcePath(ref.path), ref.kind, sha256(bytes)) to bytes
         }
-    )
+        return ResolvedResourceCatalog(resources.keys, resources::get)
+    }
 
     fun registerDictionaries(
         registry: DictionaryRegistryImpl,

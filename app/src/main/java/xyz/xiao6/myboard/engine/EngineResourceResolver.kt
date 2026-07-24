@@ -10,7 +10,10 @@ interface EngineResourceResolver {
     fun resolveResource(reference: ResourceRef, availableResources: Collection<ResolvedResourceKey>): ResourceResolution
 }
 
-class ResolvedResourceCatalog(resources: Collection<ResolvedResourceKey>) {
+class ResolvedResourceCatalog(
+    resources: Collection<ResolvedResourceKey>,
+    private val readBytes: (ResolvedResourceKey) -> ByteArray? = { null }
+) {
     private val snapshot = resources.distinct().toList()
 
     init {
@@ -18,6 +21,9 @@ class ResolvedResourceCatalog(resources: Collection<ResolvedResourceKey>) {
     }
 
     fun snapshot(): List<ResolvedResourceKey> = snapshot
+
+    fun read(key: ResolvedResourceKey): ByteArray? =
+        key.takeIf(snapshot::contains)?.let(readBytes)
 }
 
 sealed interface ResourceResolution {

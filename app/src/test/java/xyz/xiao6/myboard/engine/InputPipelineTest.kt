@@ -5,7 +5,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.async
+import kotlinx.coroutines.yield
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import xyz.xiao6.myboard.androidbridge.InputConnectionGateway
 import xyz.xiao6.myboard.contract.engine.EngineContext
@@ -41,6 +45,9 @@ import xyz.xiao6.myboard.contract.registry.ResourceKind
 import xyz.xiao6.myboard.contract.registry.ResourceRef
 import xyz.xiao6.myboard.state.CapabilityRegistry
 import xyz.xiao6.myboard.state.ResolvedLanguageCapability
+import xyz.xiao6.myboard.engine.builtin.DirectEngine
+import xyz.xiao6.myboard.contract.language.SemVer
+import xyz.xiao6.myboard.contract.manifest.ResolvedResourceKey
 
 class InputPipelineTest {
 
@@ -64,6 +71,105 @@ class InputPipelineTest {
         assertEquals(emptyList<String>(), gateway.commits)
     }
 
+    @Test
+    fun `rejected schema switch keeps the current input session`() = runBlocking {
+        val context = testContext()
+        val engine = RecordingEngine(engineId = context.orthogonal.schema.value)
+        val pipeline = InputPipelineImpl(
+            capabilityRegistry = TestCapabilityRegistry(context.orthogonal, engine.engineId),
+            engineRegistry = EngineRegistryImpl().apply { register(engine) },
+            keyboardContextManager = TestKeyboardContextManager(context),
+            gateway = RecordingGateway(),
+            scope = CoroutineScope(Dispatchers.Unconfined)
+        )
+
+        pipeline.onContextChanged(context)
+        pipeline.handle(InputAction.SwitchSchema(Schema("UNSUPPORTED")))
+
+        assertEquals(1, engine.createdSessionCount)
+        assertEquals(0, engine.closedSessionCount)
+    }
+
+    @Test
+    fun `direct session preserves the resolved capability package identity`() {
+        val context = testContext()
+        val capability = LanguageCapability(
+            id = CapabilityId("external.provider", context.orthogonal.locale, context.orthogonal.script, context.orthogonal.schema),
+            engine = EngineBinding("direct"),
+            layout = ResourceRef("external.provider", "layouts/qwerty.jsonc", ResourceKind.LAYOUT),
+            dictionaries = emptyList(),
+            candidatePolicyId = "test",
+            displayPolicyId = "test",
+            supportsShift = false
+        )
+        val resources = TestCapabilityRegistry(context.orthogonal, "direct").resources
+
+        val session = DirectEngine().createSession(
+            EngineContext(context, capability, resources, CoroutineScope(Dispatchers.Unconfined))
+        )
+
+        assertEquals(capability.id, session.capabilityId)
+        assertEquals(capability.id, session.capabilityKey.capabilityId)
+    }
+
+    @Test
+    fun `context replacement invalidates a late result from the old session`() = runBlocking {
+        val context = testContext()
+        val replacement = context.copy(layoutId = "builtin:replacement")
+        val engine = DelayedEngine(context.orthogonal.schema.value)
+        val gateway = RecordingGateway()
+        val pipeline = InputPipelineImpl(
+            capabilityRegistry = TestCapabilityRegistry(context.orthogonal, engine.engineId),
+            engineRegistry = EngineRegistryImpl().apply { register(engine) },
+            keyboardContextManager = TestKeyboardContextManager(context),
+            gateway = gateway,
+            scope = CoroutineScope(Dispatchers.Unconfined)
+        )
+        pipeline.onContextChanged(context)
+
+        val input = async { pipeline.handle(InputAction.PushToken("old")) }
+        engine.started.await()
+        val replace = async { pipeline.onContextChanged(replacement) }
+        yield()
+
+        assertTrue("Context replacement must not wait for the old lookup", replace.isCompleted)
+        engine.release.complete(Unit)
+        input.await()
+        replace.await()
+        assertEquals(emptyList<String>(), gateway.commits)
+        assertEquals(1, engine.closedSessionCount)
+        assertEquals(2, engine.createdSessionCount)
+    }
+
+    @Test
+    fun `resource generation change recreates the session for the same keyboard context`() = runBlocking {
+        val context = testContext()
+        val engine = RecordingEngine(context.orthogonal.schema.value)
+        val registry = TestCapabilityRegistry(context.orthogonal, engine.engineId)
+        val pipeline = InputPipelineImpl(
+            capabilityRegistry = registry,
+            engineRegistry = EngineRegistryImpl().apply { register(engine) },
+            keyboardContextManager = TestKeyboardContextManager(context),
+            gateway = RecordingGateway(),
+            scope = CoroutineScope(Dispatchers.Unconfined)
+        )
+        pipeline.onContextChanged(context)
+        registry.updateLayoutGeneration(
+            ResolvedResourceKey(
+                packageId = "builtin",
+                packageVersion = SemVer(2, 0, 0),
+                normalizedPath = "layouts/qwerty.jsonc",
+                kind = ResourceKind.LAYOUT,
+                sha256 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            )
+        )
+
+        pipeline.onContextChanged(context)
+
+        assertEquals(2, engine.createdSessionCount)
+        assertEquals(1, engine.closedSessionCount)
+    }
+
     private fun testContext() = KeyboardContext(
         orthogonal = OrthogonalState(LocaleTag("en-US"), Script.LATN, Schema("DIRECT")),
         layoutId = "builtin:qwerty",
@@ -72,8 +178,13 @@ class InputPipelineTest {
 
     private class RecordingEngine(override val engineId: String) : InputEngine {
         val events = mutableListOf<InputEvent>()
+        var createdSessionCount = 0
+        var closedSessionCount = 0
 
         override fun createSession(context: EngineContext): InputSession = object : InputSession {
+            init {
+                createdSessionCount++
+            }
             override val capabilityId = context.capability.id
             override val capabilityKey = xyz.xiao6.myboard.contract.engine.ResolvedCapabilityKey(capabilityId, emptyMap())
             override val state: StateFlow<InputSessionState> = MutableStateFlow(InputSessionState())
@@ -84,7 +195,38 @@ class InputPipelineTest {
             }
 
             override suspend fun reset(reason: ResetReason) = Unit
-            override suspend fun close() = Unit
+            override suspend fun close() {
+                closedSessionCount++
+            }
+        }
+    }
+
+    private class DelayedEngine(override val engineId: String) : InputEngine {
+        val started = CompletableDeferred<Unit>()
+        val release = CompletableDeferred<Unit>()
+        var createdSessionCount = 0
+        var closedSessionCount = 0
+
+        override fun createSession(context: EngineContext): InputSession {
+            val sessionNumber = ++createdSessionCount
+            return object : InputSession {
+                override val capabilityId = context.capability.id
+                override val capabilityKey = xyz.xiao6.myboard.contract.engine.ResolvedCapabilityKey(capabilityId, emptyMap())
+                override val state: StateFlow<InputSessionState> = MutableStateFlow(InputSessionState())
+
+                override suspend fun handle(event: InputEvent): EngineResult {
+                    if (sessionNumber == 1) {
+                        started.complete(Unit)
+                        release.await()
+                    }
+                    return EngineResult.CommitText("late")
+                }
+
+                override suspend fun reset(reason: ResetReason) = Unit
+                override suspend fun close() {
+                    closedSessionCount++
+                }
+            }
         }
     }
 
@@ -98,7 +240,7 @@ class InputPipelineTest {
             displayPolicyId = "test",
             supportsShift = false
         )
-        private val resources = EngineResources(
+        val resources = EngineResources(
             candidatePolicy = object : CandidatePolicy {
                 override val policyId = "test"
                 override fun sort(candidates: List<Candidate>) = candidates
@@ -112,9 +254,17 @@ class InputPipelineTest {
             }
         )
 
-        private val resolved = ResolvedLanguageCapability(capability, resources)
+        private var resolvedResourceKeys = emptyMap<ResourceRef, ResolvedResourceKey>()
+
+        fun updateLayoutGeneration(key: ResolvedResourceKey) {
+            resolvedResourceKeys = mapOf(capability.layout to key)
+        }
+
         override fun resolve(state: OrthogonalState): ResolvedLanguageCapability? =
-            resolved.takeIf { it.capability.id.locale == state.locale && it.capability.id.script == state.script && it.capability.id.schema == state.schema }
+            ResolvedLanguageCapability(
+                capability,
+                resources.copy(resolvedResources = resolvedResourceKeys)
+            ).takeIf { it.capability.id.locale == state.locale && it.capability.id.script == state.script && it.capability.id.schema == state.schema }
     }
 
     private class TestKeyboardContextManager(initial: KeyboardContext) : KeyboardContextManager {

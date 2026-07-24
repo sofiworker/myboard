@@ -1,6 +1,4 @@
 package xyz.xiao6.myboard.engine.builtin
-import xyz.xiao6.myboard.contract.manifest.CapabilityId
-
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -31,12 +29,7 @@ class DirectEngine : InputEngine {
         private val context: EngineContext
     ) : InputSession {
         
-        override val capabilityId: CapabilityId = CapabilityId(
-            packageId = "builtin",
-            locale = context.keyboardContext.orthogonal.locale,
-            script = context.keyboardContext.orthogonal.script,
-            schema = context.keyboardContext.orthogonal.schema
-        )
+        override val capabilityId: CapabilityId = context.capability.id
         override val capabilityKey = ResolvedCapabilityKey(capabilityId, context.resources.resolvedResources)
         
         private val _state = MutableStateFlow(InputSessionState())
