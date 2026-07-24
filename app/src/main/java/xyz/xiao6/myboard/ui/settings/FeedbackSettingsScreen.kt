@@ -12,24 +12,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import xyz.xiao6.myboard.R
-import xyz.xiao6.myboard.data.db.SettingsDatabase
-import xyz.xiao6.myboard.data.repository.SettingsRepository
 
 @Composable
 fun FeedbackSettingsScreen(
     onBack: () -> Unit,
-    viewModel: SettingsViewModel = viewModel(
-        factory = SettingsViewModel.Factory(
-            SettingsRepository(
-                SettingsDatabase.getInstance(LocalContext.current).settingsDao()
-            )
-        )
-    )
+    viewModel: SettingsViewModel
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val hapticEnabled = uiState.settings["haptic_feedback"]?.toBooleanStrictOrNull() ?: true

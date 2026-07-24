@@ -19,6 +19,8 @@ import androidx.savedstate.SavedStateRegistryController
 import androidx.savedstate.SavedStateRegistryOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filterNotNull
 import xyz.xiao6.myboard.androidbridge.*
 import xyz.xiao6.myboard.contract.input.*
 import xyz.xiao6.myboard.contract.layout.*
@@ -182,6 +184,16 @@ class MyBoardImeService : InputMethodService(), LifecycleOwner, SavedStateRegist
             gateway = inputConnectionGateway,
             scope = serviceScope
         )
+        serviceScope.launch {
+            settingsRepository.initializeDefaults()
+            settingsRepository.observeSetting("current_locale")
+                .filterNotNull()
+                .distinctUntilChanged()
+                .collect { locale ->
+                    inputPipeline.handle(InputAction.SwitchLocale(LocaleTag(locale)))
+                    updateInputView()
+                }
+        }
 
         // 10. 初始化布局测量器
         layoutMeasurer = LayoutMeasurerImpl()

@@ -47,14 +47,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import xyz.xiao6.myboard.R
 import xyz.xiao6.myboard.contract.manifest.LanguagePackManifest
 import xyz.xiao6.myboard.contract.state.BuiltInSchemas
 import xyz.xiao6.myboard.contract.state.LocaleTag
 import xyz.xiao6.myboard.contract.state.Schema
-import xyz.xiao6.myboard.data.db.SettingsDatabase
-import xyz.xiao6.myboard.data.repository.SettingsRepository
 import xyz.xiao6.myboard.pack.BuiltInLanguagePacks
 import java.util.Locale
 
@@ -65,13 +62,7 @@ import java.util.Locale
 @Composable
 fun LanguageSettingsScreen(
     onBack: () -> Unit,
-    viewModel: LanguageSettingsViewModel = viewModel(
-        factory = LanguageSettingsViewModel.Factory(
-            SettingsRepository(
-                SettingsDatabase.getInstance(LocalContext.current).settingsDao()
-            )
-        )
-    )
+    viewModel: LanguageSettingsViewModel
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val allManifests = remember { BuiltInLanguagePacks.all }

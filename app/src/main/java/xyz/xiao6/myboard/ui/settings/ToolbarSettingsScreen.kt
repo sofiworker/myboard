@@ -35,26 +35,16 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import xyz.xiao6.myboard.R
-import xyz.xiao6.myboard.data.db.SettingsDatabase
 import xyz.xiao6.myboard.data.entity.ToolbarItemType
 import xyz.xiao6.myboard.data.entity.ToolbarLayoutMode
-import xyz.xiao6.myboard.data.repository.SettingsRepository
 
 @Composable
 fun ToolbarSettingsScreen(
     onBack: () -> Unit,
-    viewModel: ToolbarSettingsViewModel = viewModel(
-        factory = ToolbarSettingsViewModel.Factory(
-            SettingsRepository(
-                SettingsDatabase.getInstance(LocalContext.current).settingsDao()
-            )
-        )
-    )
+    viewModel: ToolbarSettingsViewModel
 ) {
     val uiState by viewModel.uiState.collectAsState()
 

@@ -56,6 +56,12 @@ class SettingsActivity : AppCompatActivity() {
                                 viewModel = viewModel(factory = LanguageSettingsViewModel.Factory(repo))
                             )
                         }
+                        composable("input") {
+                            InputSettingsScreen(
+                                onBack = { navController.popBackStack() },
+                                viewModel = viewModel(factory = SettingsViewModel.Factory(repo))
+                            )
+                        }
                         composable("toolbar") {
                             ToolbarSettingsScreen(
                                 onBack = { navController.popBackStack() },

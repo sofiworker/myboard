@@ -29,10 +29,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import xyz.xiao6.myboard.R
-import xyz.xiao6.myboard.data.db.SettingsDatabase
-import xyz.xiao6.myboard.data.repository.SettingsRepository
 import xyz.xiao6.myboard.data.settings.KeyboardHeightPolicy
 
 /**
@@ -42,13 +39,7 @@ import xyz.xiao6.myboard.data.settings.KeyboardHeightPolicy
 fun SettingsScreen(
     onBack: () -> Unit,
     onNavigate: (String) -> Unit = {},
-    viewModel: SettingsViewModel = viewModel(
-        factory = SettingsViewModel.Factory(
-            SettingsRepository(
-                SettingsDatabase.getInstance(LocalContext.current).settingsDao()
-            )
-        )
-    )
+    viewModel: SettingsViewModel
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val configuration = LocalConfiguration.current
@@ -184,6 +175,14 @@ fun SettingsScreen(
             item { SettingsSectionHeader(stringResource(R.string.settings_section_input)) }
             item {
                 SettingsGroup {
+                    SettingsNavItem(
+                        title = stringResource(R.string.settings_section_input),
+                        subtitle = stringResource(R.string.settings_input_behavior),
+                        icon = Icons.Default.TextFormat,
+                        onClick = { onNavigate("input") },
+                        showDivider = true,
+                        accent = SettingsAccent.Teal
+                    )
                     SettingsSwitchItem(
                         title = stringResource(R.string.settings_double_space_period),
                         subtitle = stringResource(R.string.settings_double_space_period_desc),

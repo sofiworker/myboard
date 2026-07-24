@@ -14,10 +14,10 @@
 - Task 6 core path: Pipeline resolves a capability, selects `capability.engine.engineId`, builds an engine context/session, and serializes session replacement.
 - Task 6 completion: Mapping/FSM resources are parsed from verified package bytes, resolved resource generations are retained in `ResolvedCapabilityKey`, rejected transitions preserve the active session, resource generation changes recreate it, and late results from replaced sessions are discarded.
 - Task 7: Package lifecycle is transactional and persistent. It includes upgrade/uninstall leases, dependency-cycle validation, Unicode/path/hash checks, atomic staging/current/backup recovery, safe ZIP staging with executable and size limits, a transactional importer boundary, process-wide app-private storage, and restored resource/Manifest registration during IME startup.
+- Task 8: `SettingsActivity` is the production settings composition root. Settings screens require explicit ViewModel/Repository injection, the Input route is reachable, a static regression test prevents screen-local database creation, and the IME observes the shared Room Flow for locale changes.
 
 ## Not Started
 
-- Task 8: Settings single-source production cleanup and settings Flow integration.
 - Task 9: Final legacy-reference cleanup, RTL presentation completion, and scoped i18n verification.
 - Task 10: External Language Pack import and end-to-end Android regression coverage.
 
@@ -29,6 +29,6 @@
 
 ## Resume Point
 
-1. Execute Task 8 settings single-source cleanup and Flow integration.
-2. Execute Tasks 9-10.
+1. Execute Task 9 legacy cleanup, RTL presentation, and i18n verification.
+2. Execute Task 10 external package import and Android regression coverage.
 3. Run `testDebugUnitTest`, `lintDebug`, `assembleDebug`, and device tests when available.

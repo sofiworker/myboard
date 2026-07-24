@@ -30,27 +30,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import xyz.xiao6.myboard.R
-import xyz.xiao6.myboard.data.db.SettingsDatabase
-import xyz.xiao6.myboard.data.repository.SettingsRepository
 import xyz.xiao6.myboard.theme.BuiltInThemes
 import xyz.xiao6.myboard.theme.ThemeDoc
 
 @Composable
 fun ThemeSettingsScreen(
     onBack: () -> Unit,
-    viewModel: SettingsViewModel = viewModel(
-        factory = SettingsViewModel.Factory(
-            SettingsRepository(
-                SettingsDatabase.getInstance(LocalContext.current).settingsDao()
-            )
-        )
-    )
+    viewModel: SettingsViewModel
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val themeMode = uiState.settings["theme_mode"] ?: "auto"

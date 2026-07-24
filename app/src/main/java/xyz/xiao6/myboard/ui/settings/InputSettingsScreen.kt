@@ -12,9 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import xyz.xiao6.myboard.R
-import xyz.xiao6.myboard.data.repository.SettingsRepository
 import xyz.xiao6.myboard.data.settings.KeyboardHeightPolicy
 
 /**
@@ -25,15 +23,7 @@ import xyz.xiao6.myboard.data.settings.KeyboardHeightPolicy
 @Composable
 fun InputSettingsScreen(
     onBack: () -> Unit,
-    viewModel: SettingsViewModel = viewModel(
-        factory = SettingsViewModel.Factory(
-            SettingsRepository(
-                xyz.xiao6.myboard.data.db.SettingsDatabase.getInstance(
-                    androidx.compose.ui.platform.LocalContext.current
-                ).settingsDao()
-            )
-        )
-    )
+    viewModel: SettingsViewModel
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val configuration = LocalConfiguration.current
