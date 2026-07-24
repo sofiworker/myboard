@@ -29,3 +29,7 @@ nul
 
 .sisyphus.worktrees/
 .sisyphus/
+
+# Local Kotlin compiler and Superpowers workflow state
+.kotlin/
+.superpowers/
