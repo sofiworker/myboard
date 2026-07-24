@@ -48,6 +48,40 @@ class PackageLifecycleTest {
     }
 
     @Test
+    fun `checkpoint restore republishes the previous package and resources`() {
+        val store = PackageStore()
+        assertTrue(store.install(packagePayload("language.demo", SemVer(1, 0, 0))).isSuccess)
+        val checkpoint = store.checkpoint()
+        val oldLease = requireNotNull(store.acquireResource<String>("language.demo", "layouts/main.json") { it.decodeToString() })
+        assertTrue(store.install(packagePayload("language.demo", SemVer(2, 0, 0))).isSuccess)
+
+        assertTrue(store.restore(checkpoint).isSuccess)
+
+        assertEquals(SemVer(1, 0, 0), store.snapshot().active["language.demo"]?.version)
+        store.acquireResource<String>("language.demo", "layouts/main.json") { it.decodeToString() }.use {
+            assertEquals("1.0.0", it?.value)
+        }
+        assertEquals("1.0.0", oldLease.value)
+        oldLease.close()
+        assertFalse(store.hasRetainedVersion("language.demo", SemVer(2, 0, 0)))
+    }
+
+    @Test
+    fun `failed checkpoint restore leaves current package published`() {
+        val persistence = FailingPackagePersistence()
+        val store = PackageStore(persistence)
+        assertTrue(store.install(packagePayload("language.demo", SemVer(1, 0, 0))).isSuccess)
+        val checkpoint = store.checkpoint()
+        assertTrue(store.install(packagePayload("language.demo", SemVer(2, 0, 0))).isSuccess)
+        persistence.failWrites = true
+
+        val result = store.restore(checkpoint)
+
+        assertFalse(result.isSuccess)
+        assertEquals(SemVer(2, 0, 0), store.snapshot().active["language.demo"]?.version)
+    }
+
+    @Test
     fun `uninstall blocks new leases and delays cleanup until open lease closes`() {
         val store = PackageStore()
         assertTrue(store.install(packagePayload("language.demo", SemVer(1, 0, 0))).isSuccess)

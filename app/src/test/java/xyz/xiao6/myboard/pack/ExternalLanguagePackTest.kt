@@ -7,6 +7,10 @@ import org.junit.Test
 import xyz.xiao6.myboard.contract.manifest.LayoutMirrorPolicy
 import xyz.xiao6.myboard.contract.manifest.TextDirection
 import xyz.xiao6.myboard.contract.state.Script
+import xyz.xiao6.myboard.contract.language.PackageDependency
+import xyz.xiao6.myboard.contract.language.VersionRange
+import xyz.xiao6.myboard.contract.language.SemVer
+import xyz.xiao6.myboard.contract.state.OrthogonalState
 
 class ExternalLanguagePackTest {
 
@@ -98,6 +102,44 @@ class ExternalLanguagePackTest {
         }
 
         assertTrue(error.message.orEmpty().contains("descriptor", ignoreCase = true))
+    }
+
+    @Test
+    fun `effective registry excludes disabled external providers`() {
+        val external = decoder.decode(validArabicManifest().encodeToByteArray())
+        val result = buildEffectiveRegistrySnapshot(
+            manifests = listOf(BuiltInLanguagePacks.enUS, external),
+            builtInPackageIds = setOf(BuiltInLanguagePacks.enUS.identity.packageId),
+            enabledExternalPackageIds = emptySet()
+        )
+
+        assertTrue(result.errors.isEmpty())
+        assertTrue(result.snapshot.capabilitiesByPackage.containsKey(BuiltInLanguagePacks.enUS.identity.packageId))
+        assertTrue(result.snapshot.capabilitiesByPackage[external.identity.packageId].isNullOrEmpty())
+    }
+
+    @Test
+    fun `effective registry includes enabled provider and rejects disabled dependency`() {
+        val external = decoder.decode(validArabicManifest().encodeToByteArray())
+        val enabled = buildEffectiveRegistrySnapshot(
+            manifests = listOf(BuiltInLanguagePacks.enUS, external),
+            builtInPackageIds = setOf(BuiltInLanguagePacks.enUS.identity.packageId),
+            enabledExternalPackageIds = setOf(external.identity.packageId)
+        )
+        val state = OrthogonalState(external.locale, Script.ARAB, external.defaults.schema)
+        assertEquals(external.identity.packageId, enabled.snapshot.capabilitiesByState[state]?.single()?.id?.packageId)
+
+        val dependent = external.copy(
+            dependencies = listOf(
+                PackageDependency("external.base", VersionRange(SemVer(1, 0, 0)), optional = false)
+            )
+        )
+        val invalid = buildEffectiveRegistrySnapshot(
+            manifests = listOf(BuiltInLanguagePacks.enUS, dependent),
+            builtInPackageIds = setOf(BuiltInLanguagePacks.enUS.identity.packageId),
+            enabledExternalPackageIds = setOf(dependent.identity.packageId)
+        )
+        assertTrue(invalid.errors.any { it.contains("external.base") })
     }
 
     private fun validArabicManifest(): String = """

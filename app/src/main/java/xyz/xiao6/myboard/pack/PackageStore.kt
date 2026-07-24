@@ -130,6 +130,41 @@ class PackageStore(
     fun snapshot(): Snapshot = current
 
     @Synchronized
+    fun checkpoint(): PackageStoreCheckpoint = PackageStoreCheckpoint(activePayloads()).deepCopy()
+
+    @Synchronized
+    fun restore(checkpoint: PackageStoreCheckpoint): PackageOperationResult {
+        val restored = checkpoint.deepCopy().activePayloads
+        val errors = restored.flatMap { it.validateForActivation() }
+        if (errors.isNotEmpty()) return PackageOperationResult.Failure(errors)
+        if (restored.map { it.manifest.identity.packageId }.distinct().size != restored.size) {
+            return PackageOperationResult.Failure(listOf("Package checkpoint contains duplicate package IDs"))
+        }
+        persist(restored)?.let { return it }
+
+        val targetIdentities = restored.map { it.manifest.identity }.toSet()
+        activeIds.values.filterNot(targetIdentities::contains).forEach { identity ->
+            versions[identity]?.state = PackageVersionState.DEACTIVATING
+        }
+        activeIds.clear()
+        restored.forEach { payload ->
+            val identity = payload.manifest.identity
+            val existing = versions[identity]
+            if (existing != null) {
+                existing.state = PackageVersionState.ACTIVE
+            } else {
+                versions[identity] = StoredPackage(payload, PackageVersionState.ACTIVE)
+            }
+            activeIds[identity.packageId] = identity
+        }
+        publish()
+        versions.keys.filterNot(targetIdentities::contains).toList().forEach(::removeWhenUnleased)
+        return PackageOperationResult.Success(
+            restored.firstOrNull()?.manifest?.identity ?: PackageIdentity("checkpoint", SemVer(0, 0, 0))
+        )
+    }
+
+    @Synchronized
     fun resourceCatalog(): ResolvedResourceCatalog {
         val resources = activePayloads().flatMap { payload ->
             referencedResources(payload.manifest)
@@ -392,6 +427,14 @@ data class Snapshot(
     val active: Map<String, PackageVersion>,
     val registrySnapshot: RegistrySnapshot
 )
+
+data class PackageStoreCheckpoint internal constructor(
+    internal val activePayloads: List<PackagePayload>
+) {
+    internal fun deepCopy() = PackageStoreCheckpoint(
+        activePayloads.map { it.copy(resources = it.resources.mapValues { (_, bytes) -> bytes.copyOf() }) }
+    )
+}
 
 sealed interface PackageOperationResult {
     val isSuccess: Boolean
