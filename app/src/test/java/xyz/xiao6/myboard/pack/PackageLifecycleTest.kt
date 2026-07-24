@@ -1,6 +1,12 @@
 package xyz.xiao6.myboard.pack
 
 import java.security.MessageDigest
+import java.nio.file.Files
+import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
+import java.util.zip.ZipEntry
+import java.util.zip.ZipOutputStream
+import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -139,6 +145,149 @@ class PackageLifecycleTest {
         assertFalse(store.hasRetainedVersion("language.demo", version))
     }
 
+    @Test
+    fun `active packages recover from persisted state after process restart`() {
+        val persistence = InMemoryPackagePersistence()
+        val firstProcess = PackageStore(persistence)
+        assertTrue(firstProcess.install(packagePayload("language.demo", SemVer(1, 0, 0))).isSuccess)
+
+        val recoveredProcess = PackageStore(persistence)
+
+        assertEquals(SemVer(1, 0, 0), recoveredProcess.snapshot().active["language.demo"]?.version)
+        recoveredProcess.acquireResource<String>("language.demo", "layouts/main.json") { it.decodeToString() }.use { handle ->
+            assertEquals("1.0.0", handle?.value)
+        }
+    }
+
+    @Test
+    fun `persistence failure leaves the previous snapshot active`() {
+        val persistence = FailingPackagePersistence()
+        val store = PackageStore(persistence)
+        assertTrue(store.install(packagePayload("language.demo", SemVer(1, 0, 0))).isSuccess)
+        persistence.failWrites = true
+
+        val result = store.install(packagePayload("language.demo", SemVer(2, 0, 0)))
+
+        assertFalse(result.isSuccess)
+        assertEquals(SemVer(1, 0, 0), store.snapshot().active["language.demo"]?.version)
+    }
+
+    @Test
+    fun `atomic file persistence restores the active package`() {
+        val directory = Files.createTempDirectory("myboard-package-store").toFile()
+        try {
+            val firstProcess = PackageStore(FilePackagePersistence(directory))
+            val installResult = firstProcess.install(packagePayload("language.demo", SemVer(1, 0, 0)))
+            assertTrue(installResult.toString(), installResult.isSuccess)
+
+            val recoveredProcess = PackageStore(FilePackagePersistence(directory))
+
+            assertEquals(SemVer(1, 0, 0), recoveredProcess.snapshot().active["language.demo"]?.version)
+        } finally {
+            directory.deleteRecursively()
+        }
+    }
+
+    @Test
+    fun `archive staging rejects traversal unicode duplicates and executable content`() {
+        val stager = PackageArchiveStager()
+        val manifest = packagePayload("language.demo", SemVer(1, 0, 0)).manifest
+
+        assertTrue(runCatching {
+            stager.stage(ByteArrayInputStream(zipOf(mapOf("manifest.json" to byteArrayOf(), "../escape" to byteArrayOf())))) { manifest }
+        }.isFailure)
+        assertTrue(runCatching {
+            stager.stage(
+                ByteArrayInputStream(
+                    zipOf(
+                        mapOf(
+                            "manifest.json" to byteArrayOf(),
+                            "layouts/caf\u00e9.json" to byteArrayOf(1),
+                            "layouts/cafe\u0301.json" to byteArrayOf(2)
+                        )
+                    )
+                )
+            ) { manifest }
+        }.isFailure)
+        assertTrue(runCatching {
+            stager.stage(ByteArrayInputStream(zipOf(mapOf("manifest.json" to byteArrayOf(), "code/plugin.dex" to byteArrayOf(1))))) { manifest }
+        }.isFailure)
+    }
+
+    @Test
+    fun `archive staging enforces entry and total byte limits`() {
+        val manifest = packagePayload("language.demo", SemVer(1, 0, 0)).manifest
+        val stager = PackageArchiveStager(
+            PackageArchiveLimits(maxEntries = 2, maxEntryBytes = 4, maxTotalBytes = 6)
+        )
+
+        assertTrue(runCatching {
+            stager.stage(
+                ByteArrayInputStream(zipOf(mapOf("manifest.json" to byteArrayOf(), "a" to ByteArray(5))))
+            ) { manifest }
+        }.isFailure)
+        assertTrue(runCatching {
+            stager.stage(
+                ByteArrayInputStream(zipOf(mapOf("manifest.json" to byteArrayOf(), "a" to ByteArray(4), "b" to ByteArray(3))))
+            ) { manifest }
+        }.isFailure)
+    }
+
+    @Test
+    fun `archive staging creates a payload from validated entries`() {
+        val expected = packagePayload("language.demo", SemVer(1, 0, 0))
+        val staged = PackageArchiveStager().stage(
+            ByteArrayInputStream(
+                zipOf(mapOf("manifest.json" to "manifest".encodeToByteArray()) + expected.resources)
+            )
+        ) { expected.manifest }
+
+        assertEquals(expected.manifest, staged.manifest)
+        assertEquals(expected.resources.keys, staged.resources.keys)
+    }
+
+    @Test
+    fun `transactional importer installs only the staged validated payload`() = runBlocking {
+        val expected = packagePayload("language.demo", SemVer(1, 0, 0))
+        val store = PackageStore()
+        val importer: LanguagePackImporter = TransactionalLanguagePackImporter(store)
+
+        val result = importer.import(
+            ByteArrayInputStream(
+                zipOf(mapOf("manifest.json" to "manifest".encodeToByteArray()) + expected.resources)
+            )
+        ) { expected.manifest }
+
+        assertTrue(result.isSuccess)
+        assertEquals(SemVer(1, 0, 0), store.snapshot().active["language.demo"]?.version)
+    }
+
+    @Test
+    fun `active package resources publish a versioned resolver catalog`() {
+        val store = PackageStore()
+        val payload = packagePayload("language.demo", SemVer(1, 0, 0))
+        assertTrue(store.install(payload).isSuccess)
+
+        val catalog = store.resourceCatalog()
+        val key = catalog.snapshot().single()
+
+        assertEquals("language.demo", key.packageId)
+        assertEquals(SemVer(1, 0, 0), key.packageVersion)
+        assertTrue(payload.resources["layouts/main.json"]!!.contentEquals(catalog.read(key)))
+    }
+
+    private class FailingPackagePersistence : PackagePersistence {
+        private var state = PersistedPackageState()
+        var failWrites = false
+
+        override fun load(): PersistedPackageState = state.copyActivePayloads()
+
+        override fun save(state: PersistedPackageState) {
+            check(!failWrites) { "disk full" }
+            this.state = state.copyActivePayloads()
+        }
+    }
+
     private fun packagePayload(
         packageId: String,
         version: SemVer,
@@ -175,4 +324,15 @@ class PackageLifecycleTest {
     private fun sha256(bytes: ByteArray): String = MessageDigest.getInstance("SHA-256")
         .digest(bytes)
         .joinToString("") { "%02x".format(it) }
+
+    private fun zipOf(entries: Map<String, ByteArray>): ByteArray = ByteArrayOutputStream().use { bytes ->
+        ZipOutputStream(bytes).use { zip ->
+            entries.forEach { (path, content) ->
+                zip.putNextEntry(ZipEntry(path))
+                zip.write(content)
+                zip.closeEntry()
+            }
+        }
+        bytes.toByteArray()
+    }
 }

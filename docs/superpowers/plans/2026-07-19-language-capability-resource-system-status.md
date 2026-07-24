@@ -13,10 +13,7 @@
 - Task 5: Capability-first IME initialization, no empty-registry hard-coded context fallback, and provider backup test fixtures.
 - Task 6 core path: Pipeline resolves a capability, selects `capability.engine.engineId`, builds an engine context/session, and serializes session replacement.
 - Task 6 completion: Mapping/FSM resources are parsed from verified package bytes, resolved resource generations are retained in `ResolvedCapabilityKey`, rejected transitions preserve the active session, resource generation changes recreate it, and late results from replaced sessions are discarded.
-
-## Partially Completed
-
-- Task 7: The JVM `PackageStore` now covers active versions, leases, delayed removal, hashes, required/optional dependencies, dependency-cycle rejection, Unicode-normalized duplicate paths, transactional validation failure, and decoder-failure lease cleanup. ZIP staging, crash recovery, persisted activation state, and production PackageStore integration are not complete or verified.
+- Task 7: Package lifecycle is transactional and persistent. It includes upgrade/uninstall leases, dependency-cycle validation, Unicode/path/hash checks, atomic staging/current/backup recovery, safe ZIP staging with executable and size limits, a transactional importer boundary, process-wide app-private storage, and restored resource/Manifest registration during IME startup.
 
 ## Not Started
 
@@ -28,11 +25,10 @@
 
 - Passed focused Script, Manifest, resource resolver, layout canonical ID, built-in registration, context manager, and base InputPipeline tests during implementation.
 - The latest full `testDebugUnitTest` and `assembleDebug` run passed after completing Task 6.
-- Task 7 has not been compiled or tested after its latest implementation.
 - `lintDebug` and `connectedDebugAndroidTest` have not been completed for this WIP checkpoint.
 
 ## Resume Point
 
-1. Run `PackageLifecycleTest` and finish Task 7 production integration.
-2. Execute Tasks 8-10.
+1. Execute Task 8 settings single-source cleanup and Flow integration.
+2. Execute Tasks 9-10.
 3. Run `testDebugUnitTest`, `lintDebug`, `assembleDebug`, and device tests when available.

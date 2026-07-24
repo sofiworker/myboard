@@ -1,13 +1,34 @@
 package xyz.xiao6.myboard.pack
 
-import android.net.Uri
-import xyz.xiao6.myboard.state.OrthogonalRegistry
-import xyz.xiao6.myboard.contract.registry.ImportResult
+import java.io.InputStream
+import xyz.xiao6.myboard.contract.manifest.LanguagePackManifest
 
-/**
- * 语言包导入器。
- * 阶段 01 只定义接口，阶段 09 实现真实逻辑。
- */
+fun interface LanguagePackManifestDecoder {
+    fun decode(bytes: ByteArray): LanguagePackManifest
+}
+
 interface LanguagePackImporter {
-    suspend fun import(zipFile: Uri, registry: OrthogonalRegistry): ImportResult
+    suspend fun import(
+        input: InputStream,
+        manifestDecoder: LanguagePackManifestDecoder
+    ): PackageOperationResult
+}
+
+class TransactionalLanguagePackImporter(
+    private val packageStore: PackageStore,
+    private val archiveStager: PackageArchiveStager = PackageArchiveStager()
+) : LanguagePackImporter {
+    override suspend fun import(
+        input: InputStream,
+        manifestDecoder: LanguagePackManifestDecoder
+    ): PackageOperationResult = runCatching {
+        archiveStager.stage(input, manifestDecoder::decode)
+    }.fold(
+        onSuccess = packageStore::install,
+        onFailure = { error ->
+            PackageOperationResult.Failure(
+                listOf(error.message ?: "Language package could not be staged")
+            )
+        }
+    )
 }

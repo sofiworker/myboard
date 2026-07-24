@@ -1,5 +1,6 @@
 package xyz.xiao6.myboard.contract.state
 
+import java.io.Serializable as JavaSerializable
 import java.util.Locale
 import kotlinx.serialization.Serializable
 
@@ -10,7 +11,7 @@ import kotlinx.serialization.Serializable
  */
 @Serializable
 @JvmInline
-value class Script(val value: String) {
+value class Script(val value: String) : JavaSerializable {
 
     override fun toString(): String = value
 

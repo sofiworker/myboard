@@ -1,5 +1,13 @@
 package xyz.xiao6.myboard.pack
 
+import java.io.BufferedInputStream
+import java.io.BufferedOutputStream
+import java.io.File
+import java.io.FileInputStream
+import java.io.FileOutputStream
+import java.io.ObjectInputStream
+import java.io.ObjectOutputStream
+import java.io.Serializable
 import java.security.MessageDigest
 import java.text.Normalizer
 import xyz.xiao6.myboard.contract.language.PackageDependency
@@ -7,22 +15,30 @@ import xyz.xiao6.myboard.contract.language.PackageIdentity
 import xyz.xiao6.myboard.contract.language.SemVer
 import xyz.xiao6.myboard.contract.manifest.LanguageCapability
 import xyz.xiao6.myboard.contract.manifest.LanguagePackManifest
+import xyz.xiao6.myboard.contract.manifest.ResolvedResourceKey
 import xyz.xiao6.myboard.contract.manifest.validate
 import xyz.xiao6.myboard.contract.registry.ResourceRef
 import xyz.xiao6.myboard.contract.state.OrthogonalState
 import xyz.xiao6.myboard.state.RegistrySnapshot
+import xyz.xiao6.myboard.engine.ResolvedResourceCatalog
 
 /**
  * Transactional in-memory package store. Persisting its [Snapshot] is deliberately
  * outside this class so Android storage can use the same validated transaction.
  */
-class PackageStore {
+class PackageStore(
+    private val persistence: PackagePersistence = InMemoryPackagePersistence()
+) {
 
     private val versions = linkedMapOf<PackageIdentity, StoredPackage>()
     private val activeIds = linkedMapOf<String, PackageIdentity>()
 
     @Volatile
     private var current = Snapshot(emptyMap(), RegistrySnapshot())
+
+    init {
+        restorePersistedState()
+    }
 
     @Synchronized
     fun install(payload: PackagePayload): PackageOperationResult {
@@ -50,6 +66,11 @@ class PackageStore {
             )
         }
 
+        val persistedPayloads = activePayloads()
+            .filterNot { it.manifest.identity.packageId == staged.manifest.identity.packageId }
+            .plus(staged)
+        persist(persistedPayloads)?.let { return it }
+
         val identity = staged.manifest.identity
         // Staging never mutates the published pointer. Only this point can activate it.
         versions[identity] = StoredPackage(staged, PackageVersionState.ACTIVE)
@@ -74,6 +95,8 @@ class PackageStore {
         if (dependents.isNotEmpty()) {
             return PackageOperationResult.Failure(listOf("Package '$packageId' is required by ${dependents.joinToString()}"))
         }
+
+        persist(activePayloads().filterNot { it.manifest.identity.packageId == packageId })?.let { return it }
 
         activeIds.remove(packageId)
         versions[active]?.state = PackageVersionState.DEACTIVATING
@@ -105,6 +128,28 @@ class PackageStore {
     }
 
     fun snapshot(): Snapshot = current
+
+    @Synchronized
+    fun resourceCatalog(): ResolvedResourceCatalog {
+        val resources = activePayloads().flatMap { payload ->
+            referencedResources(payload.manifest)
+                .asSequence()
+                .filter { it.packageId == payload.manifest.identity.packageId }
+                .mapNotNull { reference ->
+                    val path = normalizePath(reference.path) ?: return@mapNotNull null
+                    val bytes = payload.resources[path] ?: return@mapNotNull null
+                    ResolvedResourceKey(
+                        packageId = reference.packageId,
+                        packageVersion = payload.manifest.identity.version,
+                        normalizedPath = path,
+                        kind = reference.kind,
+                        sha256 = sha256(bytes)
+                    ) to bytes.copyOf()
+                }
+                .toList()
+        }.toMap()
+        return ResolvedResourceCatalog(resources.keys) { key -> resources[key]?.copyOf() }
+    }
 
     @Synchronized
     fun hasRetainedVersion(packageId: String, version: SemVer): Boolean =
@@ -150,7 +195,11 @@ class PackageStore {
             .filterNot { it.packageId == candidate.identity.packageId }
             .mapNotNull { versions[it]?.payload?.manifest }
             .plus(candidate)
-            .associateBy { it.identity.packageId }
+        return hasRequiredDependencyCycle(manifests)
+    }
+
+    private fun hasRequiredDependencyCycle(manifestList: Collection<LanguagePackManifest>): Boolean {
+        val manifests = manifestList.associateBy { it.identity.packageId }
         val visiting = mutableSetOf<String>()
         val visited = mutableSetOf<String>()
 
@@ -169,6 +218,40 @@ class PackageStore {
         }
 
         return manifests.keys.any(::hasCycle)
+    }
+
+    private fun activePayloads(): List<PackagePayload> =
+        activeIds.values.mapNotNull { versions[it]?.payload }
+
+    private fun persist(payloads: List<PackagePayload>): PackageOperationResult.Failure? =
+        runCatching { persistence.save(PersistedPackageState(payloads).copyActivePayloads()) }
+            .exceptionOrNull()
+            ?.let { PackageOperationResult.Failure(listOf(it.message ?: "Package state could not be persisted")) }
+
+    private fun restorePersistedState() {
+        val restored = runCatching { persistence.load().copyActivePayloads().activePayloads }
+            .getOrElse { return }
+            .map { payload ->
+                runCatching { payload.copy(resources = payload.resources.copyNormalized()) }
+                    .getOrElse { return }
+            }
+        if (restored.map { it.manifest.identity.packageId }.distinct().size != restored.size) return
+        if (restored.any { it.validateForActivation().isNotEmpty() }) return
+
+        val manifests = restored.map(PackagePayload::manifest)
+        val identities = manifests.associate { it.identity.packageId to it.identity }
+        val dependenciesValid = manifests.all { manifest ->
+            manifest.dependencies.all { dependency ->
+                dependency.optional || identities[dependency.packageId]?.version?.let { it in dependency.versionRange } == true
+            }
+        }
+        if (!dependenciesValid || hasRequiredDependencyCycle(manifests)) return
+
+        restored.forEach { payload ->
+            versions[payload.manifest.identity] = StoredPackage(payload, PackageVersionState.ACTIVE)
+            activeIds[payload.manifest.identity.packageId] = payload.manifest.identity
+        }
+        publish()
     }
 
     private fun PackagePayload.validateForActivation(): List<String> = buildList {
@@ -219,6 +302,88 @@ class PackageStore {
 data class PackagePayload(
     val manifest: LanguagePackManifest,
     val resources: Map<String, ByteArray>
+) : Serializable
+
+interface PackagePersistence {
+    fun load(): PersistedPackageState
+    fun save(state: PersistedPackageState)
+}
+
+data class PersistedPackageState(
+    val activePayloads: List<PackagePayload> = emptyList()
+) : Serializable
+
+class InMemoryPackagePersistence : PackagePersistence {
+    private var state = PersistedPackageState()
+
+    @Synchronized
+    override fun load(): PersistedPackageState = state.copyActivePayloads()
+
+    @Synchronized
+    override fun save(state: PersistedPackageState) {
+        this.state = state.copyActivePayloads()
+    }
+}
+
+class FilePackagePersistence(
+    private val directory: File
+) : PackagePersistence {
+    private val stateFile get() = directory.resolve(STATE_FILE_NAME)
+    private val stagingFile get() = directory.resolve(STAGING_FILE_NAME)
+    private val backupFile get() = directory.resolve(BACKUP_FILE_NAME)
+
+    @Synchronized
+    override fun load(): PersistedPackageState {
+        val readableState = when {
+            stateFile.isFile -> stateFile
+            backupFile.isFile -> backupFile
+            else -> return PersistedPackageState()
+        }
+        return ObjectInputStream(BufferedInputStream(FileInputStream(readableState))).use { input ->
+            input.readObject() as PersistedPackageState
+        }.copyActivePayloads()
+    }
+
+    @Synchronized
+    override fun save(state: PersistedPackageState) {
+        check(directory.exists() || directory.mkdirs()) {
+            "Package state directory could not be created"
+        }
+        val fileOutput = FileOutputStream(stagingFile)
+        val objectOutput = ObjectOutputStream(BufferedOutputStream(fileOutput))
+        try {
+            objectOutput.writeObject(state.copyActivePayloads())
+            objectOutput.flush()
+            fileOutput.fd.sync()
+        } finally {
+            runCatching { objectOutput.close() }
+        }
+        check(!backupFile.exists() || backupFile.delete()) {
+            "Previous package state backup could not be removed"
+        }
+        if (stateFile.exists()) {
+            check(stateFile.renameTo(backupFile)) {
+                "Active package state could not be moved to backup"
+            }
+        }
+        if (!stagingFile.renameTo(stateFile)) {
+            if (backupFile.exists()) backupFile.renameTo(stateFile)
+            error("Staged package state could not be activated")
+        }
+        backupFile.delete()
+    }
+
+    private companion object {
+        const val STATE_FILE_NAME = "active-packages.bin"
+        const val STAGING_FILE_NAME = "active-packages.staging"
+        const val BACKUP_FILE_NAME = "active-packages.backup"
+    }
+}
+
+fun PersistedPackageState.copyActivePayloads(): PersistedPackageState = copy(
+    activePayloads = activePayloads.map { payload ->
+        payload.copy(resources = payload.resources.mapValues { (_, bytes) -> bytes.copyOf() })
+    }
 )
 
 data class PackageVersion(val packageId: String, val version: SemVer)

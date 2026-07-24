@@ -1,5 +1,6 @@
 package xyz.xiao6.myboard.contract.manifest
 
+import java.io.Serializable
 import xyz.xiao6.myboard.contract.state.LocaleTag
 import xyz.xiao6.myboard.contract.state.Script
 import xyz.xiao6.myboard.contract.state.Schema
@@ -58,7 +59,7 @@ data class ScriptDescriptor(
     val direction: TextDirection,
     val layoutMirror: LayoutMirrorPolicy,
     val preferredFont: String? = null
-)
+) : Serializable
 
 enum class TextDirection { LTR, RTL }
 
@@ -116,7 +117,7 @@ data class CapabilityId(
     val locale: LocaleTag,
     val script: Script,
     val schema: Schema
-)
+) : Serializable
 
 data class LanguageCapability(
     val id: CapabilityId,
@@ -131,7 +132,7 @@ data class LanguageCapability(
     val outputScript: Script? = null,
     val subtype: SubtypeInfo? = null,
     val fallbackCapabilityIds: List<CapabilityId> = emptyList()
-)
+) : Serializable
 
 data class LanguagePackManifest(
     val manifestVersion: Int,
@@ -143,7 +144,7 @@ data class LanguagePackManifest(
     val scripts: List<ScriptManifest>,
     val dependencies: List<PackageDependency> = emptyList(),
     val capabilities: List<LanguageCapability>
-)
+) : Serializable
 
 /**
  * 语言能力（Locale 级别）。
@@ -155,7 +156,7 @@ data class LocaleDefaults(
     val script: Script,
     val schema: Schema,
     val layout: ResourceRef
-)
+) : Serializable
 
 /**
  * 文字系统能力（Script 级别）。
@@ -169,7 +170,7 @@ data class LocaleDefaults(
  */
 data class SubtypeInfo(
     val labelKey: String
-)
+) : Serializable
 
 /**
  * 语言包 Manifest 数据模型。
@@ -181,7 +182,7 @@ data class ScriptManifest(
     val id: Script,
     val descriptor: ScriptDescriptor,
     val defaultSchema: Schema
-)
+) : Serializable
 
 fun LanguagePackManifest.validate(): ManifestValidationResult {
     val errors = buildList {

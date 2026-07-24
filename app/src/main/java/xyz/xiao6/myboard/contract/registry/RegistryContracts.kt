@@ -1,5 +1,6 @@
 package xyz.xiao6.myboard.contract.registry
 
+import java.io.Serializable
 import xyz.xiao6.myboard.contract.state.LocaleTag
 import xyz.xiao6.myboard.contract.state.Script
 import xyz.xiao6.myboard.contract.state.Schema
@@ -13,7 +14,7 @@ data class ResourceRef(
     val versionRange: xyz.xiao6.myboard.contract.language.VersionRange? = null,
     val sha256: String? = null,
     val onMissing: MissingResourcePolicy = MissingResourcePolicy.REJECT_PACKAGE
-) {
+) : Serializable {
     init {
         sha256?.let(::requireSha256)
     }
@@ -121,7 +122,7 @@ data class LayoutIssue(
     val severity: IssueSeverity,
     val message: String,
     val path: String? = null
-)
+) : Serializable
 
 enum class IssueSeverity { ERROR, WARNING }
 

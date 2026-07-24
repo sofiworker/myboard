@@ -1,5 +1,6 @@
 package xyz.xiao6.myboard.contract.engine
 
+import java.io.Serializable
 import xyz.xiao6.myboard.contract.manifest.CapabilityId
 import xyz.xiao6.myboard.contract.manifest.LanguageCapability
 import xyz.xiao6.myboard.contract.manifest.ResolvedResourceKey
@@ -15,7 +16,7 @@ data class EngineBinding(
     val engineId: String,
     val encoderId: String? = null,
     val encoderConfig: ResourceRef? = null
-) {
+) : Serializable {
     init {
         require(engineId.isNotBlank()) { "Engine id must not be blank" }
     }
@@ -43,7 +44,7 @@ data class DictionaryBinding(
     val role: DictionaryRole,
     val resource: ResourceRef,
     val required: Boolean
-) {
+) : Serializable {
     fun isCompatible(): Boolean = role.isCompatibleWith(kind)
 }
 

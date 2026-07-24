@@ -16,14 +16,22 @@ class ResolvedResourceCatalog(
 ) {
     private val snapshot = resources.distinct().toList()
 
-    init {
-        require(snapshot.isNotEmpty()) { "Resolved resource catalog must not be empty" }
-    }
-
     fun snapshot(): List<ResolvedResourceKey> = snapshot
 
     fun read(key: ResolvedResourceKey): ByteArray? =
         key.takeIf(snapshot::contains)?.let(readBytes)
+
+    companion object {
+        fun combine(vararg catalogs: ResolvedResourceCatalog): ResolvedResourceCatalog {
+            val resources: Map<ResolvedResourceKey, ByteArray?> = catalogs
+                .flatMap { catalog -> catalog.snapshot() }
+                .distinct()
+                .associateWith { key ->
+                    catalogs.firstNotNullOfOrNull { catalog -> catalog.read(key) }
+                }
+            return ResolvedResourceCatalog(resources.keys) { key -> resources[key]?.copyOf() }
+        }
+    }
 }
 
 sealed interface ResourceResolution {

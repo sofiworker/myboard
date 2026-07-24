@@ -41,6 +41,8 @@ import xyz.xiao6.myboard.layout.*
 import xyz.xiao6.myboard.state.*
 import xyz.xiao6.myboard.theme.*
 import xyz.xiao6.myboard.pack.BuiltInLanguagePacks
+import xyz.xiao6.myboard.pack.PackageStore
+import xyz.xiao6.myboard.pack.PackageStoreProvider
 import xyz.xiao6.myboard.toolbar.ThemeToggler
 import xyz.xiao6.myboard.toolbar.LayoutSwitcher
 import xyz.xiao6.myboard.clipboard.ClipboardManagerWrapper
@@ -81,6 +83,7 @@ class MyBoardImeService : InputMethodService(), LifecycleOwner, SavedStateRegist
     private lateinit var displayPolicyRegistry: DisplayPolicyRegistryImpl
     private lateinit var dictionaryRegistry: DictionaryRegistryImpl
     private lateinit var engineResourceResolver: EngineResourceResolverImpl
+    private lateinit var packageStore: PackageStore
     private lateinit var settingsRepository: SettingsRepository
     private lateinit var themeToggler: ThemeToggler
     private lateinit var layoutSwitcher: LayoutSwitcher
@@ -113,6 +116,8 @@ class MyBoardImeService : InputMethodService(), LifecycleOwner, SavedStateRegist
     }
 
     private fun initRegistrationComponents() {
+        packageStore = PackageStoreProvider.get(this)
+
         // 1. 初始化底层注册表
         engineRegistry = EngineRegistryImpl()
         layoutRegistry = LayoutRegistryImpl()
@@ -127,7 +132,10 @@ class MyBoardImeService : InputMethodService(), LifecycleOwner, SavedStateRegist
             dictionaryRegistry = dictionaryRegistry,
             candidatePolicyRegistry = candidatePolicyRegistry,
             displayPolicyRegistry = displayPolicyRegistry,
-            resourceCatalog = builtInResourceCatalog()
+            resourceCatalog = ResolvedResourceCatalog.combine(
+                builtInResourceCatalog(),
+                packageStore.resourceCatalog()
+            )
         )
 
         // 3. 初始化正交注册表
@@ -247,6 +255,11 @@ class MyBoardImeService : InputMethodService(), LifecycleOwner, SavedStateRegist
         BuiltInLanguagePacks.all.forEach { manifest ->
             orthogonalRegistry.register(manifest)
         }
+        packageStore.snapshot().registrySnapshot.providersByLocale
+            .values
+            .flatten()
+            .distinctBy { it.identity }
+            .forEach(orthogonalRegistry::register)
     }
 
     override fun onCreateInputView(): View {
