@@ -79,6 +79,66 @@ class PackageLifecycleTest {
         assertTrue(optionalResult.warnings.isNotEmpty())
     }
 
+    @Test
+    fun `upgrade that introduces a required dependency cycle is rejected`() {
+        val store = PackageStore()
+        assertTrue(store.install(packagePayload("language.a", SemVer(1, 0, 0))).isSuccess)
+        assertTrue(
+            store.install(
+                packagePayload(
+                    "language.b",
+                    SemVer(1, 0, 0),
+                    dependencies = listOf(PackageDependency("language.a", VersionRange(SemVer(1, 0, 0))))
+                )
+            ).isSuccess
+        )
+
+        val result = store.install(
+            packagePayload(
+                "language.a",
+                SemVer(2, 0, 0),
+                dependencies = listOf(PackageDependency("language.b", VersionRange(SemVer(1, 0, 0))))
+            )
+        )
+
+        assertFalse(result.isSuccess)
+        assertEquals(SemVer(1, 0, 0), store.snapshot().active["language.a"]?.version)
+    }
+
+    @Test
+    fun `unicode equivalent duplicate resource paths fail without mutating snapshot`() {
+        val store = PackageStore()
+        assertTrue(store.install(packagePayload("language.demo", SemVer(1, 0, 0))).isSuccess)
+        val payload = packagePayload("language.other", SemVer(1, 0, 0))
+        val duplicateResources = payload.resources + mapOf(
+            "layouts/caf\u00e9.json" to "one".encodeToByteArray(),
+            "layouts/cafe\u0301.json" to "two".encodeToByteArray()
+        )
+
+        val result = store.install(payload.copy(resources = duplicateResources))
+
+        assertFalse(result.isSuccess)
+        assertEquals(setOf("language.demo"), store.snapshot().active.keys)
+    }
+
+    @Test
+    fun `failed resource decoding does not leak a package lease`() {
+        val store = PackageStore()
+        val version = SemVer(1, 0, 0)
+        assertTrue(store.install(packagePayload("language.demo", version)).isSuccess)
+
+        assertTrue(
+            runCatching {
+                store.acquireResource<String>("language.demo", "layouts/main.json") {
+                    error("decoder failed")
+                }
+            }.isFailure
+        )
+        assertTrue(store.uninstall("language.demo").isSuccess)
+
+        assertFalse(store.hasRetainedVersion("language.demo", version))
+    }
+
     private fun packagePayload(
         packageId: String,
         version: SemVer,

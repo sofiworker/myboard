@@ -26,7 +26,12 @@ class PackageStore {
 
     @Synchronized
     fun install(payload: PackagePayload): PackageOperationResult {
-        val staged = payload.copy(resources = payload.resources.copyNormalized())
+        val staged = runCatching { payload.copy(resources = payload.resources.copyNormalized()) }
+            .getOrElse { error ->
+                return PackageOperationResult.Failure(
+                    listOf(error.message ?: "Package resources could not be normalized")
+                )
+            }
         val validationErrors = staged.validateForActivation()
         if (validationErrors.isNotEmpty()) return PackageOperationResult.Failure(validationErrors)
 
@@ -39,6 +44,11 @@ class PackageStore {
 
         val dependencyResult = validateDependencies(staged.manifest.dependencies, staged.manifest.identity)
         if (dependencyResult.errors.isNotEmpty()) return PackageOperationResult.Failure(dependencyResult.errors)
+        if (introducesRequiredDependencyCycle(staged.manifest)) {
+            return PackageOperationResult.Failure(
+                listOf("Package '${staged.manifest.identity.packageId}' introduces a required dependency cycle")
+            )
+        }
 
         val identity = staged.manifest.identity
         // Staging never mutates the published pointer. Only this point can activate it.
@@ -87,8 +97,9 @@ class PackageStore {
         if (stored.state != PackageVersionState.ACTIVE) return null
         val normalizedPath = normalizePath(path) ?: return null
         val resource = stored.payload.resources[normalizedPath] ?: return null
+        val value = decode(resource.copyOf())
         stored.leases += 1
-        return ResourceHandle(decode(resource.copyOf())) {
+        return ResourceHandle(value) {
             release(identity)
         }
     }
@@ -132,6 +143,32 @@ class PackageStore {
             }
         }
         return DependencyValidation(errors, warnings)
+    }
+
+    private fun introducesRequiredDependencyCycle(candidate: LanguagePackManifest): Boolean {
+        val manifests = activeIds.values
+            .filterNot { it.packageId == candidate.identity.packageId }
+            .mapNotNull { versions[it]?.payload?.manifest }
+            .plus(candidate)
+            .associateBy { it.identity.packageId }
+        val visiting = mutableSetOf<String>()
+        val visited = mutableSetOf<String>()
+
+        fun hasCycle(packageId: String): Boolean {
+            if (packageId in visiting) return true
+            if (!visited.add(packageId)) return false
+            visiting += packageId
+            val cycle = manifests[packageId]?.dependencies.orEmpty()
+                .asSequence()
+                .filterNot(PackageDependency::optional)
+                .map(PackageDependency::packageId)
+                .filter(manifests::containsKey)
+                .any(::hasCycle)
+            visiting -= packageId
+            return cycle
+        }
+
+        return manifests.keys.any(::hasCycle)
     }
 
     private fun PackagePayload.validateForActivation(): List<String> = buildList {

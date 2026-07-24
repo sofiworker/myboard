@@ -16,7 +16,7 @@
 
 ## Partially Completed
 
-- Task 7: A minimal JVM `PackageStore` fake now covers active versions, leases, delayed removal, hashes, and dependency validation. ZIP staging, crash recovery, persisted activation state, and production PackageStore integration are not complete or verified.
+- Task 7: The JVM `PackageStore` now covers active versions, leases, delayed removal, hashes, required/optional dependencies, dependency-cycle rejection, Unicode-normalized duplicate paths, transactional validation failure, and decoder-failure lease cleanup. ZIP staging, crash recovery, persisted activation state, and production PackageStore integration are not complete or verified.
 
 ## Not Started
 
