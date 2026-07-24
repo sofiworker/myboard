@@ -13,11 +13,19 @@ import xyz.xiao6.myboard.data.entity.ToolbarItemType
 import xyz.xiao6.myboard.data.settings.KeyboardHeightPolicy
 import xyz.xiao6.myboard.contract.state.LocaleTag
 import xyz.xiao6.myboard.contract.state.Schema
+import xyz.xiao6.myboard.contract.state.OrthogonalState
+import xyz.xiao6.myboard.contract.state.Script
+import xyz.xiao6.myboard.pack.LanguagePackPreferencesStore
+
+data class LanguagePackPreferences(
+    val enabledPackageIds: Set<String> = emptySet(),
+    val providerPreferences: Map<OrthogonalState, String> = emptyMap()
+)
 
 /**
  * 设置仓库。单一数据源，协调 DAO 层与上层 ViewModel。
  */
-class SettingsRepository(private val dao: SettingsDao) {
+class SettingsRepository(private val dao: SettingsDao) : LanguagePackPreferencesStore {
 
     // ===== 通用设置 =====
 
@@ -131,6 +139,28 @@ class SettingsRepository(private val dao: SettingsDao) {
         setEnabledLocaleConfigs(configs)
     }
 
+    override suspend fun getLanguagePackPreferences(): LanguagePackPreferences = LanguagePackPreferences(
+        enabledPackageIds = parseEnabledPackageIds(getSetting(KEY_ENABLED_LANGUAGE_PACKAGES)),
+        providerPreferences = parseProviderPreferences(getSetting(KEY_PROVIDER_PREFERENCES))
+    )
+
+    override suspend fun updateLanguagePackPreferences(preferences: LanguagePackPreferences) {
+        val enabledJson = buildJsonArray {
+            preferences.enabledPackageIds.sorted().forEach(::add)
+        }.toString()
+        val providersJson = buildJsonObject {
+            preferences.providerPreferences.entries
+                .sortedBy { (state, _) -> state.preferenceKey() }
+                .forEach { (state, packageId) -> put(state.preferenceKey(), packageId) }
+        }.toString()
+        dao.upsertSettings(
+            listOf(
+                SettingsEntity(KEY_ENABLED_LANGUAGE_PACKAGES, enabledJson),
+                SettingsEntity(KEY_PROVIDER_PREFERENCES, providersJson)
+            )
+        )
+    }
+
     // ===== 初始化 =====
 
     suspend fun initializeDefaults() {
@@ -147,6 +177,35 @@ class SettingsRepository(private val dao: SettingsDao) {
     companion object {
         const val KEY_TOOLBAR_LAYOUT_MODE = "toolbar_layout_mode"
         const val KEY_ENABLED_LOCALE_CONFIGS = "enabled_locale_configs"
+        const val KEY_ENABLED_LANGUAGE_PACKAGES = "enabled_language_packages"
+        const val KEY_PROVIDER_PREFERENCES = "language_provider_preferences"
+
+        fun parseEnabledPackageIds(raw: String?): Set<String> = runCatching {
+            raw?.let(Json::parseToJsonElement)
+                ?.jsonArray
+                ?.map { it.jsonPrimitive.content }
+                ?.filter(String::isNotBlank)
+                ?.toSet()
+                .orEmpty()
+        }.getOrDefault(emptySet())
+
+        fun parseProviderPreferences(raw: String?): Map<OrthogonalState, String> = runCatching {
+            raw?.let(Json::parseToJsonElement)
+                ?.jsonObject
+                ?.mapNotNull { (key, value) ->
+                    parsePreferenceKey(key)?.let { it to value.jsonPrimitive.content }
+                }
+                ?.filter { (_, packageId) -> packageId.isNotBlank() }
+                ?.toMap()
+                .orEmpty()
+        }.getOrDefault(emptyMap())
+
+        private fun parsePreferenceKey(value: String): OrthogonalState? {
+            val parts = value.split('|')
+            if (parts.size != 3) return null
+            val script = Script.parse(parts[1]) ?: return null
+            return OrthogonalState(LocaleTag(parts[0]), script, Schema(parts[2]))
+        }
 
         /** 默认每语言的 schema 配置 */
         private fun defaultLocaleConfigs(): Map<LocaleTag, List<Schema>> = mapOf(
@@ -169,6 +228,8 @@ class SettingsRepository(private val dao: SettingsDao) {
         private val DEFAULT_SETTINGS = mapOf(
             "current_locale" to "en-US",
             KEY_ENABLED_LOCALE_CONFIGS to """{"en-US":["LATIN_DIRECT"],"zh-CN":["PINYIN"]}""",
+            KEY_ENABLED_LANGUAGE_PACKAGES to "[]",
+            KEY_PROVIDER_PREFERENCES to "{}",
             "theme_mode" to "auto",
             "current_theme" to "default",
             "key_font_size" to "18",
@@ -199,3 +260,6 @@ class SettingsRepository(private val dao: SettingsDao) {
         val horizontalInsetDp: Int
     )
 }
+
+private fun OrthogonalState.preferenceKey(): String =
+    "${locale.value}|${script.value}|${schema.value}"

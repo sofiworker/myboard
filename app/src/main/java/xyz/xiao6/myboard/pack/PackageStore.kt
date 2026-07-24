@@ -130,6 +130,11 @@ class PackageStore(
     fun snapshot(): Snapshot = current
 
     @Synchronized
+    fun installedManifests(): List<LanguagePackManifest> = activePayloads()
+        .map(PackagePayload::manifest)
+        .toList()
+
+    @Synchronized
     fun checkpoint(): PackageStoreCheckpoint = PackageStoreCheckpoint(activePayloads()).deepCopy()
 
     @Synchronized

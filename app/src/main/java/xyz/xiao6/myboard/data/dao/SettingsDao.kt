@@ -26,6 +26,11 @@ interface SettingsDao {
     @Upsert
     suspend fun upsertSetting(entity: SettingsEntity)
 
+    @Transaction
+    suspend fun upsertSettings(entities: List<SettingsEntity>) {
+        entities.forEach { upsertSetting(it) }
+    }
+
     @Query("SELECT COUNT(*) FROM settings")
     suspend fun getSettingCount(): Int
 

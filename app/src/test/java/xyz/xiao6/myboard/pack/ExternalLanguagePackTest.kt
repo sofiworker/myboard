@@ -11,6 +11,8 @@ import xyz.xiao6.myboard.contract.language.PackageDependency
 import xyz.xiao6.myboard.contract.language.VersionRange
 import xyz.xiao6.myboard.contract.language.SemVer
 import xyz.xiao6.myboard.contract.state.OrthogonalState
+import kotlinx.coroutines.runBlocking
+import xyz.xiao6.myboard.data.repository.LanguagePackPreferences
 
 class ExternalLanguagePackTest {
 
@@ -140,6 +142,70 @@ class ExternalLanguagePackTest {
             enabledExternalPackageIds = setOf(dependent.identity.packageId)
         )
         assertTrue(invalid.errors.any { it.contains("external.base") })
+    }
+
+    @Test
+    fun `coordinator enables installed package and protects active state on disable`() = runBlocking {
+        val manifest = installableArabicManifest()
+        val store = PackageStore()
+        assertTrue(store.install(PackagePayload(manifest, mapOf("layouts/arabic.json" to byteArrayOf(1)))).isSuccess)
+        val preferences = FakePreferencesStore()
+        val activeState = OrthogonalState(manifest.locale, Script.ARAB, manifest.defaults.schema)
+        val coordinator = LanguagePackCoordinator(
+            packageStore = store,
+            preferencesStore = preferences,
+            builtInManifests = listOf(BuiltInLanguagePacks.enUS),
+            activeStateSource = ActiveOrthogonalStateSource { activeState }
+        )
+
+        assertTrue(coordinator.enable(manifest.identity.packageId).isSuccess)
+        assertEquals(setOf(manifest.identity.packageId), preferences.value.enabledPackageIds)
+
+        val disabled = coordinator.disable(manifest.identity.packageId)
+        assertTrue(disabled is PackageOperationResult.Failure)
+        assertEquals(setOf(manifest.identity.packageId), preferences.value.enabledPackageIds)
+    }
+
+    @Test
+    fun `coordinator restores package when preference write fails during uninstall`() = runBlocking {
+        val manifest = installableArabicManifest()
+        val store = PackageStore()
+        assertTrue(store.install(PackagePayload(manifest, mapOf("layouts/arabic.json" to byteArrayOf(1)))).isSuccess)
+        val preferences = FakePreferencesStore(
+            LanguagePackPreferences(enabledPackageIds = setOf(manifest.identity.packageId))
+        ).apply { failWrites = true }
+        val coordinator = LanguagePackCoordinator(
+            packageStore = store,
+            preferencesStore = preferences,
+            builtInManifests = listOf(BuiltInLanguagePacks.enUS)
+        )
+
+        val result = coordinator.uninstall(manifest.identity.packageId)
+
+        assertTrue(result is PackageOperationResult.Failure)
+        assertEquals(manifest.identity.version, store.snapshot().active[manifest.identity.packageId]?.version)
+    }
+
+    private fun installableArabicManifest() = decoder.decode(validArabicManifest().encodeToByteArray()).let { manifest ->
+        val layout = manifest.defaults.layout.copy(sha256 = null)
+        manifest.copy(
+            defaults = manifest.defaults.copy(layout = layout),
+            dependencies = emptyList(),
+            capabilities = manifest.capabilities.map { it.copy(layout = layout) }
+        )
+    }
+
+    private class FakePreferencesStore(
+        var value: LanguagePackPreferences = LanguagePackPreferences()
+    ) : LanguagePackPreferencesStore {
+        var failWrites = false
+
+        override suspend fun getLanguagePackPreferences(): LanguagePackPreferences = value
+
+        override suspend fun updateLanguagePackPreferences(preferences: LanguagePackPreferences) {
+            check(!failWrites) { "room write failed" }
+            value = preferences
+        }
     }
 
     private fun validArabicManifest(): String = """
