@@ -1,6 +1,10 @@
 # Language Capability Resource System Status
 
-**Updated:** 2026-07-24
+**Updated:** 2026-07-27
+
+**Status:** Awaiting Review
+
+**Completion:** Incomplete
 
 **Overall:** WIP. The implementation plan is not complete and this checkpoint must not be treated as release-ready.
 
